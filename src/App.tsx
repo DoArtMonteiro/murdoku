@@ -4,11 +4,23 @@ import { useGame } from './hooks/useGame'
 import { useTheme } from './hooks/useTheme'
 import HomeScreen from './components/HomeScreen'
 import GameScreen from './components/GameScreen'
+import ErrorBoundary from './components/ErrorBoundary'
 
 const importVictory = () => import('./components/VictoryScreen')
 const importReleases = () => import('./components/ReleaseNotes')
 const VictoryScreen = lazy(importVictory)
 const ReleaseNotes = lazy(importReleases)
+// R1 reference case: `?ref=nightplan` | `?ref=plan3d` plays very-easy-1 in one of
+// the two competing board variants. Honoured in production builds on purpose:
+// the reference build is what the owner reviews.
+const ReferenceGame = lazy(() => import('./reference/ReferenceGame'))
+// `?ref=city`: visual-language prototype of the city / casebook (R2).
+const CityMap = lazy(() => import('./reference/city/CityMap'))
+const isCityRoute = () => new URLSearchParams(window.location.search).get('ref') === 'city'
+function referenceVariant(): 'nightplan' | 'plan3d' | 'illustrated' | null {
+  const v = new URLSearchParams(window.location.search).get('ref')
+  return v === 'nightplan' || v === 'plan3d' || v === 'illustrated' ? v : null
+}
 
 function Fallback() {
   return (
@@ -24,9 +36,11 @@ export default function App() {
   // it never touched Framer's JS-driven springs, so without this the whole app
   // ignored prefers-reduced-motion.
   return (
-    <MotionConfig reducedMotion="user">
-      <AppInner />
-    </MotionConfig>
+    <ErrorBoundary>
+      <MotionConfig reducedMotion="user">
+        <AppInner />
+      </MotionConfig>
+    </ErrorBoundary>
   )
 }
 
@@ -40,6 +54,7 @@ function AppInner() {
   // Dev deep link: `?case=<id>` opens a case directly so the scene QA loop
   // (screenshots, diagnostics) does not have to click through the catalog.
   // Only honoured once, on the home screen, and never in production builds.
+  const refVariant = useRef(referenceVariant()).current
   const deepLinked = useRef(false)
   useEffect(() => {
     if (!import.meta.env.DEV || deepLinked.current) return
@@ -62,6 +77,22 @@ function AppInner() {
     const order = game.puzzles.map(p => p.id)
     const next = order[order.indexOf(game.puzzle.id) + 1]
     if (next) game.start(next, game.mode)
+  }
+
+  if (isCityRoute()) {
+    return (
+      <Suspense fallback={<Fallback />}>
+        <CityMap game={game} />
+      </Suspense>
+    )
+  }
+
+  if (refVariant) {
+    return (
+      <Suspense fallback={<Fallback />}>
+        <ReferenceGame variant={refVariant} game={game} />
+      </Suspense>
+    )
   }
 
   // Cold start: the 60-case catalog is generated one case per macrotask AFTER
@@ -113,7 +144,9 @@ function AppInner() {
           canUndo={game.history.length > 0}
           canRedo={game.future.length > 0}
           feedback={game.feedback}
-          correctCount={game.correctCount}
+          accusationsLeft={game.accusationsLeft}
+          revealed={game.revealed}
+          attempts={game.attempts}
           resolvedClues={game.resolvedClues}
           onSelectPerson={game.selectPerson}
           onSetTool={game.setTool}
@@ -126,6 +159,8 @@ function AppInner() {
           onAssist={game.assist}
           onToggleTimer={game.toggleTimer}
           onSubmit={game.submit}
+          onReveal={game.reveal}
+          onStartOver={game.startOver}
           onDismissFeedback={game.dismissFeedback}
           onBack={() => game.navigate('home')}
           onSwitchFloor={game.switchFloor}

@@ -14,7 +14,7 @@
 
 import type { Puzzle, Clue, Cell, FurnitureType, Difficulty } from './types'
 import { furnitureCells, furnitureFootprint, cellFloor } from './types'
-import { countSolutions, isSolution, findMurderer, roomIdAt, furnitureAt } from './engine'
+import { countSolutions, isSolution, findMurderer, roomIdAt, unaryLegalFor } from './engine'
 import { clueDirectness, DIFFICULTY_CONFIG } from './generate'
 import { DEFAULT_MODEL, MODEL_META } from '../scene3d/catalog'
 
@@ -91,36 +91,7 @@ function sameClue(a: Clue, b: Clue): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-function unaryLegal(p: Puzzle, personId: string, cell: Cell): boolean {
-  const fl = cellFloor(cell)
-  for (const { clue } of p.clues) {
-    if (clue.person !== personId) continue
-    switch (clue.kind) {
-      case 'room': if (roomIdAt(p, cell) !== clue.roomId) return false; break
-      case 'onFurniture': case 'onlyOnFurniture': if (!furnitureAt(p, cell.row, cell.col, fl).includes(clue.furniture)) return false; break
-      case 'besideFurniture': if (!adjacentHas(p, cell, [clue.furniture])) return false; break
-      case 'besideAny': if (!adjacentHas(p, cell, clue.furniture)) return false; break
-      case 'row': if (cell.row !== clue.row) return false; break
-      case 'col': if (cell.col !== clue.col) return false; break
-      case 'edge': if (!(cell.row === 0 || cell.col === 0 || cell.row === p.size - 1 || cell.col === p.size - 1)) return false; break
-      case 'corner': if (!((cell.row === 0 || cell.row === p.size - 1) && (cell.col === 0 || cell.col === p.size - 1))) return false; break
-      case 'floor': if (fl !== clue.floorNum) return false; break
-      case 'notRoom': if (roomIdAt(p, cell) === clue.roomId) return false; break
-      case 'above': if (clue.targetKind === 'room' && (fl === 0 || roomIdAt(p, { row: cell.row, col: cell.col, floor: fl - 1 }) !== clue.target)) return false; break
-      case 'below': if (clue.targetKind === 'room' && roomIdAt(p, { row: cell.row, col: cell.col, floor: fl + 1 }) !== clue.target) return false; break
-      default: break
-    }
-  }
-  return true
-}
-function adjacentHas(p: Puzzle, cell: Cell, types: FurnitureType[]): boolean {
-  const fl = cellFloor(cell)
-  return [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([dr, dc]) => {
-    const r = cell.row + dr, c = cell.col + dc
-    if (r < 0 || c < 0 || r >= p.size || c >= p.size) return false
-    return furnitureAt(p, r, c, fl).some(t => types.includes(t))
-  })
-}
+const unaryLegal = unaryLegalFor
 
 // ---------------------------------------------------------------------------
 

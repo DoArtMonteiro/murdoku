@@ -5,8 +5,7 @@ import {
   HelpCircle, Eye, EyeOff, Info, Palette, Wand2, MoreHorizontal,
 } from 'lucide-react'
 import type { Puzzle, CellMark, GameMode, Furniture, FurnitureType } from '../core/types'
-import { findFailingClues, resolveClueHighlights, resolveCluePreviewFloor, satisfiedClueFlags } from '../core/ux'
-import { clueHolds } from '../core/engine'
+import { resolveClueHighlights, resolveCluePreviewFloor } from '../core/ux'
 import type { Tool } from '../hooks/useGame'
 import { makeFrame, makeStoreyFrame, type StoreyView } from '../scene3d/units'
 import IsoBoard from './IsoBoard'
@@ -33,8 +32,14 @@ interface Props {
   hideTimer: boolean
   canUndo: boolean
   canRedo: boolean
-  feedback: 'none' | 'incomplete' | 'wrong' | 'blocked'
-  correctCount: number
+  /** 'wrong' says only that the account is not the solution; 'cold' = no accusations left. */
+  feedback: 'none' | 'incomplete' | 'wrong' | 'blocked' | 'cold'
+  /** Wrong accusations left before the case goes cold. */
+  accusationsLeft?: number
+  /** The solution was shown for this case: nothing on it counts. */
+  revealed?: boolean
+  /** Times this case has been started over. */
+  attempts?: number
   resolvedClues: string[]
   onSelectPerson: (id: string) => void
   onSetTool: (t: Tool) => void
@@ -47,6 +52,10 @@ interface Props {
   onAssist?: () => void
   onToggleTimer: () => void
   onSubmit: () => void
+  /** Cold case: show the solution (the case is not counted as solved). */
+  onReveal?: () => void
+  /** Cold case: clear the board and start a fresh attempt with a full budget. */
+  onStartOver?: () => void
   onDismissFeedback: () => void
   onBack: () => void
   /** Switch active floor — only called when puzzle.floors === 2. */
@@ -77,7 +86,7 @@ function LegendContent() {
 export default function GameScreen(props: Props) {
   const {
     puzzle, mode, marks, conflicts, placedOf, selectedPerson, tool, hintsLeft,
-    timer, hideTimer, feedback, correctCount, resolvedClues,
+    timer, hideTimer, feedback, resolvedClues,
     onSelectPerson: selectPerson, onSetTool: setTool, onCell: commitCell,
   } = props
   const cluesOf: Record<string, string[]> = {}
@@ -196,7 +205,7 @@ export default function GameScreen(props: Props) {
   const [liveMsg, setLiveMsg] = useState('')
   const prevPlacedOf = useRef<Props['placedOf'] | null>(null)
   const prevMarks = useRef<CellMark[][] | null>(null)
-  const prevFeedback = useRef<'none' | 'incomplete' | 'wrong' | 'blocked'>('none')
+  const prevFeedback = useRef<Props['feedback']>('none')
   const prevSubmitNonce = useRef(0)
 
   // Use the placement's floor, which can differ from the currently viewed floor.
@@ -293,7 +302,8 @@ export default function GameScreen(props: Props) {
       const msg =
         feedback === 'incomplete' ? 'Accusation incomplete — place every person first' :
         feedback === 'blocked' ? 'Accusation blocked — that row or column is already taken' :
-        feedback === 'wrong' ? `Accusation rejected — ${correctCount} of ${puzzle.people.length} in the right spot` :
+        feedback === 'wrong' ? "Accusation rejected — the account doesn't hold up" :
+        feedback === 'cold' ? 'No accusations left — the case has gone cold' :
         ''
       if (msg) setLiveMsg(msg)
     }
@@ -302,19 +312,29 @@ export default function GameScreen(props: Props) {
     prevMarks.current = marks
     prevFeedback.current = feedback
     prevSubmitNonce.current = submitNonce
-  }, [correctCount, feedback, marks, placedOf, puzzle.people, puzzle.size, roomName, submitNonce])
+  }, [feedback, marks, placedOf, puzzle.people, puzzle.size, roomName, submitNonce])
 
   // A miss or an illegal placement is a real rejection and earns the shake.
   // "You haven't finished yet" is guidance, not a mistake, so it only surfaces
   // the message — shaking there would scold the player for doing nothing wrong.
-  // A rejected accusation used to say only how many were right, which tells the
-  // player nothing about WHERE the reasoning went wrong. Naming the first rule
-  // their arrangement breaks points at the flaw without giving away a position:
-  // they still have to work out why it broke. Only clues whose people are all
-  // placed are eligible, so it never blames an unplaced suspect.
-  const brokenRule = feedback === 'wrong'
-    ? findFailingClues(puzzle, placedOf, clueHolds)[0]?.text ?? null
-    : null
+  //
+  // A rejected accusation says ONE thing: the account does not hold up. It used
+  // to report how many suspects were in the right spot and name the first rule
+  // the arrangement broke, which turned the Accuse button into a free oracle a
+  // script could walk to the answer with. Do not add detail back here.
+
+  // What a rejected accusation may say. Every part is computed from the
+  // player's OWN board and notes, never from the solution, so two different
+  // wrong accounts that look alike on the board get identical words.
+  const budgetWords = ['No accusations left.', 'One accusation left.', 'Two accusations left.']
+  const wrongMessage = [
+    "The account doesn't hold up.",
+    props.accusationsLeft !== undefined ? budgetWords[props.accusationsLeft] : undefined,
+    conflicts.size > 0 ? 'Two suspects share a row or column.' : undefined,
+    detective && resolvedClues.length < puzzle.people.length
+      ? `Not yet checked off: ${puzzle.people.filter(x => !resolvedClues.includes(x.id)).map(x => x.name).join(', ')}.`
+      : undefined,
+  ].filter(Boolean).join(' ')
 
   // ── Two-floor derivation ────────────────────────────────────────────────
   // Rows and columns are shared across storeys: a suspect upstairs consumes
@@ -358,7 +378,7 @@ export default function GameScreen(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockedKey])
 
-  const hardReject = feedback === 'wrong' || feedback === 'blocked'
+  const hardReject = feedback === 'wrong' || feedback === 'blocked' || feedback === 'cold'
 
   // Replay the shake by restarting the animation IN PLACE rather than by
   // remounting via `key`. Remounting destroys the focused node, so a keyboard
@@ -1021,7 +1041,7 @@ export default function GameScreen(props: Props) {
                   Detective mode's contract is proof-first: an answer dropped by
                   the game breaks that contract. Use Assist instead. */}
               {!detective && (
-                <ToolBtn onClick={props.onHint} disabled={hintsLeft <= 0} icon={<Lightbulb size={16} />} label={`Hint ×${hintsLeft}`} />
+                <ToolBtn onClick={props.onHint} disabled={hintsLeft <= 0 || feedback === 'cold' || !!props.revealed} icon={<Lightbulb size={16} />} label={`Hint ×${hintsLeft}`} />
               )}
               {/* Assist — Detective only. Marks cells that are provably empty
                   from row/column occupancy and unary clues — free and unlimited,
@@ -1104,7 +1124,6 @@ export default function GameScreen(props: Props) {
                     key={person.id}
                     person={person}
                     clues={cluesOf[person.id] ?? []}
-                    satisfiedClues={satisfiedClueFlags(puzzle, person.id, placedOf, clueHolds)}
                     selected={selectedPerson === person.id}
                     placed={!!placedOf[person.id]}
                     locked={!!placedOf[person.id]?.locked}
@@ -1142,7 +1161,8 @@ export default function GameScreen(props: Props) {
               ref={ctaRef}
               whileTap={{ scale: 0.97 }}
               onClick={handleSubmit}
-              className="focus-ring w-full py-4 font-display font-bold tracking-[0.15em] uppercase text-sm transition-colors"
+              disabled={feedback === 'cold'}
+              className="focus-ring w-full py-4 font-display disabled:opacity-50 disabled:cursor-not-allowed font-bold tracking-[0.15em] uppercase text-sm transition-colors"
               style={{
                 background: 'var(--color-accent)',
                 color: 'var(--color-on-accent)',
@@ -1162,7 +1182,7 @@ export default function GameScreen(props: Props) {
                 composited property fight during the 400ms overlap. The CTA
                 above carries the shake; this only re-plays its entry. */}
             <AnimatePresence>
-              {feedback !== 'none' && (
+              {feedback !== 'none' && feedback !== 'cold' && (
                 <motion.button
                   onClick={props.onDismissFeedback}
                   key={`feedback-${submitNonce}`}
@@ -1180,12 +1200,39 @@ export default function GameScreen(props: Props) {
                     ? 'Place every person first.'
                     : feedback === 'blocked'
                     ? 'That row or column is already taken by another suspect.'
-                    : brokenRule
-                    ? `${correctCount} of ${puzzle.people.length} in the right spot. This is broken: "${brokenRule}"`
-                    : `Not quite — ${correctCount} of ${puzzle.people.length} are in the right spot. Keep deducing.`}
+                    : wrongMessage}
                 </motion.button>
               )}
             </AnimatePresence>
+            {props.revealed && feedback !== 'cold' && (
+              <p
+                role="status"
+                data-testid="case-revealed"
+                className="text-[12px] font-mono px-3 py-2 w-full tracking-wide"
+                style={{ borderLeft: '2px solid var(--color-danger)', color: 'var(--color-danger-text)' }}
+              >
+                Case revealed — not counted as solved.
+              </p>
+            )}
+            {feedback === 'cold' && (
+              <div
+                role="group"
+                aria-label="Case gone cold"
+                data-testid="cold-case"
+                className="text-[12px] font-mono px-3 py-2 w-full tracking-wide grid gap-2"
+                style={{
+                  color: 'var(--color-danger-text)',
+                  backgroundColor: 'color-mix(in srgb, var(--color-danger) 14%, transparent)',
+                  borderLeft: '2px solid var(--color-danger)',
+                }}
+              >
+                <p>The case has gone cold. Reveal the solution (it will not count as solved) or start over with a fresh set of accusations. Starting over is recorded as attempt {(props.attempts ?? 0) + 2}.{props.revealed ? ' This case was already revealed, so nothing on it counts as solved.' : ''}</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={props.onReveal} disabled={!props.onReveal} className="focus-ring min-h-[44px] flex-1 border px-3 font-display font-bold uppercase tracking-[0.12em]" style={{ borderColor: 'var(--color-danger)' }}>Reveal</button>
+                  <button type="button" onClick={props.onStartOver} disabled={!props.onStartOver} className="focus-ring min-h-[44px] flex-1 border px-3 font-display font-bold uppercase tracking-[0.12em]" style={{ borderColor: 'var(--color-danger)' }}>Start over</button>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>{/* end dossier column */}

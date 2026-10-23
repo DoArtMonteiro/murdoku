@@ -3,9 +3,10 @@ import type { Puzzle, Cell, CellMark, FurnitureType } from '../core/types'
 import { furnitureCells } from '../core/types'
 import { resolveScene } from '../scene3d/resolve'
 import { sceneFor } from '../scene3d/scenes'
+import { withoutLookalikes } from '../scene3d/lookalikes'
 import type { SceneRenderer } from '../scene3d/renderer'
 import { validateScene, formatViolations } from '../scene3d/validate'
-import { makeStoreyFrame, STOREY_HEIGHT, type StoreyView } from '../scene3d/units'
+import { CELL, makeStoreyFrame, STOREY_HEIGHT, type StoreyView } from '../scene3d/units'
 import Avatar from './Avatar'
 
 // ============================================================================
@@ -64,7 +65,13 @@ const SKIN = {
   placementCue: '#62400B',
   laneRow: 'rgba(145,91,28,0.75)',
   laneCol: 'rgba(33,104,126,0.75)',
+  laneRowSolid: '#915B1C',
+  laneColSolid: '#21687E',
 }
+
+/** Axis numerals: CSS px, so they stay legible when the board is scaled down. */
+const AXIS_FONT_PX = 12
+const AXIS_OFFSET_PX = 15
 
 const flag = (name: string) =>
   typeof window !== 'undefined' && new URLSearchParams(window.location.search).has(name)
@@ -83,12 +90,12 @@ export default function IsoBoard({
   const active = hover?.scope === scope ? hover : selection
   const descriptionId = useId()
 
-  const spec = useMemo(() => sceneFor(puzzle, floor), [puzzle, floor])
+  const spec = useMemo(() => withoutLookalikes(sceneFor(puzzle, floor), puzzle), [puzzle, floor])
   const rawScene = useMemo(() => resolveScene(spec, N), [spec, N])
   const twoStorey = (puzzle.floors ?? 1) > 1
   const companionFloor = (floor === 0 ? 1 : 0) as 0 | 1
   const companionSpec = useMemo(
-    () => twoStorey ? sceneFor(puzzle, companionFloor) : null,
+    () => twoStorey ? withoutLookalikes(sceneFor(puzzle, companionFloor), puzzle) : null,
     [twoStorey, puzzle, companionFloor],
   )
   const companionScene = useMemo(
@@ -237,6 +244,78 @@ export default function IsoBoard({
   const points = (poly: Array<[number, number]>) => poly.map(p => p.join(',')).join(' ')
   const centreOf = (r: number, c: number) => frame.project(frame.cellCentre(r, c, scene.floorY[r][c]))
   const cellPoly = (r: number, c: number) => frame.cellPolygon(r, c, scene.floorY[r][c])
+
+  // ---- axis numerals, from the SAME projection as the cell polygons ---------
+  // Row r runs along world x, so its far end meets the front-right edge; column
+  // c runs along world z and meets the front-left edge. Each numeral sits on
+  // that edge at the strip's middle, pushed outward along the screen direction
+  // the world axis continues in (the same projection, one cell on).
+  const axisLabels = (() => {
+    const unit = (a: [number, number], b: [number, number]): [number, number] => {
+      const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1
+      return [dx / len, dy / len]
+    }
+    const rows: Array<{ index: number; x: number; y: number; dx: number; dy: number }> = []
+    const cols: typeof rows = []
+    for (let i = 0; i < N; i++) {
+      const rc = frame.cellCentre(i, N - 1, scene.floorY[i][N - 1])
+      const rowEdge = frame.project([rc[0] + CELL / 2, rc[1], rc[2]])
+      const [rdx, rdy] = unit(rowEdge, frame.project([rc[0] + CELL / 2 + CELL, rc[1], rc[2]]))
+      rows.push({ index: i, x: rowEdge[0], y: rowEdge[1], dx: rdx, dy: rdy })
+      const cc = frame.cellCentre(N - 1, i, scene.floorY[N - 1][i])
+      const colEdge = frame.project([cc[0], cc[1], cc[2] + CELL / 2])
+      const [cdx, cdy] = unit(colEdge, frame.project([cc[0], cc[1], cc[2] + CELL / 2 + CELL]))
+      cols.push({ index: i, x: colEdge[0], y: colEdge[1], dx: cdx, dy: cdy })
+    }
+    return { rows, cols }
+  })()
+  /** One word per axis, beyond the middle numeral, so rows and columns are never confused. */
+  const axisTitle = (kind: 'row' | 'col') => {
+    const labels = kind === 'row' ? axisLabels.rows : axisLabels.cols
+    const a = labels[Math.floor((N - 1) / 2)], b = labels[Math.ceil((N - 1) / 2)]
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, dx: a.dx, dy: a.dy }
+    const push = AXIS_OFFSET_PX + 24
+    return (
+      <span
+        key={`${kind}-title`}
+        data-axis-title={kind}
+        style={{
+          position: 'absolute',
+          left: `calc(${(mid.x / frame.width) * 100}% + ${mid.dx * push}px)`,
+          top: `calc(${(mid.y / frame.height) * 100}% + ${mid.dy * push}px)`,
+          transform: 'translate(-50%, -50%)', whiteSpace: 'nowrap',
+          fontSize: AXIS_FONT_PX - 1, lineHeight: 1, letterSpacing: '0.14em', fontWeight: 700,
+          color: 'var(--color-text-primary)',
+        }}
+      >{kind === 'row' ? 'ROW' : 'COL'}</span>
+    )
+  }
+  const axisChip = (kind: 'row' | 'col', label: { index: number; x: number; y: number; dx: number; dy: number }) => {
+    const on = kind === 'row' ? active?.row === label.index : active?.col === label.index
+    const solid = kind === 'row' ? SKIN.laneRowSolid : SKIN.laneColSolid
+    return (
+      <span
+        key={`${kind}${label.index}`}
+        data-axis-numeral={kind}
+        data-axis-index={label.index + 1}
+        data-axis-active={on ? '' : undefined}
+        style={{
+          position: 'absolute',
+          left: `calc(${(label.x / frame.width) * 100}% + ${label.dx * AXIS_OFFSET_PX}px)`,
+          top: `calc(${(label.y / frame.height) * 100}% + ${label.dy * AXIS_OFFSET_PX}px)`,
+          transform: 'translate(-50%, -50%)',
+          minWidth: AXIS_FONT_PX + 8, height: AXIS_FONT_PX + 8, padding: '0 3px', boxSizing: 'border-box',
+          display: 'grid', placeItems: 'center', borderRadius: 4,
+          fontSize: AXIS_FONT_PX, lineHeight: 1, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+          // Resting numerals take the page's own text colour (checked >= 4.5:1 in both themes);
+          // the active lane gets a self-contained plate so it holds on any background.
+          color: on ? SKIN.markInk : 'var(--color-text-primary)',
+          background: on ? SKIN.draftPlate : 'transparent',
+          border: on ? `2px solid ${solid}` : '2px solid transparent',
+        }}
+      >{label.index + 1}</span>
+    )
+  }
 
   return (
     <div
@@ -460,12 +539,22 @@ export default function IsoBoard({
           </svg>
         </div>
       </div>
+      {/* Permanent coordinates, outside the clipped canvas: rows 1..N down the front-right
+          edge, columns 1..N down the front-left edge. Cells already carry "Row r, column c". */}
+      {!envOnly && (
+        <div aria-hidden data-axis-numerals="" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 40 }}>
+          {axisLabels.rows.map(label => axisChip('row', label))}
+          {axisLabels.cols.map(label => axisChip('col', label))}
+          {axisTitle('row')}
+          {axisTitle('col')}
+        </div>
+      )}
       {!envOnly && <>
         <span id={descriptionId} className="sr-only">Use arrow keys to move between cells. Enter or Space applies the selected tool. Rows and columns are shared across floors.</span>
         {/* Below the board on narrow screens so it never covers the south tip; inside it on desktop. */}
         <div role="status" aria-live="polite" aria-atomic="true" className="absolute inset-x-2 top-full mt-1 lg:top-auto lg:mt-0 lg:bottom-[3px]" style={{ pointerEvents: 'none', textAlign: 'center', fontSize: 12, lineHeight: 1.4, color: SKIN.draftPlate }}>
           {active && <span style={{ display: 'inline-block', padding: '4px 8px', background: SKIN.markInk }}>
-            {`R${active.row + 1} · C${active.col + 1} · ${roomName(active.row, active.col)} — ${guidanceFor(active.row, active.col)}`}
+            {`Row ${active.row + 1} · Column ${active.col + 1}${roomName(active.row, active.col) ? ` · ${roomName(active.row, active.col)}` : ''} — ${guidanceFor(active.row, active.col)}`}
           </span>}
         </div>
         {highlightLabel && <span style={{ position: 'absolute', top: 4, left: 8, maxWidth: 'calc(100% - 16px)', padding: '4px 8px', background: SKIN.draftPlate, color: SKIN.markInk, fontSize: 12, pointerEvents: 'none' }}>Clue: {highlightLabel}</span>}

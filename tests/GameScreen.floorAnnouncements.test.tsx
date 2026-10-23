@@ -14,7 +14,7 @@ const props = {
   puzzle, mode: 'classic' as const, marks: emptyMarks(), conflicts: new Set<string>(),
   placedOf: {}, selectedPerson: 'p0', tool: 'place' as const, hintsLeft: 3,
   timer: '00:00', hideTimer: false, canUndo: false, canRedo: false,
-  feedback: 'none' as const, correctCount: 0, resolvedClues: [],
+  feedback: 'none' as const, resolvedClues: [],
   onSelectPerson: vi.fn(), onSetTool: vi.fn(), onCell: vi.fn(), onToggleClue: vi.fn(),
   onUndo: vi.fn(), onRedo: vi.fn(), onClear: vi.fn(), onHint: vi.fn(),
   onToggleTimer: vi.fn(), onSubmit: vi.fn(), onDismissFeedback: vi.fn(), onBack: vi.fn(),

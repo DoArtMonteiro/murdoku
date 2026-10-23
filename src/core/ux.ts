@@ -111,6 +111,25 @@ function validCellMark(value: unknown, personIds: ReadonlySet<string>): value is
 }
 
 /**
+ * A size x size grid of valid marks, or null. Untrusted input from storage:
+ * wrong dimensions, unknown marks and people not in the case all fail closed.
+ */
+export function parseMarksGrid(value: unknown, size: number, personIds: ReadonlySet<string>): CellMark[][] | null {
+  if (!Array.isArray(value) || value.length !== size) return null
+  const grid: CellMark[][] = []
+  for (const row of value) {
+    if (!Array.isArray(row) || row.length !== size) return null
+    const out: CellMark[] = []
+    for (const mark of row) {
+      if (!validCellMark(mark, personIds)) return null
+      out.push(mark)
+    }
+    grid.push(out)
+  }
+  return grid
+}
+
+/**
  * Parse an autosaved play into the small, read-only summary needed by Home.
  * Invalid JSON, unknown cases, wrong board dimensions, and stale person ids
  * are deliberately treated as no resumable work.
@@ -313,6 +332,13 @@ export const serializeNotes = serializeCaseNotes
  *
  * Deliberately reports the clue text, never a cell. Victim flavour clues are
  * skipped because they assert nothing testable about placement.
+ *
+ * NOT FOR THE ACCUSE FLOW. Feeding this to a rejected accusation turns the
+ * button into an oracle: each wrong submit then names a rule the arrangement
+ * breaks, which a script can walk to the answer. GameScreen no longer calls it
+ * (a rejection says one thing: the account does not hold up). It stays as a
+ * pure helper for tests and for tools that want a player's own board checked
+ * on request.
  */
 export function findFailingClues(
   puzzle: Puzzle,
@@ -342,6 +368,11 @@ export function findFailingClues(
  * A clue is only counted once every person it mentions is on the board. An
  * unmet clue about a suspect who has not been placed yet is not a failure and
  * must not read as one.
+ *
+ * NOT DRAWN BY THE GAME. SuspectCard used to tick a clue whenever the current
+ * board satisfied it, which let a player slide a token around until the ticks
+ * came on instead of reading the clue. The ticks are off; this helper remains
+ * for tests and for any view that checks a board on explicit request.
  */
 export function satisfiedClueFlags(
   puzzle: Puzzle,

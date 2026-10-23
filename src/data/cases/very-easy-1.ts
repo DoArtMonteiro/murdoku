@@ -54,5 +54,10 @@ export const veryEasy1: AuthoredCaseSpec = {
   ],
   maxDirectness: 3,
   minDirectness: 0,
+  // Owen's "In the Living Room." card predates the literal-meaning fix to
+  // "Beside" (it now excludes the piece you stand on and anything through a
+  // wall). The clue is now redundant for uniqueness, but it is the card the
+  // reference presentation was built around, so it is kept on purpose.
+  requiredClues: [{ kind: 'room', person: 'p0', roomId: 'room3' }],
   flavor: 'A parcel was left on the porch and never made it inside. Owen was found in the Living Room, the delivery still unopened beside him — trace each alibi to its room, and the one left beside him is the killer.',
 }

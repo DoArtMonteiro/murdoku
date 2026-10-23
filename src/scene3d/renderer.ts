@@ -18,6 +18,7 @@ import { companionFloorBoxes, companionWallBoxesThroughStairwell } from './compa
 import { exteriorSupportMembers } from './exteriorSupport'
 import { floorPatches } from './floorGeometry'
 import { explodedConnectionSegments } from './explodedConnection'
+import { SEE_THROUGH_OPACITY, seeThroughOccluders } from './sightlines'
 
 // ---- look: one light, one palette rule -------------------------------------
 /** Kenney's palette is authored for a bright render; a mild saturation lift
@@ -133,6 +134,26 @@ function boxMesh(box: Box3, face: string, cap: string): THREE.Mesh {
   m.castShadow = true
   m.receiveShadow = true
   return m
+}
+
+/** Draws a model's meshes translucent and shadowless: it still reads as an
+ *  object, but no playable cell behind it is hidden. Materials are cloned
+ *  because model clones share them. */
+function makeSeeThrough(group: THREE.Object3D): void {
+  group.traverse(node => {
+    const mesh = node as THREE.Mesh
+    if (!mesh.isMesh) return
+    const fade = (material: THREE.Material) => {
+      const copy = material.clone()
+      copy.transparent = true
+      copy.opacity = material.opacity * SEE_THROUGH_OPACITY
+      copy.depthWrite = false
+      return copy
+    }
+    mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fade) : fade(mesh.material)
+    mesh.castShadow = false
+    mesh.renderOrder = 3
+  })
 }
 
 function ghostBox(box: Box3, offsetY: number, opacity: number, colour = '#c9ab72'): THREE.LineSegments {
@@ -265,11 +286,16 @@ export function createSceneRenderer(canvas: HTMLCanvasElement, scene: ResolvedSc
     }))
   }
   // Grounded frame members carry the upper slab without adding floor or navigation cells.
+  // Only the posts are drawn, and see-through: the overhead beams and joists sit
+  // above the standee line and the companion storey already draws the slab
+  // outline, so solid members would only hide the ground cells under the overhang.
+  const seeThrough = seeThroughOccluders(scene)
   for (const member of exteriorSupportMembers(scene)) {
-    const mesh = boxMesh(member.box, SUPPORT_FACE, SUPPORT_CAP)
-    if (member.kind === 'joist') mesh.castShadow = false
-    world.add(mesh)
     diagGroup.add(helperFor(member.box, '#8a6641'))
+    if (member.kind !== 'column') continue
+    const mesh = boxMesh(member.box, SUPPORT_FACE, SUPPORT_CAP)
+    if (seeThrough.supports.has(member.id)) makeSeeThrough(mesh)
+    world.add(mesh)
   }
   // thresholds: a half-height step on the low side of every opening to lower ground
   for (const t of scene.thresholds) world.add(boxMesh(t, FOUNDATION, FOUNDATION))
@@ -314,6 +340,7 @@ export function createSceneRenderer(canvas: HTMLCanvasElement, scene: ResolvedSc
       g.position.set(o.position[0], o.position[1], o.position[2])
       g.rotation.y = (o.rotY * Math.PI) / 180
       g.userData = { id: o.id, model: o.model, logic: o.logic }
+      if (seeThrough.objects.has(o.id)) makeSeeThrough(g)
       world.add(g)
       const colour = o.kind === 'furniture' ? (o.parentId ? '#ff4fd8' : '#3ddc84') : '#9aa0a6'
       diagGroup.add(helperFor(o.box, colour))

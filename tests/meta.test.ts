@@ -29,10 +29,18 @@ describe('daily case', () => {
     expect(dailyPuzzle([], todayStamp())).toBeNull()
   })
 
-  it('always returns a two-storey case from the real catalog', () => {
-    const daily = dailyPuzzle(puzzles, '2026-08-14')
-    expect(daily).not.toBeNull()
-    expect((daily!.floors ?? 1)).toBeGreaterThanOrEqual(2)
+  // CHANGED (P0 puzzle truth): the daily used to be drawn only from the
+  // two-storey pool, so a Monday player could never get an easy case. It now
+  // follows the week: Mon Very Easy, Tue Easy, Wed Medium, Thu Hard, Fri Expert,
+  // Sat Master, Sun Medium (keyed by the local calendar date in the stamp).
+  it('follows the weekly difficulty rhythm on the real catalog', () => {
+    const week: [string, string][] = [
+      ['2026-08-10', 'Very Easy'], ['2026-08-11', 'Easy'], ['2026-08-12', 'Medium'],
+      ['2026-08-13', 'Hard'], ['2026-08-14', 'Expert'], ['2026-08-15', 'Master'], ['2026-08-16', 'Medium'],
+    ]
+    for (const [stamp, tier] of week) {
+      expect(dailyPuzzle(puzzles, stamp)?.difficulty, stamp).toBe(tier)
+    }
   })
 
   it('is stable for a given date — same puzzle every call', () => {
@@ -40,22 +48,24 @@ describe('daily case', () => {
     expect(dailyPuzzle(puzzles, stamp)?.id).toBe(dailyPuzzle(puzzles, stamp)?.id)
   })
 
-  it('varies across a week (two-storey pool has enough cases)', () => {
-    // With 30 two-storey cases in the catalog (Hard 12 + Expert 10 + Master 8)
-    // five consecutive dates must produce at least two distinct puzzles.
+  it('varies across a week', () => {
+    // Five consecutive dates span five different tiers, so five different puzzles.
     const days = ['2026-08-14', '2026-08-15', '2026-08-16', '2026-08-17', '2026-08-18']
     const ids = new Set(days.map(stamp => dailyPuzzle(puzzles, stamp)?.id))
     expect(ids.size).toBeGreaterThan(1)
   })
 
-  it('falls back to the full catalog when no two-storey puzzles exist', () => {
-    // Build a synthetic catalog with only single-floor puzzles (floors absent).
-    const singleFloor = puzzles.filter(p => (p.floors ?? 1) < 2)
-    // Guard: if somehow all puzzles became two-floor, skip — but log clearly.
-    if (!singleFloor.length) return
-    const daily = dailyPuzzle(singleFloor, '2026-08-14')
+  it('falls back to the nearest populated tier when today\'s tier is missing', () => {
+    // Friday wants Expert; with no Expert or Master cases the nearest tier (Hard) serves.
+    const noTop = puzzles.filter(p => p.difficulty !== 'Expert' && p.difficulty !== 'Master')
+    const daily = dailyPuzzle(noTop, '2026-08-14')
     expect(daily).not.toBeNull()
-    expect((daily!.floors ?? 1)).toBeLessThan(2)
+    expect(daily!.difficulty).toBe('Hard')
+    // A catalog of one tier still produces a daily every day of the week.
+    const onlyEasy = puzzles.filter(p => p.difficulty === 'Easy')
+    for (const stamp of ['2026-08-10', '2026-08-13', '2026-08-15', '2026-08-16']) {
+      expect(dailyPuzzle(onlyEasy, stamp)?.difficulty, stamp).toBe('Easy')
+    }
   })
 })
 
@@ -91,12 +101,15 @@ describe('badges', () => {
     expect(badges.every(b => b.name.length > 0 && b.description.length > 0)).toBe(true)
   })
 
+  // CHANGED (P0 puzzle truth): the record stores hints USED, but the badge used
+  // to be earned when the record held 3 (the starting allowance), i.e. only by a
+  // player who had spent all three. A clean solve records 0.
   it('derives badges from one clean, fast solve', () => {
     const first = puzzles[0]
     const badges = computeBadges({
       puzzles,
       completedIds: [first.id],
-      records: { [first.id]: { bestSeconds: 95, hints: 3 } },
+      records: { [first.id]: { bestSeconds: 95, hints: 0 } },
       streak,
     })
     const earned = new Set(badges.filter(b => b.earned).map(b => b.id))
@@ -104,6 +117,19 @@ describe('badges', () => {
     expect(earned.has('unaided')).toBe(true)
     expect(earned.has('quick')).toBe(true)      // 95s is under two minutes
     expect(earned.has('complete')).toBe(false)
+  })
+
+  it('does not award No Assistance to a solve that spent hints', () => {
+    const first = puzzles[0]
+    for (const used of [1, 2, 3]) {
+      const badges = computeBadges({
+        puzzles,
+        completedIds: [first.id],
+        records: { [first.id]: { bestSeconds: 600, hints: used } },
+        streak,
+      })
+      expect(badges.find(b => b.id === 'unaided')!.earned, `${used} hints used`).toBe(false)
+    }
   })
 })
 

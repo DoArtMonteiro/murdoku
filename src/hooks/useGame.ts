@@ -5,8 +5,13 @@ import { getAllPuzzles, getPuzzleById, initCatalogAsync } from '../core/catalog'
 import { deriveEliminations, findMurderer } from '../core/engine'
 import { advanceStreak, dailyPuzzle, loadStreak, saveStreak, todayStamp } from '../core/daily'
 import type { StreakState } from '../core/daily'
-import { IN_PROGRESS_KEY, LEGACY_IN_PROGRESS_KEY, parseInProgress } from '../core/ux'
+import { IN_PROGRESS_KEY, LEGACY_IN_PROGRESS_KEY, parseInProgress, parseMarksGrid } from '../core/ux'
 import type { InProgressSummary } from '../core/ux'
+import { MODE_KEY, TIMER_KEY, UPPER_FLOOR_KEY, readJson, removeKey, writeJson } from '../core/storage'
+import {
+  MAX_ACCUSATIONS, loadCaseState, loadRecords, loadSolved, puzzleFingerprint, saveCaseState, saveRecord, saveSolved,
+} from '../core/progress'
+import type { CaseRecord } from '../core/progress'
 
 export type Tool = 'place' | 'x' | 'draft'
 
@@ -28,8 +33,27 @@ interface GameState {
   elapsedSeconds: number
   completed: boolean
   murderer: string | null
-  feedback: 'none' | 'incomplete' | 'wrong' | 'blocked'
-  correctCount: number       // # correctly-placed suspects at last wrong submit
+  /**
+   * Outcome of the last Accuse. 'wrong' carries exactly ONE bit: the account
+   * is not the solution. Nothing about HOW wrong it was is kept anywhere.
+   * 'cold' = the accusation budget is spent and the case needs Reveal or Start over.
+   */
+  feedback: 'none' | 'incomplete' | 'wrong' | 'blocked' | 'cold'
+  /** Wrong accusations left before the case goes cold. */
+  accusationsLeft: number
+  /** Suspects a hint has already placed (persisted per case so Clear / re-entering cannot refill hints). */
+  hinted: string[]
+  /**
+   * The solution has been shown for this case (persisted per content
+   * fingerprint, so it survives reload, Start over and re-entering). While true,
+   * nothing the player does on this case counts: no tick, record, streak or
+   * badge. UIs should say "Case revealed — not counted", never "Case closed".
+   */
+  revealed: boolean
+  /** The revealed (or uncounted-win) board is on screen and read-only. Session-only. */
+  solutionShown: boolean
+  /** Times the player has started this case over after it went cold. */
+  attempts: number
   hideTimer: boolean
   resolvedClues: string[]   // person ids the player has crossed off (detective)
   completedIds: string[]
@@ -48,6 +72,9 @@ type Action =
   | { type: 'UNDO' }
   | { type: 'HINT' }
   | { type: 'SUBMIT' }
+  | { type: 'REVEAL' }
+  | { type: 'START_OVER' }
+  | { type: 'SYNC_PROGRESS' }
   | { type: 'DISMISS_FEEDBACK' }
   | { type: 'REDO' }
   | { type: 'TOGGLE_TIMER' }
@@ -56,9 +83,6 @@ type Action =
   | { type: 'SWITCH_FLOOR'; floor: 0 | 1 }
 
 const HINTS_START = 3
-const STORAGE_KEY = 'murdoku_solved_v2'
-const MODE_KEY = 'murdoku_mode'
-const TIMER_KEY = 'murdoku_hide_timer'
 
 function emptyMarks(n: number): CellMark[][] {
   return Array.from({ length: n }, () => Array.from({ length: n }, () => ({ kind: 'empty' as const })))
@@ -77,22 +101,14 @@ function activeFloorMarks(mpf: CellMark[][][], floor: 0 | 1): CellMark[][] {
   return mpf[floor] ?? mpf[0]
 }
 
-function loadSolved(): string[] { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') } catch { return [] } }
-function saveSolved(ids: string[]) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ids)) } catch { /* ignore */ } }
-
-const RECORDS_KEY = 'murdoku_records'
-export interface CaseRecord { bestSeconds: number; hints: number }
-export function loadRecords(): Record<string, CaseRecord> {
-  try { return JSON.parse(localStorage.getItem(RECORDS_KEY) ?? '{}') } catch { return {} }
-}
-function saveRecord(id: string, seconds: number, hints: number) {
+export type { CaseRecord }
+export { loadRecords }
+function loadMode(): GameMode {
   try {
-    const r = loadRecords()
-    if (!r[id] || seconds < r[id].bestSeconds) r[id] = { bestSeconds: seconds, hints }
-    localStorage.setItem(RECORDS_KEY, JSON.stringify(r))
-  } catch { /* ignore */ }
+    const v = localStorage.getItem(MODE_KEY)
+    return v === 'detective' || v === 'classic' ? v : 'classic'
+  } catch { return 'classic' }
 }
-function loadMode(): GameMode { try { return (localStorage.getItem(MODE_KEY) as GameMode) || 'classic' } catch { return 'classic' } }
 function loadHideTimer(): boolean { try { return localStorage.getItem(TIMER_KEY) === '1' } catch { return false } }
 
 // --- mid-solve autosave (survives backing out to the case list / tab close) --
@@ -100,59 +116,56 @@ function loadHideTimer(): boolean { try { return localStorage.getItem(TIMER_KEY)
 // too so existing installs retain their resume behavior and compatibility.
 const PLAY_KEY = IN_PROGRESS_KEY
 const LEGACY_PLAY_KEY = LEGACY_IN_PROGRESS_KEY
-// NEW key: stores upper floor marks for two-floor puzzles only.
-// MUST NOT be renamed — it is a new key, not a rename of existing keys.
-const UPPER_FLOOR_KEY = 'murdoku_floor_marks_v1'
-interface SavedPlay { id: string; mode: GameMode; marks: CellMark[][]; elapsed: number; hints: number; selected: string | null }
-function loadPlay(puzzle?: Puzzle): { play: SavedPlay; marksPerFloor: CellMark[][][] } | null {
+// The key that stores upper floor marks for two-floor puzzles (storage.ts).
+// MUST NOT be renamed — it is a separate key, not a rename of existing keys.
+interface SavedPlay { id: string; mode: GameMode; marks: CellMark[][]; elapsed: number; hints: number; selected: string | null; fp?: string }
+function loadPlay(puzzle: Puzzle): { play: SavedPlay; marksPerFloor: CellMark[][][] } | null {
   for (const key of [PLAY_KEY, LEGACY_PLAY_KEY]) {
-    try {
-      const raw = localStorage.getItem(key)
-      if (!raw) continue
-      const parsed = JSON.parse(raw) as SavedPlay
-      if (
-        parsed
-        && typeof parsed === 'object'
-        && typeof parsed.hints === 'number'
-        && Number.isFinite(parsed.hints)
-        && parsed.hints >= 0
-        && (!puzzle || parseInProgress(raw, [puzzle]))
-      ) {
-        // Reconstruct marksPerFloor: floor 0 = saved marks; floor 1 = new key if present
-        const mpf: CellMark[][][] = [parsed.marks]
-        try {
-          const upperRaw = localStorage.getItem(UPPER_FLOOR_KEY)
-          if (upperRaw) {
-            const upper = JSON.parse(upperRaw) as { id: string; marks: CellMark[][] }
-            if (upper?.id === parsed.id && Array.isArray(upper.marks)) {
-              mpf.push(upper.marks)
-            }
-          }
-        } catch { /* upper floor save absent or corrupt — single-floor resume */ }
-        return { play: parsed, marksPerFloor: mpf }
-      }
-    } catch { /* try the compatibility key */ }
+    const parsed = readJson(key) as Partial<SavedPlay> | null
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue
+    // A save made against different content is never applied to this puzzle.
+    if (typeof parsed.fp === 'string' && parsed.fp !== puzzleFingerprint(puzzle)) continue
+    if (!parseInProgress(parsed, [puzzle])) continue
+    const personIds = new Set(puzzle.people.map(x => x.id))
+    const ground = parseMarksGrid(parsed.marks, puzzle.size, personIds)
+    if (!ground) continue
+    const mpf: CellMark[][][] = [ground]
+    // Upper storeys live under their own key, validated just as strictly. A
+    // suspect cannot stand on two storeys, so an upper save that repeats one is dropped.
+    const upper = readJson(UPPER_FLOOR_KEY) as { id?: unknown; marks?: unknown } | null
+    if (upper && typeof upper === 'object' && upper.id === parsed.id) {
+      const grid = parseMarksGrid(upper.marks, puzzle.size, personIds)
+      const onGround = new Set(ground.flat().flatMap(m => (m.kind === 'person' ? [m.person] : [])))
+      const clash = grid?.flat().some(m => m.kind === 'person' && onGround.has(m.person))
+      if (grid && !clash) mpf.push(grid)
+    }
+    return {
+      play: {
+        id: parsed.id as string,
+        mode: parsed.mode as GameMode,
+        marks: ground,
+        elapsed: typeof parsed.elapsed === 'number' && Number.isFinite(parsed.elapsed) && parsed.elapsed >= 0 ? parsed.elapsed : 0,
+        hints: 0,
+        selected: typeof parsed.selected === 'string' && personIds.has(parsed.selected) ? parsed.selected : null,
+      },
+      marksPerFloor: mpf,
+    }
   }
   return null
 }
 function savePlay(p: SavedPlay, upperFloorMarks?: CellMark[][]) {
+  const raw = JSON.stringify(p)
   try {
-    const raw = JSON.stringify(p)
     localStorage.setItem(PLAY_KEY, raw)
     localStorage.setItem(LEGACY_PLAY_KEY, raw)
-    if (upperFloorMarks) {
-      localStorage.setItem(UPPER_FLOOR_KEY, JSON.stringify({ id: p.id, marks: upperFloorMarks }))
-    } else {
-      localStorage.removeItem(UPPER_FLOOR_KEY)
-    }
-  } catch { /* ignore */ }
+  } catch { return }
+  if (upperFloorMarks) writeJson(UPPER_FLOOR_KEY, { id: p.id, marks: upperFloorMarks })
+  else removeKey(UPPER_FLOOR_KEY)
 }
 function clearPlay() {
-  try {
-    localStorage.removeItem(PLAY_KEY)
-    localStorage.removeItem(LEGACY_PLAY_KEY)
-    localStorage.removeItem(UPPER_FLOOR_KEY)
-  } catch { /* ignore */ }
+  removeKey(PLAY_KEY)
+  removeKey(LEGACY_PLAY_KEY)
+  removeKey(UPPER_FLOOR_KEY)
 }
 function loadInProgressSummary(puzzles: readonly Puzzle[]): InProgressSummary | null {
   for (const key of [PLAY_KEY, LEGACY_PLAY_KEY]) {
@@ -252,7 +265,8 @@ const initial: GameState = {
   marks: [], marksPerFloor: [[]], activeFloor: 0,
   selectedPerson: null, tool: 'place',
   history: [], future: [], hintsLeft: HINTS_START, elapsedSeconds: 0, completed: false,
-  murderer: null, feedback: 'none', correctCount: 0, hideTimer: loadHideTimer(),
+  murderer: null, feedback: 'none', accusationsLeft: MAX_ACCUSATIONS, hinted: [], revealed: false, solutionShown: false, attempts: 0,
+  hideTimer: loadHideTimer(),
   resolvedClues: [], completedIds: loadSolved(),
 }
 
@@ -260,7 +274,14 @@ function pushHistory(state: GameState): CellMark[][][][] {
   return [...state.history.slice(-80), cloneMarksPerFloor(state.marksPerFloor)]
 }
 
+// After Reveal the solution is on the board for reading; nothing may edit it or
+// spend anything. Navigation, starting a case and the view controls still work.
+const WHEN_REVEALED: ReadonlySet<Action['type']> = new Set([
+  'NAVIGATE', 'START', 'SET_MODE', 'SWITCH_FLOOR', 'TOGGLE_TIMER', 'TICK', 'SELECT_PERSON', 'DISMISS_FEEDBACK', 'SYNC_PROGRESS',
+])
+
 function reducer(state: GameState, action: Action): GameState {
+  if (state.solutionShown && !WHEN_REVEALED.has(action.type)) return state
   switch (action.type) {
     case 'NAVIGATE':
       return { ...state, screen: action.screen }
@@ -289,14 +310,21 @@ function reducer(state: GameState, action: Action): GameState {
       } else {
         marksPerFloor = emptyMarksPerFloor(puzzle.size, floors)
       }
+      // Hints and accusations spent on this case live in their own fingerprinted
+      // store, NOT in the board autosave: Clear (which empties the autosave) and
+      // leaving and re-entering must never hand them back.
+      const spent = loadCaseState(puzzle)
+      const accusationsLeft = Math.max(0, MAX_ACCUSATIONS - spent.wrong)
       return {
         ...state, screen: 'game', mode: action.mode, puzzle, activeFloor: 0,
         marksPerFloor,
         marks: marksPerFloor[0],
         selectedPerson: resume ? (saved!.selected ?? puzzle.people[0]?.id ?? null) : (puzzle.people[0]?.id ?? null),
-        tool: 'place', history: [], future: [], hintsLeft: resume ? saved!.hints : HINTS_START,
+        tool: 'place', history: [], future: [],
+        hintsLeft: Math.max(0, HINTS_START - spent.hinted.length), hinted: spent.hinted,
         elapsedSeconds: resume ? saved!.elapsed : 0,
-        completed: false, murderer: null, feedback: 'none', correctCount: 0, resolvedClues: [],
+        completed: false, revealed: spent.revealed, solutionShown: false, attempts: spent.attempts, murderer: null,
+        feedback: accusationsLeft === 0 ? 'cold' : 'none', accusationsLeft, resolvedClues: [],
       }
     }
 
@@ -468,48 +496,102 @@ function reducer(state: GameState, action: Action): GameState {
       // contract, so hints are unavailable. The Assist tool (provable-empty
       // cell marking) is the detective's substitute.
       if (state.mode === 'detective') return state
-      if (!state.puzzle || state.hintsLeft <= 0) return state
-      const target = state.puzzle.people.find(person => {
-        const cell = personCellAcrossFloors(state.marksPerFloor, person.id)
-        const sol = state.puzzle!.solution[person.id]
-        return !cell || cell.row !== sol.row || cell.col !== sol.col || cell.floor !== (sol.floor ?? 0)
-      })
+      if (!state.puzzle || state.hintsLeft <= 0 || state.completed || state.revealed || state.accusationsLeft <= 0) return state
+      // The order is fixed by the case alone: bystanders first, then the victim,
+      // the murderer last. It must NOT depend on what the player has placed, or
+      // the choice of who gets hinted ("p0 was skipped, so p0 must already be
+      // right") would tell the player which of their placements are correct.
+      const target = hintOrder(state.puzzle).find(id => !state.hinted.includes(id))
       if (!target) return state
       const history = pushHistory(state)
       let mpf = cloneMarksPerFloor(state.marksPerFloor)
       // don't disturb locked correct answers
-      const targetCellNow = personCellAcrossFloors(mpf, target.id)
+      const targetCellNow = personCellAcrossFloors(mpf, target)
       if (targetCellNow) {
         const tm = mpf[targetCellNow.floor][targetCellNow.row][targetCellNow.col]
         if (tm.kind === 'person' && tm.locked) return state
       }
-      clearPersonAllFloors(mpf, target.id)
-      const sol = state.puzzle.solution[target.id]
+      clearPersonAllFloors(mpf, target)
+      const sol = state.puzzle.solution[target]
       const solFloor = sol.floor ?? 0
       const occ = mpf[solFloor][sol.row][sol.col]
       if (occ.kind === 'person') { if (occ.locked) return state; clearPersonAllFloors(mpf, occ.person) }
-      mpf[solFloor][sol.row][sol.col] = { kind: 'person', person: target.id }
+      mpf[solFloor][sol.row][sol.col] = { kind: 'person', person: target }
       mpf = withAutoXPerFloor(mpf, state.mode)
       const activeMarks = activeFloorMarks(mpf, state.activeFloor)
-      return checkWin({ ...state, marksPerFloor: mpf, marks: activeMarks, history, future: [], hintsLeft: state.hintsLeft - 1 })
+      const hinted = [...state.hinted, target]
+      const spent = loadCaseState(state.puzzle)
+      saveCaseState(state.puzzle, { ...spent, hinted })
+      // A hint may complete the arrangement, but it never closes the case: the
+      // player still has to make the accusation themselves.
+      return { ...state, marksPerFloor: mpf, marks: activeMarks, history, future: [], hintsLeft: Math.max(0, HINTS_START - hinted.length), hinted, feedback: 'none' }
     }
 
     case 'SUBMIT': {
-      if (!state.puzzle) return state
+      if (!state.puzzle || state.completed) return state
+      if (state.accusationsLeft <= 0) return { ...state, feedback: 'cold' }
       const allPlaced = state.puzzle.people.every(p => personCellAcrossFloors(state.marksPerFloor, p.id))
       if (!allPlaced) return { ...state, feedback: 'incomplete' }
-      const correctCount = state.puzzle.people.reduce((n, p) => {
+      // The ONLY thing an accusation reports is whether it is exactly right.
+      // No count of correct suspects, no clue named, no cell: a wrong account
+      // looks the same however close it was, so it cannot be used as an oracle.
+      const exact = state.puzzle.people.every(p => {
         const cell = personCellAcrossFloors(state.marksPerFloor, p.id)!
         const sol = state.puzzle!.solution[p.id]
         // Must match row, col AND floor — right position wrong storey is wrong
-        return n + (cell.row === sol.row && cell.col === sol.col && cell.floor === (sol.floor ?? 0) ? 1 : 0)
-      }, 0)
-      if (correctCount !== state.puzzle.people.length) return { ...state, feedback: 'wrong', correctCount }
-      return win(state)
+        return cell.row === sol.row && cell.col === sol.col && cell.floor === (sol.floor ?? 0)
+      })
+      if (exact) return win(state)
+      const spent = loadCaseState(state.puzzle)
+      const wrong = Math.min(MAX_ACCUSATIONS, MAX_ACCUSATIONS - state.accusationsLeft + 1)
+      saveCaseState(state.puzzle, { ...spent, wrong })
+      const accusationsLeft = MAX_ACCUSATIONS - wrong
+      return { ...state, accusationsLeft, feedback: accusationsLeft === 0 ? 'cold' : 'wrong' }
     }
 
+    case 'REVEAL': {
+      // Giving up. Only available once the case has gone cold. The solution is
+      // shown, the case is NOT marked solved, no record is written and no streak
+      // advances.
+      if (!state.puzzle || state.completed || state.accusationsLeft > 0) return state
+      const floors = state.puzzle.floors ?? 1
+      const shown = emptyMarksPerFloor(state.puzzle.size, floors)
+      for (const person of state.puzzle.people) {
+        const sol = state.puzzle.solution[person.id]
+        shown[sol.floor ?? 0][sol.row][sol.col] = { kind: 'person', person: person.id, locked: true }
+      }
+      clearPlay()
+      // Sticky and fingerprinted: reloading, Start over and winning later do not undo it.
+      saveCaseState(state.puzzle, { ...loadCaseState(state.puzzle), revealed: true })
+      return {
+        ...state, marksPerFloor: shown, marks: activeFloorMarks(shown, state.activeFloor),
+        history: pushHistory(state), future: [], completed: true, revealed: true, solutionShown: true,
+        murderer: findMurderer(state.puzzle, state.puzzle.solution), feedback: 'none',
+      }
+    }
+
+    case 'START_OVER': {
+      // A fresh attempt at a case that went cold: empty board, a full accusation
+      // budget, the attempt counted. Hints already spent stay spent, and the
+      // clock keeps running so a restart does not launder a slow time.
+      if (!state.puzzle || state.completed || state.accusationsLeft > 0) return state
+      const floors = state.puzzle.floors ?? 1
+      const mpf = emptyMarksPerFloor(state.puzzle.size, floors)
+      const spent = loadCaseState(state.puzzle)
+      saveCaseState(state.puzzle, { ...spent, wrong: 0, attempts: spent.attempts + 1 })
+      clearPlay()
+      return {
+        ...state, marksPerFloor: mpf, marks: mpf[0], activeFloor: 0, history: [], future: [], attempts: spent.attempts + 1,
+        resolvedClues: [], accusationsLeft: MAX_ACCUSATIONS, feedback: 'none',
+      }
+    }
+
+    case 'SYNC_PROGRESS':
+      return { ...state, completedIds: loadSolved() }
+
     case 'DISMISS_FEEDBACK':
-      return { ...state, feedback: 'none' }
+      // 'cold' is a state, not a message: it stays until the player picks Reveal or Start over.
+      return state.feedback === 'cold' ? state : { ...state, feedback: 'none' }
 
     case 'TICK':
       if (state.screen !== 'game' || state.completed) return state
@@ -520,33 +602,50 @@ function reducer(state: GameState, action: Action): GameState {
   }
 }
 
-function checkWin(state: GameState): GameState {
-  if (!state.puzzle) return state
-  const done = state.puzzle.people.every(p => {
-    const cell = personCellAcrossFloors(state.marksPerFloor, p.id)
-    const sol = state.puzzle!.solution[p.id]
-    return cell && cell.row === sol.row && cell.col === sol.col && cell.floor === (sol.floor ?? 0)
-  })
-  return done ? win(state) : state
+/**
+ * Who a hint places next. A function of the case alone (never of the board):
+ * bystanders in cast order, then the victim, then the murderer, so the first
+ * hints do not hand out the pair the accusation is about.
+ */
+function hintOrder(puzzle: Puzzle): string[] {
+  const murderer = findMurderer(puzzle, puzzle.solution) ?? puzzle.murdererId
+  const rank = (id: string) => (id === murderer ? 2 : id === puzzle.victimId ? 1 : 0)
+  return puzzle.people.map((x, i) => ({ id: x.id, i })).sort((a, b) => rank(a.id) - rank(b.id) || a.i - b.i).map(x => x.id)
 }
 
 function win(state: GameState): GameState {
-  const murderer = findMurderer(state.puzzle!, state.puzzle!.solution)
-  const completedIds = state.completedIds.includes(state.puzzle!.id)
-    ? state.completedIds : [...state.completedIds, state.puzzle!.id]
+  const puzzle = state.puzzle!
+  const murderer = findMurderer(puzzle, puzzle.solution)
+  if (state.revealed) {
+    // The solution was shown for this very content, so placing it again proves
+    // nothing. The board is accepted and read out, but no tick, record, streak
+    // or badge is earned and the victory screen ("Case closed") is not shown.
+    saveCaseState(puzzle, { fp: puzzleFingerprint(puzzle), hinted: [], wrong: 0, attempts: state.attempts, revealed: true })
+    clearPlay()
+    return { ...state, completed: true, solutionShown: true, murderer, feedback: 'none' }
+  }
+  const completedIds = state.completedIds.includes(puzzle.id)
+    ? state.completedIds : [...state.completedIds, puzzle.id]
   saveSolved(completedIds)
-  saveRecord(state.puzzle!.id, state.elapsedSeconds, HINTS_START - state.hintsLeft)
+  // The record stores hints USED, so "No Assistance" is `hints === 0`.
+  saveRecord(puzzle.id, state.elapsedSeconds, HINTS_START - state.hintsLeft)
+  // Solved: the next visit to this case starts with a full set of hints and accusations.
+  saveCaseState(puzzle, { fp: puzzleFingerprint(puzzle), hinted: [], wrong: 0, attempts: 0, revealed: false })
 
   // A streak only advances for the case that IS today's daily. Solving six
   // cases in one evening is not a six-day streak.
   const today = todayStamp()
-  if (dailyPuzzle(getAllPuzzles(), today)?.id === state.puzzle!.id) {
+  if (dailyPuzzle(getAllPuzzles(), today)?.id === puzzle.id) {
     saveStreak(advanceStreak(loadStreak(), today))
   }
 
   clearPlay() // solved — drop the in-progress autosave
   return { ...state, completed: true, murderer, screen: 'victory', completedIds, feedback: 'none' }
 }
+
+/** Exposed so tests can drive the pure reducer without a React tree. */
+export { reducer as gameReducer, initial as initialGameState }
+export type { GameState, Action as GameAction }
 
 export function useGame() {
   const [state, dispatch] = useReducer(reducer, initial)
@@ -560,7 +659,15 @@ export function useGame() {
   useEffect(() => {
     let live = true
     initCatalogAsync((done, total) => { if (live) setCatalogProgress({ done, total }) })
-      .then(list => { if (live) { setPuzzles(list); setCatalogProgress(null) } })
+      .then(list => {
+        if (!live) return
+        setPuzzles(list)
+        setCatalogProgress(null)
+        // Building the catalog reconciles saved progress with each case's
+        // fingerprint; pick up whatever it purged.
+        dispatch({ type: 'SYNC_PROGRESS' })
+      })
+      .catch(() => { if (live) setCatalogProgress(null) })
     return () => { live = false }
   }, [])
 
@@ -587,7 +694,7 @@ export function useGame() {
         const floor0 = state.marksPerFloor[0]
         const upperFloor = state.marksPerFloor.length > 1 ? state.marksPerFloor[1] : undefined
         savePlay(
-          { id: state.puzzle.id, mode: state.mode, marks: floor0, elapsed: state.elapsedSeconds, hints: state.hintsLeft, selected: state.selectedPerson },
+          { id: state.puzzle.id, mode: state.mode, marks: floor0, elapsed: state.elapsedSeconds, hints: state.hintsLeft, selected: state.selectedPerson, fp: puzzleFingerprint(state.puzzle) },
           upperFloor,
         )
       } else {
@@ -626,6 +733,9 @@ export function useGame() {
 
   return {
     ...state,
+    // Once the budget is spent the case is cold until the player chooses Reveal
+    // or Start over; nothing else (selecting a suspect, moving a token) lifts it.
+    feedback: state.accusationsLeft <= 0 && state.puzzle && !state.completed ? 'cold' as const : state.feedback,
     puzzles,
     catalogProgress,
     daily,
@@ -650,6 +760,8 @@ export function useGame() {
     hint: useCallback(() => dispatch({ type: 'HINT' }), []),
     assist: useCallback(() => dispatch({ type: 'ASSIST' }), []),
     submit: useCallback(() => dispatch({ type: 'SUBMIT' }), []),
+    reveal: useCallback(() => dispatch({ type: 'REVEAL' }), []),
+    startOver: useCallback(() => dispatch({ type: 'START_OVER' }), []),
     dismissFeedback: useCallback(() => dispatch({ type: 'DISMISS_FEEDBACK' }), []),
     switchFloor: useCallback((floor: 0 | 1) => dispatch({ type: 'SWITCH_FLOOR', floor }), []),
   }

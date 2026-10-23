@@ -30,7 +30,7 @@ interface Props {
 
 export default function SuspectCard({
   person, clues, selected, placed, locked, conflicted, resolved, showCheck,
-  located, canLocate, satisfiedClues, onSelect, onToggleResolved, onToggleLocate,
+  located, canLocate, onSelect, onToggleResolved, onToggleLocate,
 }: Props) {
   const portraitIndex = [...person.id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 8
   const portraitColumn = portraitIndex % 4
@@ -126,22 +126,20 @@ export default function SuspectCard({
             /* Clue text: font-mono — typed evidence on the case file.
                This is the signature move of the redesign: clues read as
                a detective's typewritten notes, not UI body copy.
-               satisfied = the current board arrangement already meets this clue;
-               we lift the text to evidence-ink (declared fixed material color)
-               and show a small tick. This is a progress cue only — quiet,
-               never amber (Amber Evidence Rule), never shouts "solved". */
-            const satisfied = satisfiedClues?.[i] === true
+               There is deliberately NO per-clue "satisfied" tick. It used to
+               light up when the current board met a clue, which let a player
+               click suspects around until the ticks came on and never read a
+               clue (and on relational clues it confirmed partial answers). The
+               `satisfiedClues` prop is still accepted so callers compile, but
+               it is not drawn. Checking a clue off is the player's own act
+               (showCheck / onToggleResolved). */
             return (
               <p
                 key={i}
                 className={`text-[11px] leading-snug mt-0.5 font-mono flex gap-1 items-baseline ${resolved ? 'line-through' : ''}`}
-                style={{ color: satisfied ? '#19150F' : '#30291D' }}
+                style={{ color: '#30291D' }}
               >
-                {satisfied
-                  ? <Check size={9} strokeWidth={3} className="flex-shrink-0 mt-[1px]" aria-label="clue satisfied" style={{ color: '#19150F' }} />
-                  : clues.length > 1
-                    ? <span className="flex-shrink-0 opacity-60" aria-hidden>—</span>
-                    : null}
+                {clues.length > 1 ? <span className="flex-shrink-0 opacity-60" aria-hidden>—</span> : null}
                 <span>{c}</span>
               </p>
             )

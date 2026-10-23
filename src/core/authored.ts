@@ -2,8 +2,8 @@ import type {
   Puzzle, Room, Furniture, Person, Cell, Clue, GridSize, Difficulty,
 } from './types'
 import { furnitureCells, furnitureFootprint } from './types'
-import { countSolutions, findMurderer, roomIdAt } from './engine'
-import { candidateClues, clueDirectness, pruneClues, clueToText, ACCENTS } from './generate'
+import { clueHolds, countSolutions, findMurderer, roomIdAt } from './engine'
+import { candidateClues, clueDirectness, pruneClues, clueToText, selectClueTexts, ACCENTS } from './generate'
 
 // ============================================================================
 // Hand-authored cases.
@@ -51,6 +51,14 @@ export interface AuthoredCaseSpec {
   /** Clues that carry authored intent and must survive solver-driven pruning.
    *  Person and room ids use the deterministic p0 / room0 ids assigned above. */
   requiredClues?: Clue[]
+  /**
+   * Freeze the layout but let the generator's selector choose the clues, from
+   * this fixed seed. For cases that began life as procedural layouts and whose
+   * hand-built 3D scene pins the exact furniture (see data/cases/frozen-layouts.ts).
+   * When set, requiredClues and the directness band are ignored in favour of the
+   * tier's own configuration.
+   */
+  generatorSeed?: number
   /** Author-written intro blurb — this is the one place a "generated" case can't compete. */
   flavor: string
 }
@@ -180,6 +188,16 @@ export function buildAuthoredPuzzle(spec: AuthoredCaseSpec, caseNumber: string):
   if (!murderer) throw new Error(`${spec.slug}: victim's room does not have exactly one other suspect in it`)
   base.murdererId = murderer
 
+  if (spec.generatorSeed !== undefined) {
+    base.clues = selectClueTexts(base, spec.difficulty, spec.generatorSeed)
+    const real = base.clues.filter(c => c.clue.kind !== 'victim')
+    for (const { clue } of real) {
+      if (!clueHolds(base, clue, solution)) throw new Error(`${spec.slug}: clue ${JSON.stringify(clue)} is not true for the authored solution`)
+    }
+    if (countSolutions(base, 2) !== 1) throw new Error(`${spec.slug}: frozen layout does not have a unique solution`)
+    return base
+  }
+
   // Solver-driven greedy clue selection (Phase-B style: no arithmetic pre-scoring,
   // since this runs once at author time, not on a hot path).
   const candidates = candidateClues(base)
@@ -228,6 +246,9 @@ export function buildAuthoredPuzzle(spec: AuthoredCaseSpec, caseNumber: string):
     throw new Error(`${spec.slug}: could not reach a unique solution with the given rooms/furniture/clue band — redesign the layout`)
   }
   const chosen = pruneClues(base, acc, required, 'stable')
+  for (const clue of chosen) {
+    if (!clueHolds(base, clue, solution)) throw new Error(`${spec.slug}: clue ${JSON.stringify(clue)} is not true for the authored solution`)
+  }
   base.clues = chosen.map(c => ({ clue: c, text: clueToText(base, c) }))
   base.clues.push({ clue: { kind: 'victim', person: victimId }, text: clueToText(base, { kind: 'victim', person: victimId }) })
 

@@ -3,14 +3,14 @@
   "catalogSize": 60,
   "summary": {
     "hardErrors": 0,
-    "warnings": 20,
-    "casesWithWarnings": 19
+    "warnings": 18,
+    "casesWithWarnings": 18
   },
   "byDifficulty": {
     "Very Easy": {
       "cases": 8,
       "hardErrors": 0,
-      "warnings": 0,
+      "warnings": 1,
       "metrics": {
         "people": {
           "min": 4,
@@ -20,37 +20,37 @@
         "clues": {
           "min": 5,
           "max": 7,
-          "mean": 6.125
+          "mean": 6.25
         },
         "forcedAtStart": {
           "min": 1,
           "max": 3,
-          "mean": 1.875
+          "mean": 2.125
         },
         "forcedBySingles": {
           "min": 2,
           "max": 4,
-          "mean": 3.5
+          "mean": 3.75
         },
         "needsSearch": {
           "min": 0,
           "max": 2,
-          "mean": 0.5
+          "mean": 0.25
         },
         "meanCandidates": {
           "min": 1.25,
           "max": 3.5,
-          "mean": 2.125
+          "mean": 1.8438
         },
         "startingCandidateEntropy": {
           "min": 0.25,
           "max": 1.5425,
-          "mean": 0.7912
+          "mean": 0.6592
         },
         "propagationRounds": {
           "min": 1,
           "max": 3,
-          "mean": 1.75
+          "mean": 1.875
         },
         "relationalClues": {
           "min": 0,
@@ -64,13 +64,13 @@
         },
         "redundantClues": {
           "min": 0,
-          "max": 0,
-          "mean": 0
+          "max": 1,
+          "mean": 0.125
         },
         "meanDirectness": {
           "min": 1.4,
-          "max": 2.1429,
-          "mean": 1.7411
+          "max": 2.1667,
+          "mean": 1.6506
         }
       }
     },
@@ -86,38 +86,38 @@
         },
         "clues": {
           "min": 4,
-          "max": 8,
-          "mean": 5.7
+          "max": 7,
+          "mean": 5.6
         },
         "forcedAtStart": {
           "min": 0,
           "max": 3,
-          "mean": 2
+          "mean": 2.1
         },
         "forcedBySingles": {
           "min": 0,
           "max": 4,
-          "mean": 3.4
+          "mean": 3.6
         },
         "needsSearch": {
           "min": 0,
           "max": 4,
-          "mean": 0.6
+          "mean": 0.4
         },
         "meanCandidates": {
           "min": 1.25,
-          "max": 2.75,
-          "mean": 1.775
+          "max": 2.25,
+          "mean": 1.825
         },
         "startingCandidateEntropy": {
           "min": 0.25,
           "max": 1,
-          "mean": 0.6244
+          "mean": 0.635
         },
         "propagationRounds": {
           "min": 0,
           "max": 3,
-          "mean": 1.6
+          "mean": 1.7
         },
         "relationalClues": {
           "min": 0,
@@ -137,14 +137,14 @@
         "meanDirectness": {
           "min": 1,
           "max": 2.6667,
-          "mean": 1.6225
+          "mean": 1.57
         }
       }
     },
     "Medium": {
       "cases": 12,
       "hardErrors": 0,
-      "warnings": 4,
+      "warnings": 1,
       "metrics": {
         "people": {
           "min": 5,
@@ -153,43 +153,43 @@
         },
         "clues": {
           "min": 6,
-          "max": 9,
-          "mean": 8.0833
+          "max": 10,
+          "mean": 8.1667
         },
         "forcedAtStart": {
-          "min": 0,
-          "max": 3,
-          "mean": 2.1667
+          "min": 1,
+          "max": 4,
+          "mean": 2.3333
         },
         "forcedBySingles": {
-          "min": 0,
+          "min": 2,
           "max": 5,
-          "mean": 3.9167
+          "mean": 4.3333
         },
         "needsSearch": {
           "min": 0,
-          "max": 5,
-          "mean": 1.0833
+          "max": 3,
+          "mean": 0.6667
         },
         "meanCandidates": {
           "min": 1.4,
-          "max": 4,
-          "mean": 2.2167
+          "max": 3.6,
+          "mean": 2.25
         },
         "startingCandidateEntropy": {
           "min": 0.4,
-          "max": 1.5814,
-          "mean": 0.8692
+          "max": 1.634,
+          "mean": 0.8613
         },
         "propagationRounds": {
-          "min": 0,
+          "min": 1,
           "max": 3,
-          "mean": 1.6667
+          "mean": 1.8333
         },
         "relationalClues": {
           "min": 0,
           "max": 1,
-          "mean": 0.3333
+          "mean": 0.25
         },
         "crossFloorClues": {
           "min": 0,
@@ -202,9 +202,9 @@
           "mean": 0
         },
         "meanDirectness": {
-          "min": 1.5,
-          "max": 2.5556,
-          "mean": 1.8137
+          "min": 1.375,
+          "max": 2.8889,
+          "mean": 1.956
         }
       }
     },
@@ -221,7 +221,7 @@
         "clues": {
           "min": 6,
           "max": 11,
-          "mean": 8.6667
+          "mean": 8.75
         },
         "forcedAtStart": {
           "min": 0,
@@ -231,27 +231,27 @@
         "forcedBySingles": {
           "min": 0,
           "max": 5,
-          "mean": 3.1667
+          "mean": 4
         },
         "needsSearch": {
           "min": 0,
           "max": 5,
-          "mean": 1.8333
+          "mean": 1
         },
         "meanCandidates": {
-          "min": 1.4,
-          "max": 4.6,
-          "mean": 2.15
+          "min": 1.6,
+          "max": 2.8,
+          "mean": 2.0833
         },
         "startingCandidateEntropy": {
-          "min": 0.4,
-          "max": 1.8458,
-          "mean": 0.8859
+          "min": 0.6,
+          "max": 1.2644,
+          "mean": 0.8818
         },
         "propagationRounds": {
           "min": 0,
           "max": 3,
-          "mean": 1.5
+          "mean": 1.8333
         },
         "relationalClues": {
           "min": 0,
@@ -261,7 +261,7 @@
         "crossFloorClues": {
           "min": 0,
           "max": 2,
-          "mean": 1
+          "mean": 1.1667
         },
         "redundantClues": {
           "min": 0,
@@ -270,8 +270,8 @@
         },
         "meanDirectness": {
           "min": 1.25,
-          "max": 2.5556,
-          "mean": 1.9634
+          "max": 2.5455,
+          "mean": 1.7959
         }
       }
     },
@@ -286,49 +286,49 @@
           "mean": 6
         },
         "clues": {
-          "min": 9,
-          "max": 11,
-          "mean": 10.3
+          "min": 10,
+          "max": 12,
+          "mean": 10.7
         },
         "forcedAtStart": {
           "min": 0,
           "max": 3,
-          "mean": 0.9
+          "mean": 1.6
         },
         "forcedBySingles": {
           "min": 0,
           "max": 6,
-          "mean": 2.6
+          "mean": 3.4
         },
         "needsSearch": {
           "min": 0,
           "max": 6,
-          "mean": 3.4
+          "mean": 2.6
         },
         "meanCandidates": {
-          "min": 2.1667,
-          "max": 4.8333,
-          "mean": 2.9833
+          "min": 1.6667,
+          "max": 4,
+          "mean": 2.5333
         },
         "startingCandidateEntropy": {
-          "min": 0.9153,
-          "max": 1.8023,
-          "mean": 1.363
+          "min": 0.5975,
+          "max": 1.7486,
+          "mean": 1.1187
         },
         "propagationRounds": {
           "min": 0,
           "max": 3,
-          "mean": 1.3
+          "mean": 1.5
         },
         "relationalClues": {
           "min": 0,
-          "max": 0,
-          "mean": 0
+          "max": 1,
+          "mean": 0.1
         },
         "crossFloorClues": {
-          "min": 0,
-          "max": 3,
-          "mean": 1.3
+          "min": 1,
+          "max": 2,
+          "mean": 1.4
         },
         "redundantClues": {
           "min": 0,
@@ -336,9 +336,9 @@
           "mean": 0.9
         },
         "meanDirectness": {
-          "min": 1.6667,
+          "min": 1.8,
           "max": 2.6,
-          "mean": 2.0955
+          "mean": 2.0503
         }
       }
     },
@@ -358,42 +358,42 @@
           "mean": 10.5
         },
         "forcedAtStart": {
-          "min": 1,
-          "max": 3,
-          "mean": 1.75
+          "min": 0,
+          "max": 4,
+          "mean": 1.625
         },
         "forcedBySingles": {
-          "min": 1,
+          "min": 0,
           "max": 6,
-          "mean": 4.125
+          "mean": 4.5
         },
         "needsSearch": {
           "min": 0,
-          "max": 5,
-          "mean": 1.875
+          "max": 6,
+          "mean": 1.5
         },
         "meanCandidates": {
-          "min": 1.5,
-          "max": 4.3333,
-          "mean": 2.75
+          "min": 2,
+          "max": 4.6667,
+          "mean": 3.2083
         },
         "startingCandidateEntropy": {
-          "min": 0.5,
-          "max": 1.6258,
-          "mean": 1.1372
+          "min": 0.5975,
+          "max": 1.7925,
+          "mean": 1.2693
         },
         "propagationRounds": {
-          "min": 1,
-          "max": 3,
-          "mean": 1.875
+          "min": 0,
+          "max": 4,
+          "mean": 2.125
         },
         "relationalClues": {
           "min": 0,
-          "max": 1,
-          "mean": 0.125
+          "max": 0,
+          "mean": 0
         },
         "crossFloorClues": {
-          "min": 0,
+          "min": 1,
           "max": 3,
           "mean": 1.875
         },
@@ -403,9 +403,9 @@
           "mean": 0.75
         },
         "meanDirectness": {
-          "min": 1.6667,
-          "max": 2.4615,
-          "mean": 2.0607
+          "min": 1.7778,
+          "max": 2.6154,
+          "mean": 2.183
         }
       }
     }
@@ -417,7 +417,14 @@
       "title": "Midnight Delivery",
       "difficulty": "Very Easy",
       "floors": 1,
-      "issues": [],
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#0",
+          "message": "\"In the Living Room.\" can be removed without losing uniqueness"
+        }
+      ],
       "metrics": {
         "people": 4,
         "clues": 6,
@@ -429,7 +436,7 @@
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
-        "redundantClues": 0,
+        "redundantClues": 1,
         "meanDirectness": 1.6667
       }
     },
@@ -442,17 +449,17 @@
       "issues": [],
       "metrics": {
         "people": 4,
-        "clues": 6,
-        "forcedAtStart": 1,
+        "clues": 7,
+        "forcedAtStart": 2,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 3.25,
-        "startingCandidateEntropy": 1.3481,
+        "meanCandidates": 1.75,
+        "startingCandidateEntropy": 0.6462,
         "propagationRounds": 3,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 2
+        "meanDirectness": 1.8571
       }
     },
     {
@@ -496,7 +503,7 @@
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.5714
+        "meanDirectness": 1.4286
       }
     },
     {
@@ -508,17 +515,17 @@
       "issues": [],
       "metrics": {
         "people": 4,
-        "clues": 7,
+        "clues": 6,
         "forcedAtStart": 1,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 2,
-        "startingCandidateEntropy": 0.8962,
-        "propagationRounds": 2,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 1.0425,
+        "propagationRounds": 3,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 2.1429
+        "meanDirectness": 2.1667
       }
     },
     {
@@ -531,16 +538,16 @@
       "metrics": {
         "people": 4,
         "clues": 5,
-        "forcedAtStart": 1,
+        "forcedAtStart": 2,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 1.75,
-        "startingCandidateEntropy": 0.75,
-        "propagationRounds": 3,
+        "meanCandidates": 1.5,
+        "startingCandidateEntropy": 0.5,
+        "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.6
+        "meanDirectness": 1.4
       }
     },
     {
@@ -574,17 +581,17 @@
       "issues": [],
       "metrics": {
         "people": 4,
-        "clues": 6,
+        "clues": 7,
         "forcedAtStart": 2,
-        "forcedBySingles": 2,
-        "needsSearch": 2,
-        "meanCandidates": 2.5,
-        "startingCandidateEntropy": 0.8962,
-        "propagationRounds": 1,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.75,
+        "startingCandidateEntropy": 0.6462,
+        "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.8333
+        "meanDirectness": 1.5714
       }
     },
     {
@@ -600,13 +607,13 @@
         "forcedAtStart": 3,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 1.25,
-        "startingCandidateEntropy": 0.25,
-        "propagationRounds": 1,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 0.6462,
+        "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.5
+        "meanDirectness": 1.6667
       }
     },
     {
@@ -628,7 +635,7 @@
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.8333
+        "meanDirectness": 1.5
       }
     },
     {
@@ -662,17 +669,17 @@
       "issues": [],
       "metrics": {
         "people": 4,
-        "clues": 6,
+        "clues": 7,
         "forcedAtStart": 2,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 2.5,
-        "startingCandidateEntropy": 1,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 0.8962,
         "propagationRounds": 3,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.5
+        "meanDirectness": 1.4286
       }
     },
     {
@@ -688,8 +695,8 @@
         "forcedAtStart": 2,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 2.75,
-        "startingCandidateEntropy": 0.9518,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 0.8305,
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
@@ -716,7 +723,7 @@
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.8333
+        "meanDirectness": 1.6667
       }
     },
     {
@@ -728,17 +735,17 @@
       "issues": [],
       "metrics": {
         "people": 4,
-        "clues": 8,
-        "forcedAtStart": 2,
-        "forcedBySingles": 2,
-        "needsSearch": 2,
-        "meanCandidates": 1.75,
-        "startingCandidateEntropy": 0.6462,
+        "clues": 7,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.5805,
         "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.625
+        "meanDirectness": 1.5714
       }
     },
     {
@@ -751,12 +758,12 @@
       "metrics": {
         "people": 4,
         "clues": 6,
-        "forcedAtStart": 2,
+        "forcedAtStart": 3,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 1.75,
-        "startingCandidateEntropy": 0.6462,
-        "propagationRounds": 3,
+        "meanCandidates": 1.25,
+        "startingCandidateEntropy": 0.25,
+        "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
@@ -772,17 +779,17 @@
       "issues": [],
       "metrics": {
         "people": 4,
-        "clues": 6,
-        "forcedAtStart": 3,
+        "clues": 5,
+        "forcedAtStart": 2,
         "forcedBySingles": 4,
         "needsSearch": 0,
-        "meanCandidates": 1.25,
-        "startingCandidateEntropy": 0.25,
-        "propagationRounds": 1,
+        "meanCandidates": 1.75,
+        "startingCandidateEntropy": 0.6462,
+        "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.6667
+        "meanDirectness": 1.6
       }
     },
     {
@@ -817,16 +824,16 @@
       "metrics": {
         "people": 5,
         "clues": 8,
-        "forcedAtStart": 1,
-        "forcedBySingles": 2,
-        "needsSearch": 3,
-        "meanCandidates": 4,
-        "startingCandidateEntropy": 1.5814,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2.2,
+        "startingCandidateEntropy": 0.8,
         "propagationRounds": 2,
-        "relationalClues": 1,
+        "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 2.125
+        "meanDirectness": 1.75
       }
     },
     {
@@ -839,16 +846,16 @@
       "metrics": {
         "people": 5,
         "clues": 8,
-        "forcedAtStart": 2,
+        "forcedAtStart": 3,
         "forcedBySingles": 5,
         "needsSearch": 0,
-        "meanCandidates": 1.6,
-        "startingCandidateEntropy": 0.6,
+        "meanCandidates": 1.4,
+        "startingCandidateEntropy": 0.4,
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.5
+        "meanDirectness": 1.375
       }
     },
     {
@@ -857,20 +864,27 @@
       "title": "Shadows in the Hall",
       "difficulty": "Medium",
       "floors": 1,
-      "issues": [],
+      "issues": [
+        {
+          "code": "clue-reveals-murderer",
+          "severity": "warning",
+          "subject": "clue#5",
+          "message": "\"In the Porch.\" places a suspect in the victim's room directly"
+        }
+      ],
       "metrics": {
         "people": 5,
-        "clues": 9,
-        "forcedAtStart": 2,
+        "clues": 10,
+        "forcedAtStart": 1,
         "forcedBySingles": 4,
         "needsSearch": 1,
-        "meanCandidates": 2.4,
-        "startingCandidateEntropy": 0.9814,
-        "propagationRounds": 1,
+        "meanCandidates": 3.4,
+        "startingCandidateEntropy": 1.434,
+        "propagationRounds": 2,
         "relationalClues": 1,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.8889
+        "meanDirectness": 2.5
       }
     },
     {
@@ -892,7 +906,7 @@
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.5
+        "meanDirectness": 1.375
       }
     },
     {
@@ -901,27 +915,20 @@
       "title": "One Last Waltz",
       "difficulty": "Medium",
       "floors": 1,
-      "issues": [
-        {
-          "code": "clue-reveals-murderer",
-          "severity": "warning",
-          "subject": "clue#6",
-          "message": "\"In the Front Yard.\" places a suspect in the victim's room directly"
-        }
-      ],
+      "issues": [],
       "metrics": {
         "people": 5,
         "clues": 8,
         "forcedAtStart": 2,
-        "forcedBySingles": 5,
-        "needsSearch": 0,
-        "meanCandidates": 2.4,
-        "startingCandidateEntropy": 1,
+        "forcedBySingles": 2,
+        "needsSearch": 3,
+        "meanCandidates": 2.6,
+        "startingCandidateEntropy": 1.117,
         "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.75
+        "meanDirectness": 1.625
       }
     },
     {
@@ -934,16 +941,16 @@
       "metrics": {
         "people": 5,
         "clues": 8,
-        "forcedAtStart": 3,
+        "forcedAtStart": 4,
         "forcedBySingles": 5,
         "needsSearch": 0,
-        "meanCandidates": 1.8,
-        "startingCandidateEntropy": 0.6,
-        "propagationRounds": 2,
+        "meanCandidates": 1.6,
+        "startingCandidateEntropy": 0.4,
+        "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.875
+        "meanDirectness": 2.125
       }
     },
     {
@@ -977,17 +984,17 @@
       "issues": [],
       "metrics": {
         "people": 5,
-        "clues": 8,
+        "clues": 9,
         "forcedAtStart": 2,
-        "forcedBySingles": 4,
-        "needsSearch": 1,
-        "meanCandidates": 2.2,
-        "startingCandidateEntropy": 0.917,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 1.8,
+        "startingCandidateEntropy": 0.717,
         "propagationRounds": 2,
-        "relationalClues": 1,
+        "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.875
+        "meanDirectness": 2
       }
     },
     {
@@ -1000,16 +1007,16 @@
       "metrics": {
         "people": 5,
         "clues": 8,
-        "forcedAtStart": 3,
+        "forcedAtStart": 2,
         "forcedBySingles": 5,
         "needsSearch": 0,
-        "meanCandidates": 2,
-        "startingCandidateEntropy": 0.717,
+        "meanCandidates": 2.2,
+        "startingCandidateEntropy": 0.917,
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.625
+        "meanDirectness": 1.875
       }
     },
     {
@@ -1031,7 +1038,7 @@
         "relationalClues": 1,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 2.5556
+        "meanDirectness": 2.8889
       }
     },
     {
@@ -1040,27 +1047,20 @@
       "title": "Nobody Left",
       "difficulty": "Medium",
       "floors": 1,
-      "issues": [
-        {
-          "code": "clue-reveals-murderer",
-          "severity": "warning",
-          "subject": "clue#6",
-          "message": "\"In the Living Room.\" places a suspect in the victim's room directly"
-        }
-      ],
+      "issues": [],
       "metrics": {
         "people": 5,
-        "clues": 9,
-        "forcedAtStart": 3,
-        "forcedBySingles": 5,
-        "needsSearch": 0,
-        "meanCandidates": 1.8,
-        "startingCandidateEntropy": 0.6,
-        "propagationRounds": 3,
-        "relationalClues": 0,
+        "clues": 8,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 1,
+        "meanCandidates": 2.8,
+        "startingCandidateEntropy": 1,
+        "propagationRounds": 2,
+        "relationalClues": 1,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.7778
+        "meanDirectness": 2.5
       }
     },
     {
@@ -1069,33 +1069,20 @@
       "title": "A Quiet Alibi",
       "difficulty": "Medium",
       "floors": 1,
-      "issues": [
-        {
-          "code": "difficulty-signal",
-          "severity": "warning",
-          "subject": "forcedBySingles",
-          "message": "forcedBySingles = 0.00; Medium cases measure 2..5"
-        },
-        {
-          "code": "difficulty-signal",
-          "severity": "warning",
-          "subject": "needsSearch",
-          "message": "needsSearch = 5.00; Medium cases measure 0..3"
-        }
-      ],
+      "issues": [],
       "metrics": {
         "people": 5,
         "clues": 6,
-        "forcedAtStart": 0,
-        "forcedBySingles": 0,
-        "needsSearch": 5,
-        "meanCandidates": 3,
-        "startingCandidateEntropy": 1.517,
-        "propagationRounds": 0,
+        "forcedAtStart": 1,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 3.6,
+        "startingCandidateEntropy": 1.634,
+        "propagationRounds": 3,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.6667
+        "meanDirectness": 1.8333
       }
     },
     {
@@ -1130,16 +1117,16 @@
       "metrics": {
         "people": 5,
         "clues": 10,
-        "forcedAtStart": 1,
-        "forcedBySingles": 3,
-        "needsSearch": 2,
-        "meanCandidates": 1.8,
-        "startingCandidateEntropy": 0.8,
-        "propagationRounds": 2,
-        "relationalClues": 0,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 5,
+        "meanCandidates": 2.6,
+        "startingCandidateEntropy": 1.2644,
+        "propagationRounds": 0,
+        "relationalClues": 1,
         "crossFloorClues": 1,
         "redundantClues": 0,
-        "meanDirectness": 1.9
+        "meanDirectness": 1.8
       }
     },
     {
@@ -1151,17 +1138,17 @@
       "issues": [],
       "metrics": {
         "people": 5,
-        "clues": 9,
-        "forcedAtStart": 1,
-        "forcedBySingles": 1,
-        "needsSearch": 4,
-        "meanCandidates": 4.6,
-        "startingCandidateEntropy": 1.8458,
-        "propagationRounds": 1,
-        "relationalClues": 1,
-        "crossFloorClues": 0,
+        "clues": 10,
+        "forcedAtStart": 2,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2.8,
+        "startingCandidateEntropy": 1.1814,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
         "redundantClues": 0,
-        "meanDirectness": 2.5556
+        "meanDirectness": 2.1
       }
     },
     {
@@ -1174,12 +1161,12 @@
       "metrics": {
         "people": 5,
         "clues": 7,
-        "forcedAtStart": 0,
-        "forcedBySingles": 0,
-        "needsSearch": 5,
-        "meanCandidates": 2.2,
-        "startingCandidateEntropy": 1.117,
-        "propagationRounds": 0,
+        "forcedAtStart": 1,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.917,
+        "propagationRounds": 3,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 0,
@@ -1196,7 +1183,7 @@
         {
           "code": "clue-reveals-murderer",
           "severity": "warning",
-          "subject": "clue#6",
+          "subject": "clue#5",
           "message": "\"In the Hallway.\" places a suspect in the victim's room directly"
         }
       ],
@@ -1224,17 +1211,17 @@
       "issues": [],
       "metrics": {
         "people": 5,
-        "clues": 11,
-        "forcedAtStart": 3,
+        "clues": 10,
+        "forcedAtStart": 2,
         "forcedBySingles": 5,
         "needsSearch": 0,
-        "meanCandidates": 1.4,
-        "startingCandidateEntropy": 0.4,
+        "meanCandidates": 1.6,
+        "startingCandidateEntropy": 0.6,
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 2,
         "redundantClues": 0,
-        "meanDirectness": 2.3636
+        "meanDirectness": 2.2
       }
     },
     {
@@ -1247,16 +1234,16 @@
       "metrics": {
         "people": 5,
         "clues": 9,
-        "forcedAtStart": 0,
-        "forcedBySingles": 0,
-        "needsSearch": 5,
-        "meanCandidates": 2,
-        "startingCandidateEntropy": 1,
-        "propagationRounds": 0,
+        "forcedAtStart": 1,
+        "forcedBySingles": 1,
+        "needsSearch": 4,
+        "meanCandidates": 1.8,
+        "startingCandidateEntropy": 0.8,
+        "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.4444
+        "meanDirectness": 1.5556
       }
     },
     {
@@ -1269,16 +1256,16 @@
       "metrics": {
         "people": 5,
         "clues": 8,
-        "forcedAtStart": 3,
+        "forcedAtStart": 2,
         "forcedBySingles": 5,
         "needsSearch": 0,
-        "meanCandidates": 1.8,
-        "startingCandidateEntropy": 0.6,
-        "propagationRounds": 1,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.834,
+        "propagationRounds": 2,
         "relationalClues": 0,
-        "crossFloorClues": 0,
+        "crossFloorClues": 1,
         "redundantClues": 0,
-        "meanDirectness": 1.625
+        "meanDirectness": 1.375
       }
     },
     {
@@ -1298,9 +1285,9 @@
         "startingCandidateEntropy": 1.034,
         "propagationRounds": 3,
         "relationalClues": 0,
-        "crossFloorClues": 1,
+        "crossFloorClues": 0,
         "redundantClues": 0,
-        "meanDirectness": 1.8333
+        "meanDirectness": 1.5
       }
     },
     {
@@ -1314,15 +1301,15 @@
         "people": 5,
         "clues": 9,
         "forcedAtStart": 1,
-        "forcedBySingles": 1,
-        "needsSearch": 4,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
         "meanCandidates": 2.4,
         "startingCandidateEntropy": 1.117,
-        "propagationRounds": 1,
+        "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 0,
-        "meanDirectness": 2.2222
+        "meanDirectness": 2
       }
     },
     {
@@ -1334,17 +1321,17 @@
       "issues": [],
       "metrics": {
         "people": 5,
-        "clues": 8,
-        "forcedAtStart": 3,
-        "forcedBySingles": 5,
-        "needsSearch": 0,
-        "meanCandidates": 1.4,
-        "startingCandidateEntropy": 0.4,
-        "propagationRounds": 2,
+        "clues": 9,
+        "forcedAtStart": 2,
+        "forcedBySingles": 2,
+        "needsSearch": 3,
+        "meanCandidates": 1.8,
+        "startingCandidateEntropy": 0.717,
+        "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 0,
-        "meanDirectness": 2.125
+        "meanDirectness": 1.7778
       }
     },
     {
@@ -1357,16 +1344,16 @@
       "metrics": {
         "people": 5,
         "clues": 8,
-        "forcedAtStart": 2,
-        "forcedBySingles": 3,
-        "needsSearch": 2,
-        "meanCandidates": 2.2,
-        "startingCandidateEntropy": 0.917,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.717,
         "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 0,
-        "meanDirectness": 2.125
+        "meanDirectness": 1.875
       }
     },
     {
@@ -1393,9 +1380,9 @@
         "startingCandidateEntropy": 1.0283,
         "propagationRounds": 1,
         "relationalClues": 0,
-        "crossFloorClues": 3,
+        "crossFloorClues": 2,
         "redundantClues": 1,
-        "meanDirectness": 1.9
+        "meanDirectness": 1.8
       }
     },
     {
@@ -1415,16 +1402,16 @@
       "metrics": {
         "people": 6,
         "clues": 11,
-        "forcedAtStart": 0,
-        "forcedBySingles": 0,
-        "needsSearch": 6,
-        "meanCandidates": 2.3333,
-        "startingCandidateEntropy": 1.195,
-        "propagationRounds": 0,
+        "forcedAtStart": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.1667,
+        "startingCandidateEntropy": 0.9308,
+        "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 1,
-        "meanDirectness": 1.9091
+        "meanDirectness": 2
       }
     },
     {
@@ -1433,20 +1420,27 @@
       "title": "The Locked Pantry",
       "difficulty": "Expert",
       "floors": 2,
-      "issues": [],
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Living Room.\" can be removed without losing uniqueness"
+        }
+      ],
       "metrics": {
         "people": 6,
         "clues": 10,
-        "forcedAtStart": 0,
-        "forcedBySingles": 0,
-        "needsSearch": 6,
-        "meanCandidates": 3.3333,
-        "startingCandidateEntropy": 1.6541,
-        "propagationRounds": 0,
+        "forcedAtStart": 1,
+        "forcedBySingles": 1,
+        "needsSearch": 5,
+        "meanCandidates": 2.1667,
+        "startingCandidateEntropy": 1.0283,
+        "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 1,
-        "redundantClues": 0,
-        "meanDirectness": 2.6
+        "redundantClues": 1,
+        "meanDirectness": 2.4
       }
     },
     {
@@ -1466,16 +1460,16 @@
       "metrics": {
         "people": 6,
         "clues": 11,
-        "forcedAtStart": 1,
-        "forcedBySingles": 4,
-        "needsSearch": 2,
-        "meanCandidates": 2.5,
-        "startingCandidateEntropy": 1.1667,
+        "forcedAtStart": 3,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 1.6667,
+        "startingCandidateEntropy": 0.5975,
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 1,
-        "meanDirectness": 2.2727
+        "meanDirectness": 1.8182
       }
     },
     {
@@ -1495,12 +1489,12 @@
       "metrics": {
         "people": 6,
         "clues": 10,
-        "forcedAtStart": 3,
-        "forcedBySingles": 6,
-        "needsSearch": 0,
-        "meanCandidates": 2.3333,
-        "startingCandidateEntropy": 0.9153,
-        "propagationRounds": 2,
+        "forcedAtStart": 2,
+        "forcedBySingles": 2,
+        "needsSearch": 4,
+        "meanCandidates": 2.6667,
+        "startingCandidateEntropy": 1.1795,
+        "propagationRounds": 1,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 1,
@@ -1517,23 +1511,23 @@
         {
           "code": "clue-redundant",
           "severity": "warning",
-          "subject": "clue#8",
-          "message": "\"Never set foot in the Front Yard.\" can be removed without losing uniqueness"
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Office.\" can be removed without losing uniqueness"
         }
       ],
       "metrics": {
         "people": 6,
-        "clues": 9,
+        "clues": 10,
         "forcedAtStart": 1,
-        "forcedBySingles": 6,
-        "needsSearch": 0,
-        "meanCandidates": 4.8333,
-        "startingCandidateEntropy": 1.8023,
-        "propagationRounds": 2,
+        "forcedBySingles": 1,
+        "needsSearch": 5,
+        "meanCandidates": 4,
+        "startingCandidateEntropy": 1.7486,
+        "propagationRounds": 1,
         "relationalClues": 0,
-        "crossFloorClues": 0,
+        "crossFloorClues": 1,
         "redundantClues": 1,
-        "meanDirectness": 2.3333
+        "meanDirectness": 2.6
       }
     },
     {
@@ -1542,27 +1536,20 @@
       "title": "The Second Study",
       "difficulty": "Expert",
       "floors": 2,
-      "issues": [
-        {
-          "code": "clue-redundant",
-          "severity": "warning",
-          "subject": "clue#10",
-          "message": "\"Never set foot in the Dining Room.\" can be removed without losing uniqueness"
-        }
-      ],
+      "issues": [],
       "metrics": {
         "people": 6,
-        "clues": 11,
+        "clues": 12,
         "forcedAtStart": 1,
-        "forcedBySingles": 6,
-        "needsSearch": 0,
-        "meanCandidates": 3.3333,
-        "startingCandidateEntropy": 1.582,
+        "forcedBySingles": 5,
+        "needsSearch": 1,
+        "meanCandidates": 2.6667,
+        "startingCandidateEntropy": 1.2486,
         "propagationRounds": 3,
-        "relationalClues": 0,
+        "relationalClues": 1,
         "crossFloorClues": 2,
-        "redundantClues": 1,
-        "meanDirectness": 2.2727
+        "redundantClues": 0,
+        "meanDirectness": 2.25
       }
     },
     {
@@ -1575,23 +1562,23 @@
         {
           "code": "clue-redundant",
           "severity": "warning",
-          "subject": "clue#10",
+          "subject": "clue#11",
           "message": "\"Never set foot in the Dining Room.\" can be removed without losing uniqueness"
         }
       ],
       "metrics": {
         "people": 6,
-        "clues": 11,
-        "forcedAtStart": 1,
-        "forcedBySingles": 2,
-        "needsSearch": 4,
-        "meanCandidates": 3.1667,
-        "startingCandidateEntropy": 1.4845,
+        "clues": 12,
+        "forcedAtStart": 3,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.3333,
+        "startingCandidateEntropy": 0.887,
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 2,
         "redundantClues": 1,
-        "meanDirectness": 2
+        "meanDirectness": 1.9167
       }
     },
     {
@@ -1604,23 +1591,23 @@
         {
           "code": "clue-redundant",
           "severity": "warning",
-          "subject": "clue#8",
+          "subject": "clue#9",
           "message": "\"Never set foot in the Hallway.\" can be removed without losing uniqueness"
         }
       ],
       "metrics": {
         "people": 6,
-        "clues": 9,
+        "clues": 10,
         "forcedAtStart": 0,
         "forcedBySingles": 0,
         "needsSearch": 6,
-        "meanCandidates": 3.3333,
-        "startingCandidateEntropy": 1.6511,
+        "meanCandidates": 3.1667,
+        "startingCandidateEntropy": 1.5537,
         "propagationRounds": 0,
         "relationalClues": 0,
-        "crossFloorClues": 0,
+        "crossFloorClues": 1,
         "redundantClues": 1,
-        "meanDirectness": 1.6667
+        "meanDirectness": 1.9
       }
     },
     {
@@ -1640,16 +1627,16 @@
       "metrics": {
         "people": 6,
         "clues": 11,
-        "forcedAtStart": 1,
-        "forcedBySingles": 1,
-        "needsSearch": 5,
-        "meanCandidates": 2.5,
-        "startingCandidateEntropy": 1.1511,
-        "propagationRounds": 1,
+        "forcedAtStart": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.3333,
+        "startingCandidateEntropy": 0.9845,
+        "propagationRounds": 3,
         "relationalClues": 0,
         "crossFloorClues": 2,
         "redundantClues": 1,
-        "meanDirectness": 2
+        "meanDirectness": 1.8182
       }
     },
     {
@@ -1662,23 +1649,23 @@
         {
           "code": "clue-redundant",
           "severity": "warning",
-          "subject": "clue#9",
+          "subject": "clue#10",
           "message": "\"Never set foot in the Living Room.\" can be removed without losing uniqueness"
         }
       ],
       "metrics": {
         "people": 6,
-        "clues": 10,
-        "forcedAtStart": 3,
+        "clues": 11,
+        "forcedAtStart": 4,
         "forcedBySingles": 6,
         "needsSearch": 0,
-        "meanCandidates": 1.5,
-        "startingCandidateEntropy": 0.5,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.5975,
         "propagationRounds": 2,
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 1,
-        "meanDirectness": 2.1
+        "meanDirectness": 2.2727
       }
     },
     {
@@ -1699,15 +1686,15 @@
         "people": 6,
         "clues": 11,
         "forcedAtStart": 2,
-        "forcedBySingles": 2,
-        "needsSearch": 4,
-        "meanCandidates": 2.3333,
-        "startingCandidateEntropy": 1,
-        "propagationRounds": 1,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 4.6667,
+        "startingCandidateEntropy": 1.5,
+        "propagationRounds": 4,
         "relationalClues": 0,
         "crossFloorClues": 3,
         "redundantClues": 1,
-        "meanDirectness": 2.0909
+        "meanDirectness": 2.1818
       }
     },
     {
@@ -1720,16 +1707,16 @@
       "metrics": {
         "people": 6,
         "clues": 13,
-        "forcedAtStart": 2,
-        "forcedBySingles": 3,
-        "needsSearch": 3,
-        "meanCandidates": 2.6667,
-        "startingCandidateEntropy": 1.1667,
-        "propagationRounds": 1,
-        "relationalClues": 1,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 6,
+        "meanCandidates": 3,
+        "startingCandidateEntropy": 1.5283,
+        "propagationRounds": 0,
+        "relationalClues": 0,
         "crossFloorClues": 3,
         "redundantClues": 0,
-        "meanDirectness": 2.4615
+        "meanDirectness": 2.6154
       }
     },
     {
@@ -1742,16 +1729,16 @@
       "metrics": {
         "people": 6,
         "clues": 12,
-        "forcedAtStart": 1,
-        "forcedBySingles": 1,
-        "needsSearch": 5,
+        "forcedAtStart": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
         "meanCandidates": 3.1667,
-        "startingCandidateEntropy": 1.4845,
-        "propagationRounds": 1,
+        "startingCandidateEntropy": 1.3178,
+        "propagationRounds": 3,
         "relationalClues": 0,
-        "crossFloorClues": 3,
+        "crossFloorClues": 2,
         "redundantClues": 0,
-        "meanDirectness": 2.1667
+        "meanDirectness": 2.0833
       }
     },
     {
@@ -1772,15 +1759,15 @@
         "people": 6,
         "clues": 10,
         "forcedAtStart": 1,
-        "forcedBySingles": 3,
-        "needsSearch": 3,
-        "meanCandidates": 3,
-        "startingCandidateEntropy": 1.3617,
-        "propagationRounds": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 3.3333,
+        "startingCandidateEntropy": 1.4591,
+        "propagationRounds": 3,
         "relationalClues": 0,
-        "crossFloorClues": 0,
+        "crossFloorClues": 1,
         "redundantClues": 1,
-        "meanDirectness": 1.9
+        "meanDirectness": 2.2
       }
     },
     {
@@ -1793,23 +1780,23 @@
         {
           "code": "clue-redundant",
           "severity": "warning",
-          "subject": "clue#9",
+          "subject": "clue#8",
           "message": "\"Never set foot in the Hallway.\" can be removed without losing uniqueness"
         }
       ],
       "metrics": {
         "people": 6,
-        "clues": 10,
-        "forcedAtStart": 1,
-        "forcedBySingles": 6,
-        "needsSearch": 0,
-        "meanCandidates": 4.3333,
-        "startingCandidateEntropy": 1.6258,
-        "propagationRounds": 3,
+        "clues": 9,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 6,
+        "meanCandidates": 4.5,
+        "startingCandidateEntropy": 1.7925,
+        "propagationRounds": 0,
         "relationalClues": 0,
         "crossFloorClues": 3,
         "redundantClues": 1,
-        "meanDirectness": 2.1
+        "meanDirectness": 2.3333
       }
     },
     {
@@ -1838,7 +1825,7 @@
         "relationalClues": 0,
         "crossFloorClues": 1,
         "redundantClues": 1,
-        "meanDirectness": 1.6667
+        "meanDirectness": 1.7778
       }
     },
     {

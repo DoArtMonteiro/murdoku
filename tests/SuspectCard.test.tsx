@@ -35,17 +35,18 @@ describe('SuspectCard satisfiedClues', () => {
     expect(screen.queryAllByLabelText('clue satisfied')).toHaveLength(0)
   })
 
-  it('renders a satisfied tick for a true entry and none for false', () => {
+  // CHANGED (P0 puzzle truth): these two used to assert that a satisfied clue is
+  // ticked. An automatic tick tells the player, for every placement they try,
+  // whether the clue holds, so a suspect can be walked to a legal cell without
+  // reading the clue. The prop is still accepted; the cue is no longer drawn.
+  it('never draws an automatic tick, even for a true entry', () => {
     renderCard({ satisfiedClues: [true, false] })
-    // One clue satisfied → one tick
-    const ticks = screen.getAllByLabelText('clue satisfied')
-    expect(ticks).toHaveLength(1)
+    expect(screen.queryAllByLabelText('clue satisfied')).toHaveLength(0)
   })
 
-  it('renders ticks for all clues when all are satisfied', () => {
+  it('never draws ticks when all clues are satisfied', () => {
     renderCard({ satisfiedClues: [true, true] })
-    const ticks = screen.getAllByLabelText('clue satisfied')
-    expect(ticks).toHaveLength(2)
+    expect(screen.queryAllByLabelText('clue satisfied')).toHaveLength(0)
   })
 
   it('renders no ticks when all are unsatisfied', () => {
@@ -62,9 +63,8 @@ describe('SuspectCard satisfiedClues', () => {
     renderCard({ resolved: true, showCheck: true, satisfiedClues: [true, false] })
     // The card-level opacity/line-through still applies — clue text still present
     expect(screen.getByText('In the Study.')).toBeInTheDocument()
-    // A tick for the first satisfied clue still shows
-    const ticks = screen.getAllByLabelText('clue satisfied')
-    expect(ticks).toHaveLength(1)
+    // The automatic tick is gone; the player's own check-off is what remains.
+    expect(screen.queryAllByLabelText('clue satisfied')).toHaveLength(0)
   })
 
   it('shows clues text regardless of satisfaction state', () => {

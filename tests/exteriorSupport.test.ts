@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getPuzzleById, initCatalog } from '../src/core/catalog'
 import { exteriorSupportMembers } from '../src/scene3d/exteriorSupport'
 import { resolveScene } from '../src/scene3d/resolve'
+import { cellSightBlockers, seeThroughOccluders } from '../src/scene3d/sightlines'
 import type { SceneSpec } from '../src/scene3d/schema'
 import { CELL, TERRAIN_DROP } from '../src/scene3d/units'
 import { validateScene, validateStoreyPair } from '../src/scene3d/validate'
@@ -180,16 +181,18 @@ describe('exterior structural support', () => {
     expect(supportedUpper.zoneKind).toEqual(baselineUpper.zoneKind)
   })
 
-  it('includes grounded support columns in cell visibility checks', () => {
-    const hard6 = validateScene(resolveScene(aNameInPencilGround, 8))
-      .filter(issue => issue.code === 'cell-hidden')
-      .map(issue => issue.subject)
-    const hard10 = validateScene(resolveScene(aStoryRehearsedGround, 8))
-      .filter(issue => issue.code === 'cell-hidden')
-      .map(issue => issue.subject)
-
-    expect(hard6).toContain('4,2')
-    expect(hard10).toContain('4,4')
+  it('finds the grounded support columns on cell sightlines and draws them see-through', () => {
+    const cases = [[aNameInPencilGround, 8, '4,2'], [aStoryRehearsedGround, 8, '4,4']] as const
+    for (const [spec, size, cell] of cases) {
+      const scene = resolveScene(spec, size)
+      const [row, col] = cell.split(',').map(Number)
+      const crossed = cellSightBlockers(scene).find(entry => entry.row === row && entry.col === col)
+      expect(crossed?.supports.length, `${cell} is crossed by a support column`).toBeGreaterThan(0)
+      const seeThrough = seeThroughOccluders(scene)
+      for (const id of crossed!.supports) expect(seeThrough.supports.has(id), id).toBe(true)
+      // drawn see-through, so the cell is not reported hidden
+      expect(validateScene(scene).filter(issue => issue.code === 'cell-hidden')).toEqual([])
+    }
   })
 
   it('keeps supported exterior routes and solved cells clear in the five production houses', () => {

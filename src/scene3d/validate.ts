@@ -8,10 +8,10 @@
 // ============================================================================
 
 import { CELL, STOREY_HEIGHT, type Vec3 } from './units'
-import { parseLogic, type Box3, type Rect, type ResolvedObject, type ResolvedScene, type ResolvedWall } from './resolve'
+import { parseLogic, type Box3, type Rect, type ResolvedScene, type ResolvedWall } from './resolve'
 import { exteriorSupportMembers } from './exteriorSupport'
 import { furnitureCells, type Puzzle } from '../core/types'
-import { resolvedObjectVisibilityBoxes } from './stairVisibility'
+import { rayHitsBox, solidObject, cellSightBlockers, seeThroughOccluders } from './sightlines'
 import { planRectToWorld, validPlanRect, worldRectCoveredByFloor, type WorldRect } from './floorGeometry'
 import { connectedCirculationRects } from './circulationGeometry'
 import { validatePhysicalConnection, validateUpperSupport } from './storeyConnection'
@@ -60,24 +60,6 @@ function rectContains(outer: Rect, inner: Rect, slack = 0): boolean {
   return inner.minX >= outer.minX - slack && inner.maxX <= outer.maxX + slack
     && inner.minZ >= outer.minZ - slack && inner.maxZ <= outer.maxZ + slack
 }
-
-/** Ray/AABB slab test. Returns the entry distance or null. */
-function rayHitsBox(origin: Vec3, dir: Vec3, box: Box3): number | null {
-  let tmin = 0, tmax = Infinity
-  for (let i = 0; i < 3; i++) {
-    if (Math.abs(dir[i]) < 1e-9) {
-      if (origin[i] < box.min[i] || origin[i] > box.max[i]) return null
-    } else {
-      let t1 = (box.min[i] - origin[i]) / dir[i], t2 = (box.max[i] - origin[i]) / dir[i]
-      if (t1 > t2) [t1, t2] = [t2, t1]
-      tmin = Math.max(tmin, t1); tmax = Math.min(tmax, t2)
-      if (tmin > tmax) return null
-    }
-  }
-  return tmin > 1e-6 ? tmin : null
-}
-
-const solidObject = (o: ResolvedObject) => (o.kind === 'furniture' || o.kind === 'stairs') && o.meta.support !== 'flat' && o.meta.support !== 'wall'
 
 function floodFill(blocked: Uint8Array, m: number, seed: [number, number]): Uint8Array {
   const reach = new Uint8Array(m * m)
@@ -402,25 +384,25 @@ export function validateScene(scene: ResolvedScene, puzzle?: Puzzle): Violation[
       err('object-hidden', o.id, `${o.id} (${o.model}) is hidden behind wall ${wall.id} from the camera`)
     }
   }
-  for (let r = 0; r < scene.n; r++) for (let c = 0; c < scene.n; c++) {
-    const p = scene.frame.cellCentre(r, c, scene.floorY[r][c])
-    if (!worldRectCoveredByFloor(scene, { minX: p[0] - 0.001, maxX: p[0] + 0.001, minZ: p[2] - 0.001, maxZ: p[2] + 0.001 })) continue
-    const occupant = solids.find(o => !o.parentId && p[0] > o.footprint.minX && p[0] < o.footprint.maxX && p[2] > o.footprint.minZ && p[2] < o.footprint.maxZ)
-    // A suspect standee carries its portrait badge at chest height (~0.45).
-    // This is a 3D camera sightline advisory. The playable board's portrait
-    // marker is a DOM overlay and is checked separately in browser QA.
-    const badge = [p[0], p[1] + 0.45, p[2]] as Vec3
-    const wallBlockers = visibleWalls.filter(({ box }) => rayHitsBox(badge, dir, box) !== null)
-      .map(({ wall }) => `wall:${wall.id}`)
-    const objectBlockers = solids.filter(object => object !== occupant && !object.parentId
-      && resolvedObjectVisibilityBoxes(object).some(box => rayHitsBox(badge, dir, box) !== null))
-      .map(object => `object:${object.id}`)
-    const supportBlockers = supportColumns.filter(({ box }) => rayHitsBox(badge, dir, box) !== null)
-      .map(member => `support:${member.id}`)
-    const blockers = [...wallBlockers, ...objectBlockers, ...supportBlockers].sort()
-    if (blockers.length) {
-      warn('cell-hidden', `${r},${c}`,
-        `cell (${r},${c}) has a blocked 3D sightline at standee height: ${blockers.join(', ')}`)
+  // A cell is hidden when an opaque thing crosses its badge-height sightline.
+  // Walls are drawn opaque, so a wall blocker always counts. Free-standing
+  // solids and exterior support posts that cross a sightline are drawn at
+  // SEE_THROUGH_OPACITY by the renderer (see sightlines.ts, the single source
+  // for both), so they leave the cell readable and are not reported here.
+  // This is a 3D camera sightline advisory: the suspect's portrait is a DOM
+  // overlay above the canvas and is checked separately in browser QA.
+  {
+    const seeThrough = seeThroughOccluders(scene)
+    for (const cell of cellSightBlockers(scene)) {
+      const blockers = [
+        ...cell.walls.map(id => `wall:${id}`),
+        ...cell.objects.filter(id => !seeThrough.objects.has(id)).map(id => `object:${id}`),
+        ...cell.supports.filter(id => !seeThrough.supports.has(id)).map(id => `support:${id}`),
+      ].sort()
+      if (blockers.length) {
+        warn('cell-hidden', `${cell.row},${cell.col}`,
+          `cell (${cell.row},${cell.col}) has a blocked 3D sightline at standee height: ${blockers.join(', ')}`)
+      }
     }
   }
   // ---- tall objects keep their backs to the back walls ----------------------------------
