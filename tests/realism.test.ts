@@ -36,20 +36,17 @@ describe('room naming realism', () => {
     // test-file contention. Not a perf regression — matches measured budget.
   }, 60000)
 
-  it('room names are unique per floor', () => {
+  it('room names are globally unique, including across storeys', () => {
     for (const tier of ['Very Easy', 'Easy', 'Medium', 'Hard'] as const) {
       for (const s of SEEDS.slice(0, 4)) {
         reseed(s)
         const p = generatePuzzle(tier, 'test', 'No.1')
-        for (const fl of [0, 1]) {
-          const floorRooms = p.rooms.filter(r => (r.floor ?? 0) === fl)
-          const names = floorRooms.map(r => r.name)
-          const unique = new Set(names)
-          expect(
-            unique.size,
-            `seed ${s} ${tier} floor ${fl}: duplicate names ${names.join(', ')}`,
-          ).toBe(names.length)
-        }
+        const names = p.rooms.map(r => r.name)
+        const unique = new Set(names)
+        expect(
+          unique.size,
+          `seed ${s} ${tier}: duplicate room names across the case: ${names.join(', ')}`,
+        ).toBe(names.length)
       }
     }
   })

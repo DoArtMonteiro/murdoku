@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { AUTHORED_CASES } from '../src/data/cases'
-import { buildAuthoredPuzzle } from '../src/core/authored'
+import { buildAuthoredPuzzle, type AuthoredCaseSpec } from '../src/core/authored'
 import { countSolutions } from '../src/core/engine'
-import { furnitureCells, furnitureFootprint } from '../src/core/types'
+import { reseed } from '../src/core/generate'
+import { validatePuzzleQuality } from '../src/core/puzzleValidate'
+import { furnitureCells, furnitureFootprint, type Clue } from '../src/core/types'
 
 // ============================================================================
 // Every hand-authored case must pass the SAME invariants a generated one does
@@ -16,6 +18,16 @@ describe('authored cases', () => {
 
   it('at least one authored case exists (the pilot)', () => {
     expect(entries.length).toBeGreaterThan(0)
+  })
+
+  it('builds the same authored clues regardless of the generator seed', () => {
+    const spec = AUTHORED_CASES['very-easy-1']
+    reseed(17)
+    const first = buildAuthoredPuzzle(spec, 'Case No. I')
+    reseed(99173)
+    const second = buildAuthoredPuzzle(spec, 'Case No. I')
+
+    expect(second.clues).toEqual(first.clues)
   })
 
   for (const [slug, spec] of entries) {
@@ -72,4 +84,29 @@ describe('authored cases', () => {
       })
     })
   }
+
+  it('preserves an author-declared clue through automatic pruning', () => {
+    const required: Clue[] = [
+      { kind: 'row', person: 'p0', row: 4 },
+      { kind: 'col', person: 'p0', col: 1 },
+    ]
+    const spec = {
+      ...AUTHORED_CASES['very-easy-1'],
+      slug: 'required-clue-test',
+      requiredClues: required,
+    } satisfies AuthoredCaseSpec
+
+    const puzzle = buildAuthoredPuzzle(spec, 'Case No. Test')
+    for (const clue of required) expect(puzzle.clues.map(item => item.clue)).toContainEqual(clue)
+  })
+
+  it('ships a real two-storey reference with a cross-floor clue', () => {
+    const puzzle = buildAuthoredPuzzle(AUTHORED_CASES['hard-1'], 'Case No. XXXI')
+
+    expect(puzzle.floors).toBe(2)
+    expect(new Set(Object.values(puzzle.solution).map(cell => cell.floor)).size).toBe(2)
+    expect(puzzle.clues.some(item => item.clue.kind === 'above' || item.clue.kind === 'below')).toBe(true)
+    expect(countSolutions(puzzle, 2)).toBe(1)
+    expect(validatePuzzleQuality(puzzle).issues.filter(issue => issue.code === 'clue-reveals-murderer')).toEqual([])
+  })
 })

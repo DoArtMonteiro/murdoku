@@ -3,7 +3,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { X, Lock } from 'lucide-react'
 import type { Puzzle, Cell, CellMark, Furniture, FurnitureType } from '../core/types'
 import { furnitureCells, furnitureFootprint } from '../core/types'
-import { FURNITURE_ICON, FURNITURE_NAME, FURNITURE_OVERHANG } from '../core/furniture'
+import { FURNITURE_NAME } from '../core/furniture'
+import { FURNITURE_ICON, FURNITURE_ICON_SIDE } from '../core/kenneyIcons'
 import { floorStyle, isDarkFloor, roomMaterial } from '../core/roomMaterials'
 import Avatar from './Avatar'
 
@@ -536,12 +537,22 @@ export default function MapGrid({
             gridTemplateColumns: `repeat(${N}, 1fr)`,
             gridTemplateRows: `repeat(${N}, 1fr)`,
             zIndex: 1,
+            // Published so each sprite can size itself in CELLS from its own
+            // intrinsic pixels, which is the only way a kit of tightly-cropped
+            // renders keeps its true relative proportions.
+            ['--cell' as string]: `calc(100% / ${N})`,
           }}
         >
           {allFurniture.map((f, i) => {
-            const Icon = FURNITURE_ICON[f.type]
             const { w, h } = furnitureFootprint(f)
             const rot = f.rotation ?? 0
+            // A piece with purpose-drawn side artwork is never spun by CSS: the
+            // turned view is DRAWN, so its top plane and light stay put. 270deg
+            // is the same drawing mirrored, which a cabinet projection survives
+            // (a mirror keeps the top plane on top and the front face forward).
+            const sideIcon = FURNITURE_ICON_SIDE[f.type]
+            const useSideArt = (rot === 90 || rot === 270) && !!sideIcon
+            const Icon = useSideArt ? sideIcon! : FURNITURE_ICON[f.type]
             // A piece under a suspect token or a struck-out cell steps back
             // rather than disappearing, so the room keeps its shape.
             const covered = furnitureCells(f)
@@ -553,7 +564,6 @@ export default function MapGrid({
             // Size differences come from how many cells the piece occupies,
             // not from shrinking the glyph. 94% on both 1×1 and multi-cell
             // footprints gives a consistent near-flush fill with a thin margin.
-            const iconPct = 94
             // How far this piece rises above its footprint, in cell heights.
             // Clamped on the back row: a piece on row 0 would otherwise lift out
             // through the board's frame. The reference art lets a tree do exactly
@@ -568,23 +578,8 @@ export default function MapGrid({
             // tall — a tiny sofa marooned in a tall gap, which is what the
             // live board showed. Swapping the box back to landscape and
             // rotating it lands the art flush inside the real footprint.
-            const rotSwap = (rot === 90 || rot === 270) && w !== h
-            const overhangBase = FURNITURE_OVERHANG[f.type] ?? 0
-            // Depth must not cross a room wall. The lift is a uniform scale, so
-            // it grows sideways as well as up; letting that spill past a
-            // boundary is what made a bookshelf look like it was climbing out
-            // of the Office. Rotated pieces opt out entirely: "up" in their
-            // local frame is sideways on screen, so a lift would push them into
-            // a neighbour rather than away from the viewer.
-            const roomHere = roomOf[f.row]?.[f.col]
-            const roomAbove = f.row > 0 ? roomOf[f.row - 1]?.[f.col] : undefined
-            const overhangCells = rotSwap
-              ? 0
-              : f.row === 0
-                ? Math.min(overhangBase, 0.12)
-                : roomAbove !== roomHere
-                  ? 0
-                  : overhangBase
+            // Side artwork is already drawn portrait, so it needs no box swap —
+            // only the rotate-the-drawing fallback does.
             return (
               <span
                 key={`${f.type}-${f.row}-${f.col}-${i}`}
@@ -603,103 +598,25 @@ export default function MapGrid({
                   zIndex: f.row + 1,
                 }}
               >
-                {/* The icon box is inset from the footprint on BOTH axes.
-                    Inset percentages resolve per-axis — left/right against the
-                    footprint's width, top/bottom against its height — so the box
-                    always matches the footprint minus a thin margin, whether that
-                    footprint is 1×1, 2×1, 1×2 or 2×2, and can never spill into a
-                    neighbouring cell.
+                {/* SPRITE RENDERING — the artwork is shown whole and untouched.
 
-                    Two earlier attempts failed here, both measured on the live
-                    board. `height: N%` did not resolve against the grid row, so
-                    plant and toilet fell back to their SVG's intrinsic ratio and
-                    rendered 112% of a cell tall. Replacing it with
-                    `aspectRatio: 1/1` fixed those but broke every 2×1 piece
-                    (sofa, table, bathtub, bookshelf, counter): 94% of a 2-cell
-                    width forced to a 1:1 ratio is 1.88 cells TALL in a 1-cell
-                    row. Insets have neither failure mode. */}
-                <span
-                  style={{
-                    position: 'absolute',
-                    // Rotated non-square piece: lay the box out LANDSCAPE (the
-                    // artwork's own aspect) and let the rotation below stand it
-                    // upright, so it fills the portrait footprint instead of
-                    // letterboxing to half a cell. The box is centred on the
-                    // footprint so the quarter-turn pivots about the middle.
-                    ...(rotSwap ? {
-                      left: '50%',
-                      top: '50%',
-                      width: `${(h / w) * iconPct}%`,
-                      height: `${(w / h) * iconPct}%`,
-                    } : {
-                      inset: `${(100 - iconPct) / 2}%`,
-                    }),
-                    // DEPTH — a tall piece is drawn BIGGER than its square with
-                    // its base still planted, so it rises over the cell behind
-                    // it. That is how the reference art works: the tree is not
-                    // shifted upward, it is simply taller than the square it
-                    // stands in.
-                    //
-                    // Bottom-anchored scale, not a translate. Translating would
-                    // lift the piece off its own floor and make it float; growing
-                    // from the bottom edge keeps it standing where it belongs.
-                    //
-                    // MEASURED DEAD END — do not "simplify" this back to moving
-                    // `top` upward. The SVGs use preserveAspectRatio="meet" with
-                    // a square viewBox, so enlarging the BOX does not enlarge the
-                    // art: it re-centres the same-size drawing inside a taller
-                    // box. Measured on the live board, the box rose 0.37 cells
-                    // while the ink rose 0.02.
-                    //
-                    // Scale maths: the box is h*iconPct cells tall, and the piece
-                    // must end up (h*iconPct + overhang) cells tall.
-                    // ONLY the lift lives on this element, because it is the
-                    // only transform that may use a bottom origin. Rotation is
-                    // applied to a child with a CENTRE origin — see below.
-                    transformOrigin: rotSwap ? 'center center' : 'bottom center',
-                    transform: [
-                      // Centre the landscape box on the footprint before it is
-                      // stood upright by the rotation.
-                      rotSwap ? 'translate(-50%, -50%)' : null,
-                      // scaleY, NOT scale. The board is read as if viewed from
-                      // a shallow angle, so height is the only axis that may
-                      // grow — a uniform scale widened the piece by half the
-                      // lift on each side, which is how a bookshelf ended up
-                      // reaching past the board frame and into the room next
-                      // door. Vertical-only growth also matches the
-                      // foreshortening of a low viewing angle: a taller object
-                      // covers more of the wall behind it without covering more
-                      // floor.
-                      overhangCells > 0
-                        ? `scaleY(${1 + overhangCells / (h * (iconPct / 100))})`
-                        : null,
-                    ].filter(Boolean).join(' ') || undefined,
-                  }}
-                >
-                  {/* Rotation MUST pivot about the centre, and therefore cannot
-                      share the parent's bottom origin.
-                      Rotating about a bottom edge does not merely turn a piece,
-                      it TRANSLATES it off its own footprint: 180deg lands it a
-                      full row below where it belongs, 90/270deg shifts it half a
-                      cell diagonally. Measured on the live board, a 180deg
-                      bookshelf anchored in the Office rendered at rows
-                      2.97-4.10 — entirely inside the Garden below it — and a
-                      270deg desk sat half a cell down and to the left of its
-                      own square. Every rotated piece on every board was
-                      affected, which is what made the rooms look like their
-                      furniture was sliding out of them. */}
-                  <span
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      height: '100%',
-                      transformOrigin: 'center center',
-                      transform: rot ? `rotate(${rot}deg)` : undefined,
-                    }}
-                  >
-                    <Icon />
-                  </span>
-                </span>
+                    Kenney's pieces are pre-rendered isometric objects, and an
+                    isometric object is far taller than the patch of floor it
+                    stands on. The previous pass boxed each one at 94% of a cell
+                    with `object-fit: contain`, so `contain` solved for the
+                    HEIGHT and shrank the piece until its base covered a
+                    fraction of its own square — every object read as a tiny
+                    miniature marooned in a big tile. A drop-shadow was then
+                    layered over art that already carries a baked contact
+                    shadow, and the vertical lift stretched what was left.
+
+                    None of that machinery runs here. The footprint span is the
+                    only box, and the sprite anchors itself to the bottom of it,
+                    draws wider than the cell so its base lands ON the square,
+                    and rises freely out of the top. Rotation is unnecessary
+                    because the kit ships four pre-rendered facings — the turned
+                    view is real art, not a spun copy of the front. */}
+                <Icon />
               </span>
             )
           })}

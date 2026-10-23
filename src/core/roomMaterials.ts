@@ -151,66 +151,78 @@ const parquet = (pitch: string, a: string, b: string, grain: string) => wrap(`
   </g>
 `)
 
+// DAYLIGHT PALETTE — rebuilt around the Kenney sprites.
+//
+// The noire finishes were near-black by design, and the marks and tokens were
+// tuned to read against them. Kenney's furniture is rendered under a bright
+// key light on pale ground: dropping it onto an espresso floor read as two
+// unrelated images stacked, and no amount of care with the SPRITES could fix a
+// fight that was happening in the FLOOR.
+//
+// Values are sampled from the kit's own sample render: warm blond timber, off
+// white tile, and a soft sage lawn. Everything sits between roughly 70% and
+// 90% luminance so a piece's own contact shadow is what separates it from the
+// ground — which is exactly what that shadow was drawn to do.
 export const ROOM_MATERIALS: Record<RoomMaterial, CSSProperties> = {
-  // Oxblood-and-clay encaustic tile, dulled to kitchen-at-night levels.
+  // Warm cream encaustic tile.
   kitchen: {
-    backgroundColor: '#2A211B',
-    backgroundImage: tile(checker('#1B1511', '#4A382C', '#33261E', '#C9A063')),
+    backgroundColor: '#EFE6D8',
+    backgroundImage: tile(checker('#EFE6D8', '#E2D4BE', '#F6F0E5', '#C9A063')),
   },
-  // Cold slate slabs with mineral bloom.
+  // Cool off-white slabs.
   bathroom: {
-    backgroundColor: '#2C3330',
-    backgroundImage: tile(slabs('#161B19', '#3F4844', '#333B38', '#A9B09A')),
+    backgroundColor: '#E7EDEA',
+    backgroundImage: tile(slabs('#E7EDEA', '#D6E0DB', '#F2F6F4', '#9FB3A8')),
   },
-  // Narrow walnut shelving boards.
+  // Pale birch shelving boards.
   pantry: {
-    backgroundColor: '#2C1E16',
-    backgroundImage: tile(boards('#150E0A', '#4A3222', '#3A271A', '#B98A50')),
+    backgroundColor: '#EADFCC',
+    backgroundImage: tile(boards('#EADFCC', '#D8C7AB', '#F3EBDC', '#B98A50')),
   },
-  // Faded wool carpet, richer at the edges than the centre.
+  // Soft wool carpet.
   'living-room': {
-    backgroundColor: '#2B2320',
-    backgroundImage: tile(weave('#2B2320', '#4A3A31', '#1B1512', '#7A5B45')),
+    backgroundColor: '#E9DECE',
+    backgroundImage: tile(weave('#E9DECE', '#DCCDB6', '#F2EADD', '#B08A62')),
   },
-  // Mahogany parquet.
+  // Honey parquet.
   'dining-room': {
-    backgroundColor: '#2A1C15',
-    backgroundImage: tile(parquet('#150E0A', '#4E3323', '#3B261A', '#C08A50')),
+    backgroundColor: '#E7CFA9',
+    backgroundImage: tile(parquet('#E7CFA9', '#D3B283', '#F0DEC1', '#B07C42')),
   },
-  // Nearly black library walnut, wide boards.
+  // Blond library oak, wide boards.
   study: {
-    backgroundColor: '#22160F',
-    backgroundImage: tile(planks('#120C08', '#3E2718', '#301D12', '#B57C44')),
+    backgroundColor: '#E3C79E',
+    backgroundImage: tile(planks('#E3C79E', '#CDAA79', '#EDD9B8', '#A97A45')),
   },
-  // Smoked slate, restrained under paperwork.
+  // Light grey office slate.
   office: {
-    backgroundColor: '#282E2A',
-    backgroundImage: tile(slabs('#141816', '#39413C', '#2E3531', '#9AA189')),
+    backgroundColor: '#E4E6E1',
+    backgroundImage: tile(slabs('#E4E6E1', '#D2D6CE', '#EFF1ED', '#9AA189')),
   },
   // Warm bedroom floorboards.
   bedroom: {
-    backgroundColor: '#2E2116',
-    backgroundImage: tile(planks('#170F09', '#503320', '#3F2818', '#C08E4E')),
+    backgroundColor: '#EBD3AE',
+    backgroundImage: tile(planks('#EBD3AE', '#D7B889', '#F4E4CA', '#B98E52')),
   },
-  // Aged limestone courses.
+  // Pale limestone courses.
   hallway: {
-    backgroundColor: '#3A362E',
-    backgroundImage: tile(bricks('#1D1A16', '#4E4A3F', '#413D34', '#BEB08B')),
+    backgroundColor: '#EDE7D8',
+    backgroundImage: tile(bricks('#EDE7D8', '#DCD3BE', '#F5F1E7', '#BEB08B')),
   },
-  // Clipped lawn over packed earth.
+  // Sunlit clipped lawn.
   'front-yard': {
-    backgroundColor: '#28331F',
-    backgroundImage: tile(lawn('#28331F', '#33421F', '#8B9A5E', '#5A4326')),
+    backgroundColor: '#BFD199',
+    backgroundImage: tile(lawn('#BFD199', '#AFC486', '#D3E0B4', '#8A7048')),
   },
-  // Damper, darker planting beds.
+  // Lusher planting beds.
   garden: {
-    backgroundColor: '#1F2A1B',
-    backgroundImage: tile(lawn('#1F2A1B', '#2B3A1F', '#778A54', '#4E3A22')),
+    backgroundColor: '#B2C98C',
+    backgroundImage: tile(lawn('#B2C98C', '#9FBB76', '#C8DAA6', '#7E663F')),
   },
   // Weathered porch timber.
   porch: {
-    backgroundColor: '#2B2822',
-    backgroundImage: tile(boards('#151310', '#423E34', '#35322A', '#B0A277')),
+    backgroundColor: '#E5DCC8',
+    backgroundImage: tile(boards('#E5DCC8', '#D3C7AC', '#F0EADB', '#B0A277')),
   },
 }
 
@@ -257,7 +269,11 @@ export function floorStyle(material: RoomMaterial): CSSProperties {
   }
 }
 
-/** Every finish is intentionally dark enough for the board's light mark treatment. */
+/**
+ * The daylight palette inverts this: every finish now sits at 70-90% luminance,
+ * so marks must be drawn DARK to read. Returning true here would keep painting
+ * white X marks onto cream tile.
+ */
 export function isDarkFloor(_material: RoomMaterial): boolean {
-  return true
+  return false
 }

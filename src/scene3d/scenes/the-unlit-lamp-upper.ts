@@ -1,0 +1,107 @@
+import type { SceneSpec } from '../schema'
+
+// A escada chega ao fundo do estúdio; um corredor seco desce a nascente do quarto,
+// serve a casa de banho principal e segue pela galeria sul até ao escritório e a
+// uma segunda casa de banho, onde fica a outra banheira.
+export const theUnlitLampUpper: SceneSpec = {
+  puzzleId: 'hard-7',
+  floor: 1,
+  storeyFootprint: { kind: 'full' },
+  stairwellBounds: [2.15625, 0.860625, 3.14375, 3.139375],
+  circulation: {
+    landing: [2.15625, 3.139375, 3.14375, 3.889375],
+    halls: [
+      { id: 'study-bedroom-link', bounds: [2.0, 3.14, 4.0, 3.94] },
+      { id: 'bedroom-gallery', bounds: [3.06, 3.6, 3.84, 7.94] },
+      { id: 'south-service-gallery', bounds: [3.06, 7.06, 7.95, 7.94] },
+    ],
+    roomAccessTargets: [
+      { id: 'study-landing', bounds: [2.0, 3.2, 2.85, 3.85] },
+      { id: 'bedroom-door', bounds: [2.4, 5.1, 3.75, 5.9] },
+      { id: 'second-bath-door', bounds: [5.15, 6.5, 5.95, 7.9] },
+      { id: 'bathroom-door', bounds: [3.3, 4.15, 4.75, 5.05] },
+      { id: 'office-door', bounds: [6.6, 6.5, 7.4, 7.9] },
+    ],
+  },
+  shell: { features: [
+    { wall: 'north', at: 1.3, kind: 'window' },
+    { wall: 'north', at: 4.7, kind: 'window' },
+    { wall: 'north', at: 7.2, kind: 'window' },
+    { wall: 'west', at: 1.6, kind: 'window' },
+  ] },
+  floors: [
+    { id: 'study', cells: [0, 0, 3, 3], material: 'wood' },
+    { id: 'bedroom', cells: [0, 4, 2, 7], material: 'wood' },
+    { id: 'private-gallery', cells: [3, 4, 3, 7], material: 'stone' },
+    { id: 'bathroom', cells: [4, 0, 5, 6], material: 'tile' },
+    { id: 'office', cells: [6, 0, 7, 6], material: 'wood' },
+    { id: 'south-gallery', cells: [4, 7, 7, 7], material: 'stone' },
+  ],
+  walls: [
+    { id: 'study-bedroom', from: [0, 4], to: [3, 4] },
+    { id: 'bedroom-hall', from: [3, 4], to: [3, 8], openings: [{ at: 5.5, width: 1.2, kind: 'door' }] },
+    { id: 'hall-east', from: [4.2, 0], to: [4.2, 7], openings: [{ at: 4.6, width: 1.0, kind: 'door' }] },
+    { id: 'bathroom-office', from: [6, 0], to: [6, 7], height: 'half' },
+    { id: 'second-bath-north', from: [4.2, 5.4], to: [6, 5.4] },
+    { id: 'shower-screen', from: [5.2, 2.08], to: [6, 2.08], height: 'half', freeEnds: ['from'] },
+    { id: 'service-south', from: [4.2, 7], to: [8, 7], openings: [
+      { at: 5.55, width: 0.8, kind: 'door' },
+      { at: 7.0, width: 1.0, kind: 'door' },
+    ] },
+    { id: 'stairwell-west-guard', from: [2.15625, 0.860625], to: [2.15625, 3.089375], height: 'half', treatment: 'railing', freeEnds: ['to'] },
+    { id: 'stairwell-east-guard', from: [3.14375, 0.860625], to: [3.14375, 3.089375], height: 'half', treatment: 'railing', freeEnds: ['to'] },
+    { id: 'stairwell-north-guard', from: [2.15625, 0.860625], to: [3.14375, 0.860625], height: 'half', treatment: 'railing' },
+  ],
+  furniture: [
+    // Estúdio: secretária debaixo da janela norte com cadeira, caixas de arquivo,
+    // canto de leitura a poente e estante baixa dupla junto ao vão.
+    { id: 'study-desk', model: 'desk', against: { wall: 'north', at: 1.3 } },
+    { id: 'study-desk-chair', model: 'chairDesk', at: [1.3, 0.92], facing: 'N' },
+    { id: 'study-laptop', model: 'laptop', on: { parent: 'study-desk' } },
+    { id: 'study-box-north', model: 'cardboardBoxClosed', logic: 'box@0,0', at: [0.3, 0.3] },
+    { id: 'study-box-south', model: 'cardboardBoxOpen', logic: 'box@1,1', at: [1.75, 1.3] },
+    { id: 'study-lamp', model: 'lampRoundFloor', logic: 'lamp@2,0', at: [0.25, 2.2] },
+    { id: 'study-armchair', model: 'loungeChair', at: [0.4, 2.85], facing: 'E' },
+    { id: 'study-bookcase', model: 'bookcaseOpen', logic: 'bookshelf@2,3', at: [3.68, 2.3], facing: 'S' },
+    { id: 'study-bookcase-books', model: 'books', on: { parent: 'study-bookcase', surface: 'shelf2' } },
+    { id: 'study-bookcase-books-low', model: 'books', on: { parent: 'study-bookcase', surface: 'shelf1' } },
+        // Quarto: cama de casal com a cabeceira na parede norte e mesas de cabeceira,
+    // cómoda com rádio a sul e poltrona no canto.
+    { id: 'bedroom-bed', model: 'bedDouble', logic: 'bed@4,1', against: { wall: 'study-bedroom', side: 'S', at: 1.6 } },
+    { id: 'bedroom-nightstand', model: 'cabinetBedDrawerTable', against: { wall: 'study-bedroom', side: 'S', at: 0.6 } },
+    { id: 'bedroom-bedside-lamp', model: 'lampRoundTable', on: { parent: 'bedroom-nightstand' } },
+    { id: 'bedroom-clock-table', model: 'sideTable', against: { wall: 'south', at: 2.35 }, facing: 'N' },
+    { id: 'bedroom-clock', model: 'radio', logic: 'clock@7,2', on: { parent: 'bedroom-clock-table' } },
+    { id: 'bedroom-dresser', model: 'cabinetTelevisionDoors', against: { wall: 'west', at: 6.6 }, facing: 'E' },
+    { id: 'bedroom-armchair', model: 'loungeChair', at: [1.3, 7.45], facing: 'N' },
+    { id: 'bedroom-plant', model: 'pottedPlant', at: [0.3, 7.6] },
+    { id: 'gallery-lamp', model: 'lampRoundFloor', logic: 'lamp@5,3', at: [3.95, 5.6] },
+    // Casa de banho principal: sanita a norte, máquina, lavatório e móvel a poente,
+    // duche e banheira a nascente; porta para o corredor.
+    { id: 'bathroom-toilet', model: 'toilet', logic: 'toilet@0,5', against: { wall: 'north', at: 5.55 } },
+    { id: 'bathroom-washer', model: 'washer', against: { wall: 'hall-east', side: 'E', at: 0.4 } },
+    { id: 'bathroom-sink', model: 'bathroomSink', against: { wall: 'hall-east', side: 'E', at: 1.3 } },
+    { id: 'bathroom-cabinet', model: 'bathroomCabinetDrawer', against: { wall: 'hall-east', side: 'E', at: 2.0 } },
+    { id: 'bathroom-shower', model: 'shower', logic: 'shower@2,5', against: { wall: 'shower-screen', side: 'S', at: 5.6 } },
+    { id: 'bathroom-tub', model: 'bathtub', logic: 'bathtub@4,5', against: { wall: 'bathroom-office', side: 'W', at: 4.6 } },
+    // Segunda casa de banho, com porta para a galeria: banheira, lavatório e sanita.
+    { id: 'second-bath-tub', model: 'bathtub', logic: 'bathtub@5,4', at: [4.6, 6.2], facing: 'E' },
+    { id: 'second-bath-sink', model: 'bathroomSink', against: { wall: 'second-bath-north', side: 'S', at: 5.17 } },
+    { id: 'second-bath-toilet', model: 'toilet', against: { wall: 'bathroom-office', side: 'W', at: 6.1 } },
+    // Escritório: secretária e cadeira junto à parede nascente, estantes baixas,
+    // canto de leitura a sul e arquivo junto à porta.
+    { id: 'office-desk', model: 'desk', logic: 'desk@1,7', against: { wall: 'east', at: 1.45 }, facing: 'W' },
+    { id: 'office-chair', model: 'chair', logic: 'chair@1,6', at: [6.75, 1.45], facing: 'E' },
+    { id: 'office-laptop', model: 'laptop', on: { parent: 'office-desk' }, facing: 'W' },
+    { id: 'office-bookcase', model: 'bookcaseOpenLow', logic: 'bookshelf@2,7', against: { wall: 'east', at: 2.75 }, facing: 'W' },
+    { id: 'office-bookcase-books', model: 'books', on: { parent: 'office-bookcase' } },
+        { id: 'office-plant', model: 'pottedPlant', at: [6.3, 0.3] },
+    { id: 'office-armchair', model: 'loungeChair', at: [6.45, 4.6], facing: 'E' },
+    { id: 'office-armchair-table', model: 'tableCoffeeSquare', at: [7.3, 4.6] },
+    { id: 'office-reading-lamp', model: 'lampRoundFloor', at: [6.25, 5.3] },
+    { id: 'office-cabinet', model: 'sideTableDrawers', against: { wall: 'east', at: 5.6 }, facing: 'W' },
+  ],
+  rugs: [
+    { id: 'bedroom-rug', model: 'rugRectangle', at: [1.6, 6.3], facing: 'E' },
+  ],
+}

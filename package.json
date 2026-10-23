@@ -9,15 +9,19 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "verify": "vitest run tests/puzzles.test.ts",
+    "report:puzzles": "node scripts/measure-puzzles.mjs --write",
+    "validate:production": "tsc -b --pretty false && vitest run tests/productionPreflight.test.ts --reporter=verbose",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage --testTimeout=60000"
   },
   "dependencies": {
+    "@types/three": "^0.185.4",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

@@ -2,8 +2,8 @@ import type {
   Puzzle, Room, Furniture, Person, Cell, Clue, GridSize, Difficulty,
 } from './types'
 import { furnitureCells, furnitureFootprint } from './types'
-import { countSolutions, findMurderer, roomIdAt } from './engine'
-import { candidateClues, clueDirectness, pruneClues, clueToText, ACCENTS } from './generate'
+import { clueHolds, countSolutions, findMurderer, roomIdAt } from './engine'
+import { candidateClues, clueDirectness, pruneClues, clueToText, selectClueTexts, ACCENTS } from './generate'
 
 // ============================================================================
 // Hand-authored cases.
@@ -48,9 +48,24 @@ export interface AuthoredCaseSpec {
   /** Directness band clues are drawn from — copy from generate.ts's DIFFICULTY_CONFIG for this tier. */
   maxDirectness: number
   minDirectness: number
+  /** Clues that carry authored intent and must survive solver-driven pruning.
+   *  Person and room ids use the deterministic p0 / room0 ids assigned above. */
+  requiredClues?: Clue[]
+  /**
+   * Freeze the layout but let the generator's selector choose the clues, from
+   * this fixed seed. For cases that began life as procedural layouts and whose
+   * hand-built 3D scene pins the exact furniture (see data/cases/frozen-layouts.ts).
+   * When set, requiredClues and the directness band are ignored in favour of the
+   * tier's own configuration.
+   */
+  generatorSeed?: number
   /** Author-written intro blurb — this is the one place a "generated" case can't compete. */
   flavor: string
 }
+
+const clueKey = (clue: Clue): string => JSON.stringify(
+  Object.entries(clue).sort(([a], [b]) => a.localeCompare(b)),
+)
 
 function buildRoomOf(rooms: Room[], size: number): string[][] {
   const grid: string[][] = Array.from({ length: size }, () => new Array(size).fill(''))
@@ -173,9 +188,26 @@ export function buildAuthoredPuzzle(spec: AuthoredCaseSpec, caseNumber: string):
   if (!murderer) throw new Error(`${spec.slug}: victim's room does not have exactly one other suspect in it`)
   base.murdererId = murderer
 
+  if (spec.generatorSeed !== undefined) {
+    base.clues = selectClueTexts(base, spec.difficulty, spec.generatorSeed)
+    const real = base.clues.filter(c => c.clue.kind !== 'victim')
+    for (const { clue } of real) {
+      if (!clueHolds(base, clue, solution)) throw new Error(`${spec.slug}: clue ${JSON.stringify(clue)} is not true for the authored solution`)
+    }
+    if (countSolutions(base, 2) !== 1) throw new Error(`${spec.slug}: frozen layout does not have a unique solution`)
+    return base
+  }
+
   // Solver-driven greedy clue selection (Phase-B style: no arithmetic pre-scoring,
   // since this runs once at author time, not on a hot path).
-  const ceiling = candidateClues(base).filter(c => clueDirectness(c) <= spec.maxDirectness)
+  const candidates = candidateClues(base)
+  const required = spec.requiredClues ?? []
+  for (const clue of required) {
+    if (!candidates.some(candidate => clueKey(candidate) === clueKey(clue))) {
+      throw new Error(`${spec.slug}: required clue ${JSON.stringify(clue)} is not true for the authored solution`)
+    }
+  }
+  const ceiling = candidates.filter(c => clueDirectness(c) <= spec.maxDirectness)
   const pool = ceiling.filter(c => clueDirectness(c) >= spec.minDirectness)
   const byPerson: Record<string, Clue[]> = {}
   for (const p of people) {
@@ -189,11 +221,15 @@ export function buildAuthoredPuzzle(spec: AuthoredCaseSpec, caseNumber: string):
     ? people.map(p => ({ kind: 'floor' as const, person: p.id, floorNum: solution[p.id].floor ?? 0 }))
     : []
   const acc: Clue[] = [...floorSeed]
+  for (const clue of required) {
+    if (!acc.some(candidate => clueKey(candidate) === clueKey(clue))) acc.push(clue)
+  }
   base.clues = acc.map(c => ({ clue: c, text: '' }))
   let guard = 0
   const maxGuard = 200
   while (countSolutions(base, 2) > 1 && guard++ < maxGuard) {
-    const remaining = (pool.length ? pool : ceiling).filter(c => !acc.includes(c))
+    const selected = new Set(acc.map(clueKey))
+    const remaining = (pool.length ? pool : ceiling).filter(clue => !selected.has(clueKey(clue)))
     if (!remaining.length) break
     let bestClue: Clue | null = null, bestCount = Infinity
     for (const cand of remaining) {
@@ -209,7 +245,10 @@ export function buildAuthoredPuzzle(spec: AuthoredCaseSpec, caseNumber: string):
   if (countSolutions(base, 2) !== 1) {
     throw new Error(`${spec.slug}: could not reach a unique solution with the given rooms/furniture/clue band — redesign the layout`)
   }
-  const chosen = pruneClues(base, acc)
+  const chosen = pruneClues(base, acc, required, 'stable')
+  for (const clue of chosen) {
+    if (!clueHolds(base, clue, solution)) throw new Error(`${spec.slug}: clue ${JSON.stringify(clue)} is not true for the authored solution`)
+  }
   base.clues = chosen.map(c => ({ clue: c, text: clueToText(base, c) }))
   base.clues.push({ clue: { kind: 'victim', person: victimId }, text: clueToText(base, { kind: 'victim', person: victimId }) })
 

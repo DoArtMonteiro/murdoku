@@ -29,6 +29,25 @@ colors:
   step-numeral-selected: "#FFF7E4"
   board-vignette: "rgba(24, 14, 19, 0.18)"
   board-keylight: "rgba(255, 244, 211, 0.08)"
+  # 3D dollhouse (src/scene3d/renderer.ts) — the Kenney palette is lit, not painted
+  scene-shell-face: "#F1EBE0"
+  scene-shell-cap: "#D9CFBF"
+  scene-partition-face: "#ECE3D3"
+  scene-partition-cap: "#CDBFA8"
+  scene-plinth: "#D6C19F"
+  scene-night-glass: "#22303F"
+  scene-floor-tile: "#DED8C8"
+  scene-floor-grass: "#8CBF6C"
+  scene-floor-stone: "#B8B2A6"
+  scene-light-key: "#FFE2B8"
+  scene-light-sky: "#FFF8EC"
+  scene-light-ground: "#9C8266"
+  scene-lane-row: "#FFB547"
+  scene-lane-col: "#5AC8FF"
+  scene-lane-locked: "#4CAF72"
+  scene-lane-blocked: "#8A6CFF"
+  scene-lane-conflict: "#FF3B3B"
+  scene-clue-wash: "#FFF2C8"
 typography:
   display:
     fontFamily: "Barlow Condensed, ui-sans-serif, system-ui, sans-serif"
@@ -187,7 +206,7 @@ components:
 
 Alibi is a working 1940s film-editing continuity desk translated into a modern deduction interface. Magnetic graphite holds the workspace together; bone evidence strips, contact-sheet portraits, clipped tabs, film perforations, and restrained projector amber make the player's reasoning feel assembled by hand. It is cinematic without becoming a poster: the board, clues, tools, and accusation remain unmistakably operative.
 
-The chrome and the board intentionally use different materials. The surrounding interface is dark, archival, and controlled, while the board is a premium detective-dossier mansion reconstruction: twelve distinct dark room material tiles, nineteen hand-illustrated miniatures with confident espresso contours, and heavy espresso dividers keep every clue target nameable. Paper is reserved for evidence-bearing objects, never spread across the whole application as a parchment dashboard.
+The chrome and the solving environment intentionally use different materials. The surrounding interface is dark, archival, and controlled, while the board is a real 3D dollhouse built from Kenney's Furniture Kit models (three.js, fixed orthographic camera at 45°/32°): one continuous floor slab, a full-height north/west shell with night windows and a front door, cut-down interior partitions with real door frames, and furniture placed against walls and on surfaces by measured geometry. The logical grid stays hidden until interaction requires it. See docs/ISOMETRIC_SCENE_SYSTEM.md. Paper is reserved for evidence-bearing objects, never spread across the whole application as a parchment dashboard.
 
 **Key Characteristics:**
 
@@ -196,7 +215,7 @@ The chrome and the board intentionally use different materials. The surrounding 
 - One projector-amber chain linking the selected frame, clue, and literal board target.
 - Condensed industrial headlines, typewritten evidence, and neutral compact controls.
 - Sharp rectangles, clipped corners, torn edges, perforations, and contact-sheet crops.
-- A dominant square mansion reconstruction built from authored dark material tiles and thick-contoured illustrated miniatures rather than a full-board raster.
+- A dominant isometric detective dollhouse rendered from Kenney's 3D models, authored as architecture (walls, doors, surfaces) over a hidden Murdoku grid.
 
 ## Colors
 
@@ -288,7 +307,7 @@ The home index uses a full-bleed desk with a centered 1600px maximum content wid
 
 ## Elevation & Depth
 
-Depth is physical and directional: raster graphite on the surrounding desk, archival paper, cut inset edges, and restrained lifted evidence. The mansion itself uses authored SVG material tiles — one stretched per cell so plank and grout rhythm never changes with board size — never a full-board reconstruction raster. The system is flat by default and adds shadow only when an object behaves like paper above steel, a selected projector field, or a focused control. Hover lift is limited to fine pointers; reduced motion collapses transitions and animations.
+Depth is physical and directional: raster graphite on the surrounding desk, archival paper, cut inset edges, and restrained lifted evidence. The dollhouse is lit by one warm key light with a shadow map and one hemisphere fill; contact and cast shadows come from the geometry, never from per-object settings. Laptops, lamps, books and appliances sit on a declared parent surface at its measured height. The system is flat by default and adds shadow only when an object behaves like paper above steel, a miniature on the floor, a selected projector field, or a focused control. Hover lift is limited to fine pointers; reduced motion collapses transitions and animations.
 
 ### Shadow Vocabulary
 
@@ -336,15 +355,27 @@ The default form is a sharp rectangle. Evidence frames use clipped 6–10px corn
 
 ### Illustrated Reconstruction Board
 
-The board is a square collection of real buttons with a heavy espresso frame and room dividers, twelve distinct dark material finishes, persistent room labels, nineteen recognizable top-down furniture miniatures, suspect tokens, draft chips, and conflict marks. Furniture reads through a 2.4–3.2px deep espresso outer contour, layered muted fills, finer mahogany seams, brass or parchment highlights, and directional shadow. The contour is illustration ink, never pure black and never applied uniformly to every interior detail. A selected literal clue adds one amber projector trace to its target; the lamp miniature answers it with a localized brass glow, creating the signature projector moment without washing the whole board. Keyboard arrows retain cell navigation and every cell keeps a visible solid focus ring.
+Each case is an authored 3D scene laid over the unchanged logical board (Midnight Delivery is the golden master). Architecture comes first: a continuous north/west shell with windows and the front door, south/east walls cut to a plinth, cut-down partitions with door frames, pony walls where furniture must back onto the camera side. Interior flooring forms a continuous architectural surface except at a declared stairwell. Tile and stone distinguish uses; exterior and courtyard zones lower the terrain and create physical transitions. Rugs belong to furniture groups and never bridge a stairwell. These choices do not draw logical room boundaries.
+
+Every logical furnishing keeps an explicit `logic` association with a visual object that touches its cells; models render at Kenney's real size (there is no per-object scale). Small props declare a supporting surface. Before interaction there are no cell markers, row bands, column bands or room labels. A selected cell retains its visible boundary after the pointer leaves. Placement mode reveals restrained floor cues for available lanes. Active and completed rows and columns use floor washes painted on the floor (occluded by furniture), thin dashed traces and small endpoints; they never outline every cell.
+
+### Leitura da seleção e de dois pisos
+
+A célula ativa usa um contorno escuro exterior e um contorno claro interior, com espessura estável no ecrã. O sinal permanece legível sobre móveis e pavimentos claros ou escuros. Uma pessoa colocada mantém o contorno nos pés; um conflito acrescenta tracejado, símbolo de aviso e texto. A cor reforça o significado, mas não o comunica sozinha.
+
+O texto de apoio identifica a célula e a divisão e distingue ocupação, conflito, ajuda e disponibilidade de linha/coluna. «Linha e coluna livres» descreve uma possibilidade de colocação, não a resposta do caso. As setas deslocam o foco na grelha, Enter ou espaço executam a ação e a seleção pertence ao caso e piso ativos.
+
+A ajuda pedida tem um contorno creme/âmbar próprio sobre o alvo. Não a confundas com os sinais de colocação nem a atives automaticamente ao selecionar uma pessoa. Mantém a linguagem material de tinta, papel e âmbar; não acrescentes brilhos saturados nem uma grelha permanente.
+
+Nos casos de dois pisos, as arestas do contexto fantasma descrevem paredes e lajes sem diagonais da malha. À altura real, a escada mantém volume legível através do vão; o panorama explodido torna a escada do contexto translúcida. A composição deve permitir compreender pé, subida, chegada e circulação na vista normal. Quarto, escritório, instalações sanitárias e zona de leitura devem ter relações de mobiliário reconhecíveis, com tapetes fora do vão.
 
 ### Named Rules
 
-**The Literal Board Rule.** Every room material and furniture silhouette must remain nameable because clue language points directly to them; projection purity always loses to recognition.
+**The Hidden Logic Rule.** A stranger who sees the idle environment should describe a miniature apartment, not a grid. The Murdoku topology appears only as solving feedback and never dictates the architectural rhythm.
 
 **The Asked-For Help Rule.** The board answers a clue with an amber square around its actual target cells, and only when the player presses that suspect's locate control. Help is requested, never volunteered: selecting a suspect is a placement action and must not light the board. There is deliberately no drawn clue-to-board connector — a line between two independently sized layout regions can only be positioned by guessed percentages, and it pointed into empty space at every viewport it was not tuned on.
 
-**The Miniature, Not Pictogram Rule.** Furniture is rendered as fully illustrated overhead or cheated-projection objects: a confident espresso outer silhouette, recognizable construction details, and restrained internal seams. Never collapse it into wireframe symbols or uniform black-outlined clip art.
+**The Kenney World Rule.** Kenney's 3D models define the visual world at their real size and grounding. Objects are placed by relationship — against a wall face, on a surface, at a point — never by pixel offset, lift or scale.
 
 ## Do's and Don'ts
 
@@ -352,8 +383,9 @@ The board is a square collection of real buttons with a heavy espresso frame and
 
 - **Do** keep theme-aware chrome and fixed evidence/board materials as separate layers.
 - **Do** keep paper on evidence-bearing objects and steel/graphite on application chrome.
-- **Do** preserve all twelve dark room finishes and the nineteen-object miniature vocabulary; preserve recognition cues such as cushions, armrests, taps, book spines, leaves, papers, and the lamp's shade, arm, base, and localized projector glow.
-- **Do** preserve full room names wherever they fit and expose any abbreviation with the full accessible name.
+- **Do** preserve a continuous apartment shell, clear doorways, believable circulation and furniture relationships.
+- **Do** keep logical furniture associations explicit while allowing independent visual placement.
+- **Do** keep room names accessible without painting them permanently on the floor.
 - **Do** use real buttons, 44px targets, visible focus, keyboard board navigation, and reduced-motion fallbacks.
 - **Do** keep avatar use to the active dossier; use inexpensive accent markers in the case catalog.
 - **Do** test both themes at phone and desktop widths with the board, clues, and accusation all visible and legible.
@@ -362,8 +394,9 @@ The board is a square collection of real buttons with a heavy espresso frame and
 
 - **Don't** turn the interface into a generic rounded-card dashboard, glass surface, neon cyberpunk scene, or full-screen parchment tableau.
 - **Don't** use projector amber for passive decoration or oxblood for ordinary emphasis.
-- **Don't** let two rooms share the same floor signature or reduce nameable furniture to ambiguous wireframes, borderless blobs, pure-black contouring, uniformly outlined clip art, or neon/plastic fills.
-- **Don't** replace the authored room materials and miniatures with a full-board reconstruction raster.
+- **Don't** build walls from puzzle-cell boundaries or repeat short panels into a maze, staircase or office-cubicle plan.
+- **Don't** place props on the floor when they require a desk, table, shelf or counter.
+- **Don't** expose a permanent grid, placement circles or saturated row and column bands.
 - **Don't** use the translucent board glow as a focus ring or the subtle border as an interactive boundary.
 - **Don't** load every suspect portrait in the home catalog.
 - **Don't** remount the accusation button to replay rejection motion; preserve focus and restart the CSS animation in place.

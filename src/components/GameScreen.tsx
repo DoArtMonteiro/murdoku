@@ -5,10 +5,10 @@ import {
   HelpCircle, Eye, EyeOff, Info, Palette, Wand2, MoreHorizontal,
 } from 'lucide-react'
 import type { Puzzle, CellMark, GameMode, Furniture, FurnitureType } from '../core/types'
-import { findFailingClues, resolveClueHighlights, satisfiedClueFlags } from '../core/ux'
-import { clueHolds } from '../core/engine'
+import { resolveClueHighlights, resolveCluePreviewFloor } from '../core/ux'
 import type { Tool } from '../hooks/useGame'
-import MapGrid from './MapGrid'
+import { makeFrame, makeStoreyFrame, type StoreyView } from '../scene3d/units'
+import IsoBoard from './IsoBoard'
 import SuspectCard from './SuspectCard'
 import CaseProgressStrip from './CaseProgressStrip'
 import CaseNotes from './CaseNotes'
@@ -32,8 +32,14 @@ interface Props {
   hideTimer: boolean
   canUndo: boolean
   canRedo: boolean
-  feedback: 'none' | 'incomplete' | 'wrong' | 'blocked'
-  correctCount: number
+  /** 'wrong' says only that the account is not the solution; 'cold' = no accusations left. */
+  feedback: 'none' | 'incomplete' | 'wrong' | 'blocked' | 'cold'
+  /** Wrong accusations left before the case goes cold. */
+  accusationsLeft?: number
+  /** The solution was shown for this case: nothing on it counts. */
+  revealed?: boolean
+  /** Times this case has been started over. */
+  attempts?: number
   resolvedClues: string[]
   onSelectPerson: (id: string) => void
   onSetTool: (t: Tool) => void
@@ -46,6 +52,10 @@ interface Props {
   onAssist?: () => void
   onToggleTimer: () => void
   onSubmit: () => void
+  /** Cold case: show the solution (the case is not counted as solved). */
+  onReveal?: () => void
+  /** Cold case: clear the board and start a fresh attempt with a full budget. */
+  onStartOver?: () => void
   onDismissFeedback: () => void
   onBack: () => void
   /** Switch active floor — only called when puzzle.floors === 2. */
@@ -74,7 +84,11 @@ function LegendContent() {
 }
 
 export default function GameScreen(props: Props) {
-  const { puzzle, mode, marks, conflicts, placedOf, selectedPerson, tool, hintsLeft, timer, hideTimer, feedback, correctCount, resolvedClues } = props
+  const {
+    puzzle, mode, marks, conflicts, placedOf, selectedPerson, tool, hintsLeft,
+    timer, hideTimer, feedback, resolvedClues,
+    onSelectPerson: selectPerson, onSetTool: setTool, onCell: commitCell,
+  } = props
   const cluesOf: Record<string, string[]> = {}
   for (const ct of puzzle.clues) (cluesOf[ct.clue.person] ||= []).push(ct.text)
   const placedCount = Object.keys(placedOf).length
@@ -87,13 +101,25 @@ export default function GameScreen(props: Props) {
   // layout regions can only be positioned by guessed percentages, and it landed
   // in open space at every viewport that wasn't the one it was tuned on.
   const [locatedPerson, setLocatedPerson] = useState<string | null>(null)
-  const clueHighlight = locatedPerson ? resolveClueHighlights(puzzle, locatedPerson) : null
+  const activeFloor = props.activeFloor ?? 0
+  const clueHighlight = locatedPerson ? resolveClueHighlights(puzzle, locatedPerson, activeFloor) : null
+  const toggleCluePreview = (personId: string) => {
+    if (locatedPerson === personId) {
+      setLocatedPerson(null)
+      return
+    }
+    const floor = resolveCluePreviewFloor(puzzle, personId)
+    if (floor !== null && floor !== activeFloor) props.onSwitchFloor?.(floor)
+    setLocatedPerson(personId)
+  }
   const clueHighlightLabel = locatedPerson
     ? cluesOf[locatedPerson]?.join(' · ') || 'Selected suspect clue'
     : undefined
 
   const [help, setHelp] = useState(false)
   const [legend, setLegend] = useState(false)
+  const [storeyView, setStoreyView] = useState<StoreyView>('ghost')
+  const [placementArmed, setPlacementArmed] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const menuPanelRef = useRef<HTMLDivElement>(null)
@@ -106,11 +132,39 @@ export default function GameScreen(props: Props) {
   const stayRef = useRef<HTMLButtonElement>(null)
   const cancelClearRef = useRef<HTMLButtonElement>(null)
 
+  useEffect(() => {
+    if (tool !== 'place') setPlacementArmed(false)
+  }, [tool])
+
+  const selectForPlacement = useCallback((personId: string) => {
+    selectPerson(personId)
+    if (tool === 'place') setPlacementArmed(true)
+  }, [selectPerson, tool])
+
+  const activatePlaceTool = useCallback(() => {
+    setTool('place')
+    if (selectedPerson) setPlacementArmed(true)
+  }, [setTool, selectedPerson])
+
+  const handleBoardCell = useCallback((row: number, col: number) => {
+    if (tool === 'place' && !placementArmed) return
+    commitCell(row, col)
+    if (tool === 'place') setPlacementArmed(false)
+  }, [commitCell, placementArmed, tool])
+
   // Furniture decoration editor
   const [showDecor, setShowDecor] = useState(false)
   const [placingFurniture, setPlacingFurniture] = useState<FurnitureType | null>(null)
   const [placingRotation, setPlacingRotation] = useState<0 | 90 | 180 | 270>(0)
   const [customFurniture, setCustomFurniture] = useState<Furniture[]>([])
+
+  // NOT YET PORTED to the isometric board: decor placement needs a cell-click
+  // mode that competes with suspect placement, and the prototype slice
+  // deliberately keeps one click meaning one thing. The state and handler are
+  // retained rather than deleted so the feature can be reconnected once the
+  // isometric interaction model is settled.
+  void customFurniture
+  void handlePlaceFurniture
 
   function handlePlaceFurniture(r: number, c: number) {
     if (!placingFurniture) return
@@ -149,14 +203,14 @@ export default function GameScreen(props: Props) {
   // effect run we seed the ref WITHOUT announcing, so the full initial board
   // state is never read aloud.
   const [liveMsg, setLiveMsg] = useState('')
-  const prevPlacedOf = useRef<Record<string, { row: number; col: number; locked?: boolean }> | null>(null)
+  const prevPlacedOf = useRef<Props['placedOf'] | null>(null)
   const prevMarks = useRef<CellMark[][] | null>(null)
-  const prevFeedback = useRef<'none' | 'incomplete' | 'wrong' | 'blocked'>('none')
+  const prevFeedback = useRef<Props['feedback']>('none')
   const prevSubmitNonce = useRef(0)
 
-  // Build a fast lookup: person id → room name at (row, col)
-  const roomName = useCallback((row: number, col: number): string => {
-    const rid = puzzle.roomOf[row]?.[col]
+  // Use the placement's floor, which can differ from the currently viewed floor.
+  const roomName = useCallback((row: number, col: number, floor = 0): string => {
+    const rid = (puzzle.roomOfByFloor?.[floor] ?? puzzle.roomOf)[row]?.[col]
     return puzzle.rooms.find(r => r.id === rid)?.name ?? ''
   }, [puzzle])
 
@@ -178,12 +232,12 @@ export default function GameScreen(props: Props) {
     // is NOT mis-reported as Assist.
     const placedNow = Object.keys(placedOf)
     const placedBefore = Object.keys(prev)
-    if (placedNow.length !== placedBefore.length ||
-        placedNow.some(id => !prev[id] || prev[id].row !== placedOf[id].row || prev[id].col !== placedOf[id].col)) {
+    const changedPlacement = (id: string) => !prev[id] || prev[id].row !== placedOf[id].row
+      || prev[id].col !== placedOf[id].col || (prev[id].floor ?? 0) !== (placedOf[id].floor ?? 0)
+    if (placedNow.length !== placedBefore.length || placedNow.some(changedPlacement)) {
 
       // Find what changed
-      const added = placedNow.filter(id => !prev[id] ||
-        prev[id].row !== placedOf[id].row || prev[id].col !== placedOf[id].col)
+      const added = placedNow.filter(changedPlacement)
       const removed = placedBefore.filter(id => !placedOf[id])
 
       let msg = ''
@@ -191,7 +245,7 @@ export default function GameScreen(props: Props) {
         const id = added[0]
         const p = puzzle.people.find(p => p.id === id)
         const cell = placedOf[id]
-        const room = roomName(cell.row, cell.col)
+        const room = roomName(cell.row, cell.col, cell.floor)
         msg = `${p?.name ?? id} placed${room ? ` in the ${room}` : ''}, row ${cell.row + 1} column ${cell.col + 1}`
       } else if (removed.length > 0) {
         const id = removed[0]
@@ -248,7 +302,8 @@ export default function GameScreen(props: Props) {
       const msg =
         feedback === 'incomplete' ? 'Accusation incomplete — place every person first' :
         feedback === 'blocked' ? 'Accusation blocked — that row or column is already taken' :
-        feedback === 'wrong' ? `Accusation rejected — ${correctCount} of ${puzzle.people.length} in the right spot` :
+        feedback === 'wrong' ? "Accusation rejected — the account doesn't hold up" :
+        feedback === 'cold' ? 'No accusations left — the case has gone cold' :
         ''
       if (msg) setLiveMsg(msg)
     }
@@ -257,19 +312,29 @@ export default function GameScreen(props: Props) {
     prevMarks.current = marks
     prevFeedback.current = feedback
     prevSubmitNonce.current = submitNonce
-  })
+  }, [feedback, marks, placedOf, puzzle.people, puzzle.size, roomName, submitNonce])
 
   // A miss or an illegal placement is a real rejection and earns the shake.
   // "You haven't finished yet" is guidance, not a mistake, so it only surfaces
   // the message — shaking there would scold the player for doing nothing wrong.
-  // A rejected accusation used to say only how many were right, which tells the
-  // player nothing about WHERE the reasoning went wrong. Naming the first rule
-  // their arrangement breaks points at the flaw without giving away a position:
-  // they still have to work out why it broke. Only clues whose people are all
-  // placed are eligible, so it never blames an unplaced suspect.
-  const brokenRule = feedback === 'wrong'
-    ? findFailingClues(puzzle, placedOf, clueHolds)[0]?.text ?? null
-    : null
+  //
+  // A rejected accusation says ONE thing: the account does not hold up. It used
+  // to report how many suspects were in the right spot and name the first rule
+  // the arrangement broke, which turned the Accuse button into a free oracle a
+  // script could walk to the answer with. Do not add detail back here.
+
+  // What a rejected accusation may say. Every part is computed from the
+  // player's OWN board and notes, never from the solution, so two different
+  // wrong accounts that look alike on the board get identical words.
+  const budgetWords = ['No accusations left.', 'One accusation left.', 'Two accusations left.']
+  const wrongMessage = [
+    "The account doesn't hold up.",
+    props.accusationsLeft !== undefined ? budgetWords[props.accusationsLeft] : undefined,
+    conflicts.size > 0 ? 'Two suspects share a row or column.' : undefined,
+    detective && resolvedClues.length < puzzle.people.length
+      ? `Not yet checked off: ${puzzle.people.filter(x => !resolvedClues.includes(x.id)).map(x => x.name).join(', ')}.`
+      : undefined,
+  ].filter(Boolean).join(' ')
 
   // ── Two-floor derivation ────────────────────────────────────────────────
   // Rows and columns are shared across storeys: a suspect upstairs consumes
@@ -277,8 +342,8 @@ export default function GameScreen(props: Props) {
   // otherwise the rule is invisible and the second storey is just scenery.
   const floors = props.puzzle.floors ?? 1
   const twoFloor = floors > 1 && !!props.marksPerFloor
-  const activeFloor = props.activeFloor ?? 0
   const otherFloor = activeFloor === 0 ? 1 : 0
+  const boardFrame = twoFloor ? makeStoreyFrame(puzzle.size, activeFloor, storeyView) : makeFrame(puzzle.size)
   const ghostMarks = twoFloor ? (props.marksPerFloor?.[otherFloor] ?? null) : null
 
   const blockedRows = new Set<number>()
@@ -289,7 +354,31 @@ export default function GameScreen(props: Props) {
     }))
   }
 
-  const hardReject = feedback === 'wrong' || feedback === 'blocked'
+  // CROSS-STOREY LOCK REVEAL.
+  //
+  // Rows and columns are shared across storeys — that is the whole two-floor
+  // mechanic — so placing a suspect downstairs silently consumes the same row
+  // and column upstairs. Silently is the problem: the player had to switch
+  // floors to find out. These are the lanes that became blocked since the last
+  // render, handed to the board so it can pulse them where they are, on the
+  // floor the player is actually looking at.
+  const prevBlocked = useRef<{ rows: Set<number>; cols: Set<number> }>({ rows: new Set(), cols: new Set() })
+  const [flashRows, setFlashRows] = useState<ReadonlySet<number>>(new Set())
+  const [flashCols, setFlashCols] = useState<ReadonlySet<number>>(new Set())
+  const blockedKey = `${[...blockedRows].sort().join(',')}|${[...blockedCols].sort().join(',')}`
+  useEffect(() => {
+    const newRows = new Set([...blockedRows].filter(r => !prevBlocked.current.rows.has(r)))
+    const newCols = new Set([...blockedCols].filter(c => !prevBlocked.current.cols.has(c)))
+    prevBlocked.current = { rows: new Set(blockedRows), cols: new Set(blockedCols) }
+    if (!newRows.size && !newCols.size) return
+    setFlashRows(newRows)
+    setFlashCols(newCols)
+    const t = setTimeout(() => { setFlashRows(new Set()); setFlashCols(new Set()) }, 1500)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockedKey])
+
+  const hardReject = feedback === 'wrong' || feedback === 'blocked' || feedback === 'cold'
 
   // Replay the shake by restarting the animation IN PLACE rather than by
   // remounting via `key`. Remounting destroys the focused node, so a keyboard
@@ -358,7 +447,7 @@ export default function GameScreen(props: Props) {
       // Never steal a keystroke from the case-notes field or any other input.
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active?.isContentEditable) return
       switch (event.key.toLowerCase()) {
-        case 'p': onSetTool('place'); break
+        case 'p': activatePlaceTool(); break
         case 'x': onSetTool('x'); break
         case 'd': if (detective) onSetTool('draft'); else return; break
         case 'h': if (!detective) onHint(); else return; break
@@ -369,7 +458,7 @@ export default function GameScreen(props: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [modalOpen, detective, onSetTool, onHint, onAssist])
+  }, [modalOpen, detective, activatePlaceTool, onSetTool, onHint, onAssist])
 
   useEffect(() => {
     try { if (!localStorage.getItem(HELP_KEY)) { setHelp(true); localStorage.setItem(HELP_KEY, '1') } } catch { /* ignore */ }
@@ -651,7 +740,7 @@ export default function GameScreen(props: Props) {
             placedOf={placedOf}
             conflicts={conflicts}
             selectedPerson={selectedPerson}
-            onSelectPerson={props.onSelectPerson}
+            onSelectPerson={selectForPlacement}
           />
         </div>
 
@@ -782,57 +871,89 @@ export default function GameScreen(props: Props) {
                 the shorter available axis instead of stretching after one axis
                 hits a max constraint.
           */}
-          <div className="order-1 lg:flex-1 lg:min-h-0 lg:relative">
-            {/* Absolute fill at desktop only; on mobile this is just a normal div */}
-            <div className="lg:absolute lg:inset-0 flex items-center justify-center p-3 lg:p-3 lg:[container-type:size]">
-              {/* Square that fits the shorter of available width / height.
-                  Mobile: w-full drives size; aspect-square derives the height
-                    (parent has no fixed height so height:100% would be 0).
-                  Desktop (lg+): container-query units let width and height use
-                    the same smaller value, preserving square cells at any
-                    centre-column width or viewport height. */}
-              <div className="aspect-square w-full lg:w-[min(100cqw,100cqh)] lg:h-[min(100cqw,100cqh)]">
                 {/* Floor switcher — only for two-storey houses. Single-floor
                     cases render exactly as before, with no extra chrome. */}
                 {twoFloor && props.onSwitchFloor && (
-                  <div
-                    className="mb-2 flex items-center gap-1"
-                    role="group"
-                    aria-label="Choose which floor to view"
-                  >
-                    {([0, 1] as const).map(f => (
-                      <button
-                        key={f}
-                        onClick={() => props.onSwitchFloor?.(f)}
-                        aria-pressed={activeFloor === f}
-                        className="focus-ring flex-1 min-h-[44px] border px-3 font-display text-[13px] font-medium uppercase tracking-[0.08em] transition-colors"
-                        style={{
-                          borderColor: activeFloor === f ? 'var(--color-accent-strong)' : 'var(--color-border-strong)',
-                          background: activeFloor === f ? 'var(--color-accent)' : 'transparent',
-                          color: activeFloor === f ? 'var(--color-on-accent)' : 'var(--color-text-secondary)',
-                        }}
-                      >
-                        {f === 0 ? 'Ground floor' : 'Upstairs'}
-                      </button>
-                    ))}
+                  <div className="order-1 shrink-0 grid gap-1.5 px-3 pb-2">
+                    <div className="flex items-center gap-1" role="group" aria-label="Choose which floor to view">
+                      {([0, 1] as const).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => props.onSwitchFloor?.(f)}
+                          aria-pressed={activeFloor === f}
+                          className="focus-ring flex-1 min-h-[44px] border px-3 font-display text-[13px] font-medium uppercase tracking-[0.08em] transition-colors"
+                          style={{
+                            borderColor: activeFloor === f ? 'var(--color-accent-strong)' : 'var(--color-border-strong)',
+                            background: activeFloor === f ? 'var(--color-accent)' : 'transparent',
+                            color: activeFloor === f ? 'var(--color-on-accent)' : 'var(--color-text-secondary)',
+                          }}
+                        >
+                          {f === 0 ? 'Ground floor' : 'Upstairs'}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-center gap-4" role="group" aria-label="Choose multi-storey context">
+                      {(['ghost', 'exploded'] as const).map(view => (
+                        <button
+                          key={view}
+                          onClick={() => setStoreyView(view)}
+                          aria-pressed={storeyView === view}
+                          className="focus-ring min-h-[44px] font-mono text-[10px] uppercase tracking-[0.12em] transition-colors"
+                          style={{ color: storeyView === view ? 'var(--color-accent)' : 'var(--color-text-muted)' }}
+                        >
+                          {view === 'ghost' ? 'Ghosted context' : 'Exploded overview'}
+                        </button>
+                      ))}
+                    </div>
+                    {storeyView === 'exploded' && (
+                      <p className="text-center font-mono text-[10px] text-text-secondary px-3 pb-2">
+                        Dashed lines connect the stair arrival across the separated floors.
+                      </p>
+                    )}
                   </div>
                 )}
 
-                <MapGrid
+          <div className="order-1 lg:flex-1 lg:min-h-0 lg:relative">
+            {/* Absolute fill at desktop only; on mobile this is just a normal div */}
+            <div className="lg:absolute lg:inset-0 flex items-center justify-center p-2 pb-9 lg:p-3 lg:[container-type:size]">
+              {/* Fits the shorter of available width / height, at the
+                  board's OWN aspect ratio rather than a forced square — the
+                  isometric scene is measurably wider than tall (see IsoBoard's
+                  boardW/boardH), and forcing it into a square slot wasted a
+                  large fraction of the box as empty space above or below it.
+                  Mobile: w-full drives size, aspect-ratio derives the height
+                    (parent has no fixed height so height:100% would be 0).
+                  Desktop (lg+): container-query units pick whichever of
+                    width/height is the binding constraint at this ratio. */}
+              <div
+                className="w-full lg:w-[min(100cqw,calc(100cqh*var(--board-ratio)))] lg:h-[min(100cqh,calc(100cqw/var(--board-ratio)))]"
+                style={{
+                  // Mirrors IsoBoard's boardW/boardH. Constants are imported
+                  // from the renderer's projection source so the slot cannot
+                  // silently retain an obsolete 104px floor height.
+                  ['--board-ratio' as string]: String(boardFrame.width / boardFrame.height),
+                  aspectRatio: 'var(--board-ratio)',
+                }}
+              >
+                {/* ISOMETRIC DOLLHOUSE — a projection of the same logical
+                    grid MapGrid draws. Identical props, identical rules; only
+                    the presentation differs. MapGrid is kept importable so the
+                    two can be compared during the migration. */}
+                <IsoBoard
                   puzzle={puzzle}
                   marks={marks}
                   conflicts={conflicts}
-                  onCellClick={props.onCell}
+                  onCellClick={handleBoardCell}
                   highlight={clueHighlight}
                   highlightLabel={clueHighlightLabel}
-                  extraFurniture={customFurniture}
-                  placingFurniture={showDecor ? placingFurniture : null}
-                  placingRotation={placingRotation}
-                  onPlaceFurniture={showDecor ? handlePlaceFurniture : undefined}
                   ghostMarks={ghostMarks}
                   blockedRows={blockedRows}
                   blockedCols={blockedCols}
+                  flashRows={flashRows}
+                  flashCols={flashCols}
                   floor={activeFloor}
+                  storeyView={storeyView}
+                  armedPerson={tool === 'place' && placementArmed ? selectedPerson : null}
                 />
               </div>
             </div>
@@ -889,7 +1010,7 @@ export default function GameScreen(props: Props) {
             <div className="flex gap-2 justify-center [&>button]:flex-1 sm:[&>button]:flex-none lg:justify-start">
               <ToolBtn
                 active={tool === 'place'}
-                onClick={() => props.onSetTool('place')}
+                onClick={activatePlaceTool}
                 icon={<MousePointerClick size={16} />}
                 label="Place"
                 title={detective ? 'Place a suspect — crosses out their row & column' : 'Place a suspect'}
@@ -920,7 +1041,7 @@ export default function GameScreen(props: Props) {
                   Detective mode's contract is proof-first: an answer dropped by
                   the game breaks that contract. Use Assist instead. */}
               {!detective && (
-                <ToolBtn onClick={props.onHint} disabled={hintsLeft <= 0} icon={<Lightbulb size={16} />} label={`Hint ×${hintsLeft}`} />
+                <ToolBtn onClick={props.onHint} disabled={hintsLeft <= 0 || feedback === 'cold' || !!props.revealed} icon={<Lightbulb size={16} />} label={`Hint ×${hintsLeft}`} />
               )}
               {/* Assist — Detective only. Marks cells that are provably empty
                   from row/column occupancy and unary clues — free and unlimited,
@@ -990,7 +1111,7 @@ export default function GameScreen(props: Props) {
             <div className="relative p-3 lg:p-4 flex flex-col gap-3">
 
               {/* Suspects label */}
-              <p className="text-[10px] text-text-muted font-mono uppercase tracking-[0.2em]">
+              <p className="text-[10px] text-text-muted font-mono uppercase tracking-[0.2em] [text-wrap:balance]">
                 {detective
                   ? 'Suspects · select · draft · check off solved clues'
                   : 'Suspects · select · place · use hints to nudge'}
@@ -1003,7 +1124,6 @@ export default function GameScreen(props: Props) {
                     key={person.id}
                     person={person}
                     clues={cluesOf[person.id] ?? []}
-                    satisfiedClues={satisfiedClueFlags(puzzle, person.id, placedOf, clueHolds)}
                     selected={selectedPerson === person.id}
                     placed={!!placedOf[person.id]}
                     locked={!!placedOf[person.id]?.locked}
@@ -1012,9 +1132,9 @@ export default function GameScreen(props: Props) {
                     showCheck={detective}
                     located={locatedPerson === person.id}
                     canLocate={resolveClueHighlights(puzzle, person.id).length > 0}
-                    onSelect={() => props.onSelectPerson(person.id)}
+                    onSelect={() => selectForPlacement(person.id)}
                     onToggleResolved={() => props.onToggleClue(person.id)}
-                    onToggleLocate={() => setLocatedPerson(current => current === person.id ? null : person.id)}
+                    onToggleLocate={() => toggleCluePreview(person.id)}
                   />
                 ))}
               </div>
@@ -1041,7 +1161,8 @@ export default function GameScreen(props: Props) {
               ref={ctaRef}
               whileTap={{ scale: 0.97 }}
               onClick={handleSubmit}
-              className="focus-ring w-full py-4 font-display font-bold tracking-[0.15em] uppercase text-sm transition-colors"
+              disabled={feedback === 'cold'}
+              className="focus-ring w-full py-4 font-display disabled:opacity-50 disabled:cursor-not-allowed font-bold tracking-[0.15em] uppercase text-sm transition-colors"
               style={{
                 background: 'var(--color-accent)',
                 color: 'var(--color-on-accent)',
@@ -1061,7 +1182,7 @@ export default function GameScreen(props: Props) {
                 composited property fight during the 400ms overlap. The CTA
                 above carries the shake; this only re-plays its entry. */}
             <AnimatePresence>
-              {feedback !== 'none' && (
+              {feedback !== 'none' && feedback !== 'cold' && (
                 <motion.button
                   onClick={props.onDismissFeedback}
                   key={`feedback-${submitNonce}`}
@@ -1079,12 +1200,39 @@ export default function GameScreen(props: Props) {
                     ? 'Place every person first.'
                     : feedback === 'blocked'
                     ? 'That row or column is already taken by another suspect.'
-                    : brokenRule
-                    ? `${correctCount} of ${puzzle.people.length} in the right spot. This is broken: "${brokenRule}"`
-                    : `Not quite — ${correctCount} of ${puzzle.people.length} are in the right spot. Keep deducing.`}
+                    : wrongMessage}
                 </motion.button>
               )}
             </AnimatePresence>
+            {props.revealed && feedback !== 'cold' && (
+              <p
+                role="status"
+                data-testid="case-revealed"
+                className="text-[12px] font-mono px-3 py-2 w-full tracking-wide"
+                style={{ borderLeft: '2px solid var(--color-danger)', color: 'var(--color-danger-text)' }}
+              >
+                Case revealed — not counted as solved.
+              </p>
+            )}
+            {feedback === 'cold' && (
+              <div
+                role="group"
+                aria-label="Case gone cold"
+                data-testid="cold-case"
+                className="text-[12px] font-mono px-3 py-2 w-full tracking-wide grid gap-2"
+                style={{
+                  color: 'var(--color-danger-text)',
+                  backgroundColor: 'color-mix(in srgb, var(--color-danger) 14%, transparent)',
+                  borderLeft: '2px solid var(--color-danger)',
+                }}
+              >
+                <p>The case has gone cold. Reveal the solution (it will not count as solved) or start over with a fresh set of accusations. Starting over is recorded as attempt {(props.attempts ?? 0) + 2}.{props.revealed ? ' This case was already revealed, so nothing on it counts as solved.' : ''}</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={props.onReveal} disabled={!props.onReveal} className="focus-ring min-h-[44px] flex-1 border px-3 font-display font-bold uppercase tracking-[0.12em]" style={{ borderColor: 'var(--color-danger)' }}>Reveal</button>
+                  <button type="button" onClick={props.onStartOver} disabled={!props.onStartOver} className="focus-ring min-h-[44px] flex-1 border px-3 font-display font-bold uppercase tracking-[0.12em]" style={{ borderColor: 'var(--color-danger)' }}>Start over</button>
+                </div>
+              </div>
+            )}
           </div>
 
         </div>{/* end dossier column */}

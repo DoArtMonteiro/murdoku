@@ -1,0 +1,71 @@
+import type { SceneSpec } from '../schema'
+
+// Casa preparada para um jantar de convidados, com pátio de chegada.
+export const theSeventhGuest: SceneSpec = {
+  puzzleId: 'easy-10',
+  floor: 0,
+  entry: { wall: 'north', at: 6.2 },
+  floors: [
+    { id: 'arrival-yard', cells: [0, 0, 3, 2], material: 'grass', kind: 'exterior' },
+    { id: 'pantry', cells: [4, 0, 6, 2], material: 'tile', kind: 'interior' },
+    { id: 'kitchen', cells: [0, 3, 3, 6], material: 'tile', kind: 'interior' },
+    { id: 'dining-room', cells: [4, 3, 6, 6], material: 'wood', kind: 'interior' },
+  ],
+  walls: [
+    { id: 'yard-pantry', from: [4, 0], to: [4, 3], height: 'half', openings: [{ at: 0.6, width: 1.15, kind: 'door' }] },
+    { id: 'kitchen-dining', from: [4, 3], to: [4, 7], height: 'half', openings: [{ at: 3.6, width: 1.1, kind: 'open' }] },
+    { id: 'yard-kitchen', from: [0, 3], to: [4, 3], height: 'half', openings: [{ at: 1.5, width: 1.15, kind: 'open' }] },
+    { id: 'pantry-dining', from: [4, 3], to: [7, 3], height: 'half', openings: [{ at: 5.5, width: 1.15, kind: 'door' }] },
+  ],
+  furniture: [
+    // Pátio de chegada: plantas das pistas, vedação nos limites abertos, flores e caminho até às portas.
+    { id: 'yard-shrub-north', model: 'plant_bushSmall', logic: 'shrub@0,2', at: [2.5, 0.5] },
+    { id: 'yard-flower-west', model: 'flower_yellowA', logic: 'plant@0,1', at: [1.5, 0.5] },
+    { id: 'yard-flower-east', model: 'flower_purpleA', logic: 'plant@0,3', at: [3.0, 0.5] },
+    { id: 'yard-shrub-south', model: 'plant_bushDetailed', logic: 'shrub@2,3', at: [2.9, 2.5] },
+    { id: 'yard-fence-north', model: 'fence_simple', at: [0.75, 0.07], facing: 'S' },
+    { id: 'yard-fence-west', model: 'fence_simple', at: [0.07, 1.4], facing: 'E' },
+    { id: 'yard-flowers-red', model: 'flower_redA', at: [0.4, 0.45], yaw: 15 },
+    { id: 'yard-flowers-yellow', model: 'flower_yellowA', at: [0.45, 2.05], yaw: -20 },
+    { id: 'yard-stump', model: 'stump_round', at: [0.55, 1.6] },
+    // Despensa (entrada de serviço): frigorífico e estante na parede norte, bancada a leste, caixas a oeste.
+    { id: 'pantry-fridge', model: 'kitchenFridgeSmall', logic: 'fridge@0,4', against: { wall: 'north', at: 4.85 } },
+    { id: 'pantry-shelf', model: 'bookcaseOpen', against: { wall: 'north', at: 5.4 } },
+    { id: 'pantry-box', model: 'cardboardBoxClosed', logic: 'box@1,4', at: [4.4, 1.5] },
+    { id: 'pantry-crate', model: 'cardboardBoxOpen', at: [4.4, 2.2] },
+    { id: 'pantry-counter', model: 'kitchenCabinet', logic: 'counter@1,6', against: { wall: 'east', at: 1.5 } },
+    { id: 'pantry-drawers', model: 'kitchenCabinetDrawer', against: { wall: 'east', at: 2.05 } },
+    { id: 'pantry-microwave', model: 'kitchenMicrowave', on: { parent: 'pantry-drawers' } },
+    // Cozinha: bancada a oeste com lava-loiça, fila de fogões e frigorífico na meia parede da sala,
+    // ilha central e segundo frigorífico na parede sul.
+    { id: 'kitchen-west-a', model: 'kitchenCabinet', against: { wall: 'west', at: 4.0 } },
+    { id: 'kitchen-sink', model: 'kitchenSink', against: { wall: 'west', at: 4.55 }, facing: 'E' },
+    { id: 'kitchen-west-b', model: 'kitchenCabinetDrawer', against: { wall: 'west', at: 5.1 } },
+    { id: 'kitchen-west-c', model: 'kitchenCabinet', against: { wall: 'west', at: 5.65 } },
+    { id: 'kitchen-coffee', model: 'kitchenCoffeeMachine', on: { parent: 'kitchen-west-c' } },
+    { id: 'kitchen-stove-north', model: 'kitchenStoveElectric', logic: 'stove@4,3', against: { wall: 'kitchen-dining', side: 'W', at: 4.45 } },
+    { id: 'kitchen-east-a', model: 'kitchenCabinet', against: { wall: 'kitchen-dining', side: 'W', at: 5.0 } },
+    { id: 'kitchen-fridge-east', model: 'kitchenFridgeSmall', logic: 'fridge@5,3', at: [3.62, 5.55], facing: 'W' },
+    { id: 'kitchen-east-b', model: 'kitchenCabinetDrawer', against: { wall: 'kitchen-dining', side: 'W', at: 6.1 } },
+    { id: 'kitchen-stove-south', model: 'kitchenStove', logic: 'stove@6,3', against: { wall: 'kitchen-dining', side: 'W', at: 6.65 } },
+    { id: 'kitchen-island-a', model: 'kitchenCabinet', at: [1.6, 4.9], facing: 'S' },
+    { id: 'kitchen-island-b', model: 'kitchenCabinetDrawer', at: [2.15, 4.9], facing: 'S' },
+    { id: 'kitchen-fridge-west', model: 'kitchenFridgeSmall', logic: 'fridge@6,1', at: [1.5, 6.6], facing: 'N' },
+    // Sala de jantar: mesa com as duas cadeiras da pista e banco estofado a norte,
+    // aparador e candeeiro de mesa na parede leste, candeeiro de pé junto à passagem.
+    { id: 'dining-table', model: 'table', at: [5.75, 5.6] },
+    { id: 'dining-chair-tomas', model: 'chair', logic: 'chair@6,5', at: [5.45, 6.2], facing: 'N' },
+    { id: 'dining-chair-extra', model: 'chair', logic: 'chair@6,6', at: [6.1, 6.2], facing: 'N' },
+    { id: 'dining-banquette', model: 'loungeSofa', at: [5.75, 4.85], facing: 'S' },
+    { id: 'dining-lamp-side-table', model: 'sideTable', against: { wall: 'east', at: 5.5 } },
+    { id: 'dining-lamp-victim', model: 'lampRoundTable', logic: 'lamp@5,6', on: { parent: 'dining-lamp-side-table' } },
+    { id: 'dining-sideboard', model: 'cabinetTelevisionDoors', against: { wall: 'east', at: 3.9 } },
+    { id: 'dining-lamp-west', model: 'lampRoundFloor', logic: 'lamp@4,4', at: [4.35, 4.3] },
+  ],
+  rugs: [
+    { id: 'yard-path-a', model: 'path_stone', at: [3.1, 1.0], facing: 'E' },
+    { id: 'yard-path-b', model: 'path_stone', at: [2.0, 1.75] },
+    { id: 'yard-path-c', model: 'path_stone', at: [1.5, 2.6] },
+    { id: 'dining-rug', model: 'rugRectangle', at: [5.75, 5.6] },
+  ],
+}

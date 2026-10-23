@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, CircleDashed, UserRound } from 'lucide-react'
+import { AlertTriangle, Check, CircleDashed, ChevronsRight, UserRound } from 'lucide-react'
 import type { Puzzle } from '../core/types'
 
 interface Props {
@@ -40,18 +40,28 @@ export default function CaseProgressStrip({
         boxShadow: 'var(--shadow-cut)',
       }}
     >
-      <div className="flex items-center justify-between gap-3 border-b px-3 py-2 sm:px-4" style={{ borderColor: 'var(--color-border-subtle)' }}>
+      <div className="flex items-start justify-between gap-3 border-b px-3 py-2 sm:items-center sm:px-4" style={{ borderColor: 'var(--color-border-subtle)' }}>
         <div className="min-w-0">
           <h2 id="case-progress-heading" className="font-display text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: '#18150F' }}>
             Continuity / sequence
           </h2>
-          <p className="mt-0.5 truncate font-mono text-[10px] tracking-wide" style={{ color: '#4B4232' }}>
+          {/* A instrução quebra linha em ecrãs estreitos: é o passo seguinte do jogador e não pode ficar cortada. */}
+          <p data-testid="case-progress-status" className="mt-0.5 break-words font-mono text-[10px] tracking-wide" style={{ color: '#4B4232' }}>
             {nextPerson ? `Next suggested: ${nextPerson.name}` : 'All people placed — review the account before accusing.'}
           </p>
         </div>
-        <p className="flex-shrink-0 font-mono text-[11px] tabular-nums tracking-widest" style={{ color: '#62400B' }} aria-live="polite">
-          {placedCount} / {puzzle.people.length} placed
-        </p>
+        <div className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap">
+          <p className="font-mono text-[11px] tabular-nums tracking-widest" style={{ color: '#62400B' }} aria-live="polite">
+            {placedCount} / {puzzle.people.length} placed
+          </p>
+          <span
+            className="inline-flex items-center text-[#62400B] sm:hidden"
+            role="img"
+            aria-label="Deslize horizontalmente para ver as restantes pessoas"
+          >
+            <ChevronsRight size={14} aria-hidden="true" />
+          </span>
+        </div>
       </div>
 
       <ol
@@ -114,10 +124,10 @@ export default function CaseProgressStrip({
                   <span className="block truncate font-display text-[13px] font-semibold uppercase tracking-[0.08em]">
                     {person.name}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.13em]" style={{ color: '#4B4232' }}>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.13em]" style={{ color: '#4B4232' }}>
                     {conflicted ? <AlertTriangle size={12} aria-hidden="true" /> : placed ? <Check size={12} aria-hidden="true" /> : suggested ? <CircleDashed size={12} aria-hidden="true" /> : <UserRound size={12} aria-hidden="true" />}
                     <span>{stateLabel}</span>
-                    {person.isVictim && <span className="text-danger-text">· victim</span>}
+                    {person.isVictim && <span style={{ color: '#7A1F1A' }}>· victim</span>}
                   </span>
                 </span>
               </button>

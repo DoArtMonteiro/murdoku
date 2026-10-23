@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import MapGrid from '../src/components/MapGrid'
-import { FURNITURE_ICON, FURNITURE_OVERHANG, FURNITURE_SCALE, frameOffset } from '../src/core/furniture'
+import { FURNITURE_ICON, FURNITURE_OVERHANG, FURNITURE_SCALE } from '../src/core/furniture'
+import { frameOffset } from '../src/core/furnitureGeometry'
 import type { FurnitureType, Puzzle, CellMark } from '../src/core/types'
 
 /**
@@ -131,7 +132,12 @@ describe('furniture overhang — depth without leaving the floor', () => {
 // box, the rotation moves to a child with a CENTRE origin. These tests pin that
 // split so the two can never be recombined onto one origin again.
 // ============================================================================
-describe('furniture rotation pivots about the centre, never the bottom edge', () => {
+// BRANCH NOTE: the sprite board has NO CSS rotation to test. Kenney ships four
+// pre-rendered facings per object, so a turned piece is real artwork rather
+// than a spun copy — which is strictly better than the invariant these tests
+// were protecting. They remain correct and active on main, where the hand-drawn
+// SVGs are still rotated.
+describe.skip('furniture rotation pivots about the centre, never the bottom edge', () => {
   function rotatedPuzzle(type: FurnitureType, rotation: 0 | 90 | 180 | 270, w = 1, h = 1): Puzzle {
     const cells = [0, 1, 2, 3].flatMap(row => [0, 1, 2, 3].map(col => ({ row, col })))
     return {
@@ -185,7 +191,10 @@ describe('furniture rotation pivots about the centre, never the bottom edge', ()
   })
 })
 
-describe('furniture icon geometry — fills its footprint, never spills', () => {
+// BRANCH NOTE: the icon-box/inset machinery this asserts is exactly what
+// letterboxed the Kenney sprites into miniatures; the sprite path removed it and
+// sizes from intrinsic pixels instead. Active on main.
+describe.skip('furniture icon geometry — fills its footprint, never spills', () => {
   function makePuzzle(type: FurnitureType): Puzzle {
     const cells = [0, 1, 2, 3].flatMap(row => [0, 1, 2, 3].map(col => ({ row, col })))
     return {
@@ -331,6 +340,13 @@ describe('Frame centring maths via frameOffset', () => {
     expect(y).toBeCloseTo(4, 6)
     // Key property: x ≠ y on a non-square canvas (the bug was x=y=4)
     expect(x).not.toBeCloseTo(y, 6)
+  })
+
+  it('falls back to the default 100×100 canvas when the viewBox is malformed', () => {
+    const { x, y } = frameOffset('malformed', 0.92)
+
+    expect(x).toBeCloseTo(4, 6)
+    expect(y).toBeCloseTo(4, 6)
   })
 
   it('naive 50*(1-k) formula would have placed artwork off-centre on a 2:1 viewBox', () => {

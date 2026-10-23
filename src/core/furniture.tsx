@@ -1,5 +1,6 @@
 import React from 'react'
 import type { FurnitureType } from './types'
+import { frameOffset } from './furnitureGeometry'
 
 /**
  * Uniform fill factor for each furniture type.
@@ -219,18 +220,6 @@ const FOOT = { stroke: INK, strokeWidth: 3, strokeLinecap: 'round' as const }
  * default 100×100 this reduces to 50*(1−k) — identical to the old formula.
  */
 
-/** Parse a "0 0 W H" viewBox string into { w, h }. */
-function parseVB(vb: string): { w: number; h: number } {
-  const parts = vb.split(/\s+/)
-  return { w: Number(parts[2]) ?? 100, h: Number(parts[3]) ?? 100 }
-}
-
-/** Centring offset for the scale transform on each axis. */
-export function frameOffset(vb: string, k: number): { x: number; y: number } {
-  const { w, h } = parseVB(vb)
-  return { x: (w / 2) * (1 - k), y: (h / 2) * (1 - k) }
-}
-
 function Frame({ prefix, size, tone, vb = '0 0 100 100', children }: {
   prefix: string
   size?: number
@@ -289,6 +278,38 @@ const ArmchairIcon: FurnitureIcon = ({ size }) => (
     <path d="M50 52v30M32 68h36" {...SEAM} />
     <path d="M33 26h34" {...SHEEN} />
     <path d="M19 87v10M81 87v10" {...FOOT} />
+  </Frame>
+)
+
+/* SOFA (side) — tall 1×2: the same three-seater turned to face EAST.
+   Drawn, not rotated. A cabinet-projection piece carries its depth axis and its
+   light direction in the artwork itself, so spinning the horizontal drawing 90deg
+   turns those too and the result stops describing a real object — the sofa reads
+   as an anonymous padded block. Here the back runs down the LEFT edge, the arms
+   cap the north and south ends, and the front face still faces the viewer at the
+   bottom, exactly as it does in every other piece on the board. */
+const SofaSideIcon: FurnitureIcon = ({ size }) => (
+  <Frame prefix="sofa" size={size} tone={[LEATHER_L, LEATHER]} vb="0 0 100 200">
+    {/* front face extrusion along the near (south) end */}
+    <rect x="8" y="186" width="84" height="10" rx="3" fill={LEATHER} {...OUT} />
+    <path d="M16 186v10M84 186v10" {...FOOT} />
+    {/* main body: back slab down the west edge, seat opening east */}
+    <rect x="8" y="14" width="84" height="172" rx="20" fill="url(#sofa-tone)" {...OUT} />
+    {/* back slab (west edge) */}
+    <rect x="9" y="20" width="26" height="160" rx="8" fill={LEATHER} {...OUT_IN} />
+    {/* three back pillows down the back */}
+    <rect x="13" y="30" width="20" height="44" rx="6" fill={LEATHER_L} {...OUT_IN} />
+    <rect x="13" y="78" width="20" height="44" rx="6" fill={LEATHER_L} {...OUT_IN} />
+    <rect x="13" y="126" width="20" height="44" rx="6" fill={LEATHER_L} {...OUT_IN} />
+    {/* three seat cushions, length running north-south */}
+    <rect x="37" y="29" width="46" height="46" rx="6" fill={LEATHER_L} {...OUT_IN} />
+    <rect x="37" y="77" width="46" height="46" rx="6" fill={LEATHER_L} {...OUT_IN} />
+    <rect x="37" y="125" width="46" height="46" rx="6" fill={LEATHER_L} {...OUT_IN} />
+    {/* arm caps at the north and south ends */}
+    <rect x="37" y="10" width="46" height="14" rx="5" fill={LEATHER} {...OUT_IN} />
+    <rect x="37" y="176" width="46" height="14" rx="5" fill={LEATHER} {...OUT_IN} />
+    <path d="M46 40h28M46 88h28M46 136h28" {...SEAM} />
+    <path d="M18 40h10M18 88h10M18 136h10" {...SHEEN} />
   </Frame>
 )
 
@@ -803,6 +824,27 @@ export const FURNITURE_ICON: Record<FurnitureType, FurnitureIcon> = {
   desk: DeskIcon,
   toilet: ToiletIcon,
   shower: ShowerIcon,
+}
+
+/**
+ * SIDE-VIEW artwork, for pieces that the generator turns to face east or west.
+ *
+ * A cabinet-projection drawing cannot be rotated. The top plane, the front face
+ * and the light direction are baked into the paths, so a quarter turn rotates
+ * all three and the object stops describing anything real — the sofa was the
+ * clearest casualty, reading as a featureless padded block whenever it sat on a
+ * vertical wall. A piece listed here is DRAWN in its turned orientation instead,
+ * and MapGrid skips the CSS rotation for it entirely.
+ *
+ * Rotation 90 uses this art as drawn (facing east); 270 mirrors it horizontally,
+ * which is a legitimate operation because a mirror preserves the top plane and
+ * the front face. Rotations 0 and 180 keep the front artwork in FURNITURE_ICON.
+ *
+ * A type with no entry here falls back to the old rotate-the-drawing behaviour,
+ * so this table can be filled in one piece at a time.
+ */
+export const FURNITURE_ICON_SIDE: Partial<Record<FurnitureType, FurnitureIcon>> = {
+  sofa: SofaSideIcon,
 }
 
 export const FURNITURE_NAME: Record<FurnitureType, string> = {

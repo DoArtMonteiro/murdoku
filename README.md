@@ -1,63 +1,79 @@
 # Murdoku
 
-A deduction puzzle where clues help place suspects and a victim around a house, then identify who was alone with the victim.
-
-**Status:** Live. The published demo is branded **Alibi**; the repository remains Murdoku.
-
-[**Play the demo**](https://murdoku-seven.vercel.app) · [**Browse the source**](https://github.com/WhiteBlindness/murdoku)
-
-## Why it exists
-
-The game turns written clues and spatial relationships into a logic problem with a verifiable solution. Each person occupies a row and a column. Clues restrict possible positions until one valid arrangement remains. Players mark impossible cells, test hypotheses, and make an accusation.
-
-## How it works
-
-The catalogue contains 60 cases across six difficulty levels, from 6×6 grids to two-floor layouts. The engine can generate cases deterministically from a seed or load hand-authored cases. A solver checks that each puzzle has a unique solution before the game presents it.
-
-## Engineering highlights
-
-- **Game rules are separate from the interface:** clue types, generation, solver, and catalogue live in TypeScript under `src/core`; React renders the game state.
-- **Generated puzzles are checked:** the generator starts with a solution, creates true clues, then uses a backtracking solver to reject ambiguous puzzles.
-- **Stable catalogue:** consistent seeds and IDs let the game save progress and reuse puzzles after a reload.
-- **Offline play:** the app is installable as a PWA and stores progress on the device.
-
-## Architecture
-
-```text
-src/core/       types, clue engine, solver, generator, and catalogue
-src/hooks/      game state and theme
-src/components/ grid, clues, suspects, and game screens
-src/styles/     variables and themes
-```
-
-The React interface uses the game engine without owning deduction rules. This keeps the logic testable without rendering components.
-
-## Stack
-
-TypeScript · React · Vite · Vitest · Vite PWA
-
-## Run locally
-
-Requires Node.js and npm.
+O Murdoku é um jogo de dedução policial inspirado na obra de Manuel Garand. O jogador lê as pistas, coloca cada pessoa numa casa isométrica e identifica quem ficou a sós com a vítima. É uma aplicação web progressiva instalável e funciona sem ligação à rede depois da primeira visita.
 
 ```bash
 npm install
-npm run dev
+npm run dev      # desenvolvimento em http://localhost:5173
+npm run build    # versão de produção em dist/
+npm run preview  # pré-visualização da versão de produção
 ```
 
-Build and preview the production version locally:
+A demonstração pública usa o nome **Alibi**: [jogar](https://murdoku-seven.vercel.app).
+
+## Como funciona
+
+- A casa divide-se em células e divisões, com mobiliário a que as pistas podem fazer referência.
+- Cada pessoa ocupa uma linha e uma coluna exclusivas, mesmo quando o caso possui dois pisos.
+- Todas as pistas são literalmente verdadeiras e o conjunto admite uma única solução.
+- O assassino é o suspeito que partilha a divisão da vítima.
+
+## Funcionalidades
+
+- 60 casos determinísticos distribuídos por seis níveis, de Muito fácil a Mestre.
+- 60 casos com cenas 3D escritas à mão, incluindo 30 casos de dois pisos. Não há cenas procedimentais no catálogo.
+- Vista isométrica com paredes e aberturas físicas, sombras, mobiliário Kenney medido e associação entre objetos lógicos e visuais.
+- Piso ativo com contexto fantasma não interativo e panorama explodido opcional nos casos de dois pisos.
+- Colocar, marcar com X, desfazer, limpar, pedir ajuda e acusar, com avisos de conflito entre linhas e colunas.
+- Temas claro e escuro, progresso retomável, notas privadas por caso e página de notas de lançamento.
+- Aplicação web progressiva instalável, com tipos de letra e retratos disponíveis sem ligação à rede.
+
+## Arquitetura
+
+```text
+src/core/       modelo, motor de pistas, solucionador, gerador e catálogo
+src/data/       casos escritos à mão
+src/scene3d/    esquema, catálogo físico, resolvedor, validação e renderizador
+src/hooks/      estado do jogo e tema
+src/components/ ecrãs React, interação e tabuleiro isométrico
+src/styles/     variáveis semânticas e estilos
+tests/          testes unitários, de integração e de pré-validação
+docs/           decisões, manuais, relatórios e referências visuais
+```
+
+O catálogo usa sementes e identificadores estáveis para preservar o progresso entre sessões. O solucionador verifica que cada conjunto de pistas admite uma única solução.
+
+O motor em `src/core` não depende do React. A camada visual consome o mesmo contrato lógico e valida separadamente a arquitetura da cena.
+
+## Produção e validação
+
+Antes de criar ou modificar um caso ou uma cena 3D, lê `docs/OPUS_PRODUCTION_MANUAL.md`. Os documentos principais são:
+
+- `docs/PUZZLE_AUTHORING.md`, para dificuldade e autoria de pistas;
+- `docs/ISOMETRIC_SCENE_SYSTEM.md`, para arquitetura e composição;
+- `docs/KENNEY_PACK_SURVEY.md`, para seleção de recursos;
+- `docs/KENNEY_ENVIRONMENT_EXPANSION.md`, para o roteiro de ambientes.
+- [Auditoria visual final](docs/FINAL_VISUAL_AUDIT.md), com cobertura dos 60 casos, correções e resultados de validação.
+
+Controlos rápidos:
 
 ```bash
-npm run build
-npm run preview
+npm run validate:production
+node scripts/measure-puzzles.mjs --check
 ```
 
-## Tests
+Controlo integral:
 
 ```bash
 npm test
-npm run test:coverage
+npm run validate:production
+npm run verify
+node scripts/measure-puzzles.mjs --check
 npm run lint
+npm run build
+npm run report:puzzles
 ```
 
-Run `npm run verify` to check the catalogue.
+## Temas
+
+Os temas usam propriedades personalizadas semânticas em `src/styles/theme.css`. O tema escuro é o predefinido, respeita a preferência do sistema e não depende de JavaScript. Para adicionar um tema, cria um bloco `:root.theme-<nome>` e acrescenta a entrada correspondente em `THEMES`, em `src/hooks/useTheme.ts`.

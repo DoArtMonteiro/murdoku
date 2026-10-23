@@ -2,6 +2,8 @@ import { generatePuzzle, reseed } from './generate'
 import { buildAuthoredPuzzle } from './authored'
 import { AUTHORED_CASES } from '../data/cases'
 import type { Puzzle, Difficulty } from './types'
+import { reconcileProgress } from './progress'
+import { CATALOG_KEY_PREFIX, isPlainObject, keysWithPrefix, removeKey } from './storage'
 
 // ============================================================================
 // The catalog: a stable, seeded set of puzzles. Because generation is
@@ -50,7 +52,27 @@ const SPEC: { difficulty: Difficulty; count: number }[] = [
 // v20: very-easy-2 ("The Empty Chair") is now hand-authored instead of
 // procedurally generated — the pilot for src/data/cases/. Cached v19 lists
 // still hold the old generated version.
-const KEY = 'murdoku_catalog_v20'
+// v21: very-easy-1 ("Midnight Delivery") is now hand-authored — the vertical
+// slice the isometric-dollhouse presentation is designed and screenshotted
+// against. Cached v20 lists still hold the old procedural version.
+// v22: very-easy-1's furniture density increased (19 pieces, 3+ per room)
+// after an art review called the rooms under-furnished. Cached v21 lists
+// still hold the sparser version.
+// v23: very-easy-1's rugs removed — at Kenney's native sprite size a rug
+// covers far more than its cell and is the most saturated thing on the
+// board, which is why the scene read as "giant red squares" rather than a
+// room. Cached v22 lists still hold them.
+// v25: hard-1 became the authored two-storey reference and authored clue
+// pruning became stable. Cached v24 data can contain the old generated case
+// or a seed-dependent clue set.
+// v26: puzzle-truth fix. "Directly below the <room>" was printed for people on
+// the top storey (a room that does not exist), "Beside" now means beside a piece
+// you are not standing on, in your own room, and "the lamp" is only used when
+// the house has exactly one. Every clue set and the "edge"/"corner" wording
+// changed; hard-6, expert-4, expert-9 and master-1/3/4 keep their layouts as
+// frozen authored cases. Each case now carries a content fingerprint
+// (progress.ts) so saved progress cannot attach itself to a different puzzle.
+const KEY = `${CATALOG_KEY_PREFIX}26`
 let puzzles: Puzzle[] = []
 
 function slug(s: string) { return s.toLowerCase().replace(/\s+/g, '-') }
@@ -117,13 +139,58 @@ function build(): Puzzle[] {
   return plan().map(buildOne).filter((p): p is Puzzle => p !== null)
 }
 
+/**
+ * A cached puzzle is untrusted input (an older build, a hand edit, a truncated
+ * write). This is a structural check only: enough to be sure the game can
+ * render and index it without throwing. Content correctness is the generator's
+ * job; a cache that fails here is simply thrown away and rebuilt.
+ */
+export function looksLikePuzzle(x: unknown): x is Puzzle {
+  if (!isPlainObject(x)) return false
+  const n = x.size
+  if (typeof x.id !== 'string' || !x.id || typeof n !== 'number' || !Number.isInteger(n) || n < 4 || n > 10) return false
+  if (typeof x.title !== 'string' || typeof x.difficulty !== 'string') return false
+  const gridOk = (g: unknown) => Array.isArray(g) && g.length === n && g.every(row => Array.isArray(row) && row.length === n && row.every(c => typeof c === 'string'))
+  if (!gridOk(x.roomOf)) return false
+  if (x.roomOfByFloor !== undefined && !(Array.isArray(x.roomOfByFloor) && x.roomOfByFloor.length >= 1 && x.roomOfByFloor.every(gridOk))) return false
+  if (!Array.isArray(x.rooms) || !x.rooms.every(r => isPlainObject(r) && typeof r.id === 'string' && typeof r.name === 'string' && Array.isArray(r.cells))) return false
+  if (!Array.isArray(x.furniture) || !x.furniture.every(f => isPlainObject(f) && typeof f.type === 'string' && typeof f.row === 'number' && typeof f.col === 'number')) return false
+  if (!Array.isArray(x.people) || x.people.length < 2 || !x.people.every(pp => isPlainObject(pp) && typeof pp.id === 'string' && typeof pp.name === 'string')) return false
+  if (!Array.isArray(x.clues) || !x.clues.every(c => isPlainObject(c) && typeof c.text === 'string' && isPlainObject(c.clue) && typeof c.clue.kind === 'string' && typeof c.clue.person === 'string')) return false
+  if (!isPlainObject(x.solution)) return false
+  const solution = x.solution
+  const placed = x.people.every(pp => {
+    const c = solution[(pp as { id: string }).id]
+    return isPlainObject(c) && typeof c.row === 'number' && typeof c.col === 'number'
+  })
+  return placed && typeof x.victimId === 'string' && typeof x.murdererId === 'string'
+}
+
 function readCache(): Puzzle[] | null {
   try {
     const cached = localStorage.getItem(KEY)
     if (!cached) return null
-    const parsed: Puzzle[] = JSON.parse(cached)
-    return parsed.length ? parsed : null
-  } catch { return null }
+    const parsed: unknown = JSON.parse(cached)
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(looksLikePuzzle)) return parsed
+    removeKey(KEY) // unreadable or the wrong shape: rebuild rather than brick the app
+    return null
+  } catch {
+    removeKey(KEY)
+    return null
+  }
+}
+
+/** Drop every catalog cache written by an earlier version; each bump used to leak ~400 KB. */
+function purgeOldCatalogs(): void {
+  for (const key of keysWithPrefix(CATALOG_KEY_PREFIX)) if (key !== KEY) removeKey(key)
+}
+
+function adopt(list: Puzzle[]): void {
+  puzzles = list
+  purgeOldCatalogs()
+  // Progress is tied to the content it was earned on: forget it for any case
+  // whose content differs from what the progress was saved against.
+  reconcileProgress(list)
 }
 
 function writeCache(list: Puzzle[]): void {
@@ -134,8 +201,8 @@ function writeCache(list: Puzzle[]): void {
 export function initCatalog(): void {
   if (puzzles.length) return
   const cached = readCache()
-  if (cached) { puzzles = cached; return }
-  puzzles = build()
+  if (cached) { adopt(cached); return }
+  adopt(build())
   writeCache(puzzles)
 }
 
@@ -153,7 +220,7 @@ export async function initCatalogAsync(
 ): Promise<Puzzle[]> {
   if (puzzles.length) return puzzles
   const cached = readCache()
-  if (cached) { puzzles = cached; return puzzles }
+  if (cached) { adopt(cached); return puzzles }
 
   const specs = plan()
   const list: Puzzle[] = []
@@ -164,7 +231,7 @@ export async function initCatalogAsync(
     // Yield to the event loop so input and paint are not starved.
     await new Promise(resolve => setTimeout(resolve, 0))
   }
-  puzzles = list
+  adopt(list)
   writeCache(puzzles)
   return puzzles
 }
