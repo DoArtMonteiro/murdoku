@@ -564,7 +564,7 @@ function reducer(state: GameState, action: Action): GameState {
       // Sticky and fingerprinted: reloading, Start over and winning later do not undo it.
       saveCaseState(state.puzzle, { ...loadCaseState(state.puzzle), revealed: true })
       return {
-        ...state, marksPerFloor: shown, marks: activeFloorMarks(shown, state.activeFloor),
+        ...state, marksPerFloor: shown, ...closingView(state.puzzle, shown),
         history: pushHistory(state), future: [], completed: true, revealed: true, solutionShown: true,
         murderer: findMurderer(state.puzzle, state.puzzle.solution), feedback: 'none',
       }
@@ -613,6 +613,15 @@ function hintOrder(puzzle: Puzzle): string[] {
   return puzzle.people.map((x, i) => ({ id: x.id, i })).sort((a, b) => rank(a.id) - rank(b.id) || a.i - b.i).map(x => x.id)
 }
 
+/**
+ * A closed case is shown on the scene of the crime: the storey where the victim
+ * (and so the murderer) stands, with no suspect left selected from play.
+ */
+function closingView(puzzle: Puzzle, mpf: CellMark[][][]): Pick<GameState, 'activeFloor' | 'marks' | 'selectedPerson'> {
+  const floor = Math.min(puzzle.solution[puzzle.victimId]?.floor ?? 0, mpf.length - 1) as 0 | 1
+  return { activeFloor: floor, marks: activeFloorMarks(mpf, floor), selectedPerson: null }
+}
+
 function win(state: GameState): GameState {
   const puzzle = state.puzzle!
   const murderer = findMurderer(puzzle, puzzle.solution)
@@ -622,7 +631,7 @@ function win(state: GameState): GameState {
     // or badge is earned and the victory screen ("Case closed") is not shown.
     saveCaseState(puzzle, { fp: puzzleFingerprint(puzzle), hinted: [], wrong: 0, attempts: state.attempts, revealed: true })
     clearPlay()
-    return { ...state, completed: true, solutionShown: true, murderer, feedback: 'none' }
+    return { ...state, ...closingView(puzzle, state.marksPerFloor), completed: true, solutionShown: true, murderer, feedback: 'none' }
   }
   const completedIds = state.completedIds.includes(puzzle.id)
     ? state.completedIds : [...state.completedIds, puzzle.id]
@@ -640,7 +649,7 @@ function win(state: GameState): GameState {
   }
 
   clearPlay() // solved — drop the in-progress autosave
-  return { ...state, completed: true, murderer, screen: 'victory', completedIds, feedback: 'none' }
+  return { ...state, ...closingView(puzzle, state.marksPerFloor), completed: true, murderer, screen: 'victory', completedIds, feedback: 'none' }
 }
 
 /** Exposed so tests can drive the pure reducer without a React tree. */

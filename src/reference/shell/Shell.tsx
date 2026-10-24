@@ -212,7 +212,9 @@ export function Shell({ game, board, variant, theme: hostTheme, onToggleTheme, s
       puzzle={puzzle} floor={floor} size={planSize} theme={theme} board={planSize > 0 ? board : null}
       marks={game.marks} selectedPerson={game.selectedPerson} conflicts={game.conflicts} conflictLanes={conflictLanes}
       targets={targets} locked={game.completed} onCell={onCell} onProbe={onProbe}
-      under={underLayer} over={overLayer} dim={dim} ringed={rc?.frame.accuse ? rc.rec.murderer : null}
+      under={underLayer} over={overLayer} dim={dim}
+      // The reconstruction rings the murderer on its own beat; a case without one rings them as soon as it closes.
+      ringed={rc ? (rc.frame.accuse ? rc.rec.murderer : null) : (game.completed ? game.murderer : null)}
     />
   )
 
