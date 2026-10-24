@@ -162,10 +162,16 @@ function savePlay(p: SavedPlay, upperFloorMarks?: CellMark[][]) {
   if (upperFloorMarks) writeJson(UPPER_FLOOR_KEY, { id: p.id, marks: upperFloorMarks })
   else removeKey(UPPER_FLOOR_KEY)
 }
-function clearPlay() {
-  removeKey(PLAY_KEY)
-  removeKey(LEGACY_PLAY_KEY)
-  removeKey(UPPER_FLOOR_KEY)
+/**
+ * Drops the autosave of case `id`. The slot is shared by every case, so a key
+ * holding another case's attempt is left alone; one nobody can read is dropped.
+ */
+function clearPlay(id: string) {
+  for (const key of [PLAY_KEY, LEGACY_PLAY_KEY, UPPER_FLOOR_KEY]) {
+    const saved = readJson(key) as { id?: unknown; puzzleId?: unknown } | null
+    const owner = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved.id ?? saved.puzzleId : undefined
+    if (typeof owner !== 'string' || owner === id) removeKey(key)
+  }
 }
 function loadInProgressSummary(puzzles: readonly Puzzle[]): InProgressSummary | null {
   for (const key of [PLAY_KEY, LEGACY_PLAY_KEY]) {
@@ -560,7 +566,7 @@ function reducer(state: GameState, action: Action): GameState {
         const sol = state.puzzle.solution[person.id]
         shown[sol.floor ?? 0][sol.row][sol.col] = { kind: 'person', person: person.id, locked: true }
       }
-      clearPlay()
+      clearPlay(state.puzzle.id)
       // Sticky and fingerprinted: reloading, Start over and winning later do not undo it.
       saveCaseState(state.puzzle, { ...loadCaseState(state.puzzle), revealed: true })
       return {
@@ -579,7 +585,7 @@ function reducer(state: GameState, action: Action): GameState {
       const mpf = emptyMarksPerFloor(state.puzzle.size, floors)
       const spent = loadCaseState(state.puzzle)
       saveCaseState(state.puzzle, { ...spent, wrong: 0, attempts: spent.attempts + 1 })
-      clearPlay()
+      clearPlay(state.puzzle.id)
       return {
         ...state, marksPerFloor: mpf, marks: mpf[0], activeFloor: 0, history: [], future: [], attempts: spent.attempts + 1,
         resolvedClues: [], accusationsLeft: MAX_ACCUSATIONS, feedback: 'none',
@@ -630,7 +636,7 @@ function win(state: GameState): GameState {
     // nothing. The board is accepted and read out, but no tick, record, streak
     // or badge is earned and the victory screen ("Case closed") is not shown.
     saveCaseState(puzzle, { fp: puzzleFingerprint(puzzle), hinted: [], wrong: 0, attempts: state.attempts, revealed: true })
-    clearPlay()
+    clearPlay(puzzle.id)
     return { ...state, ...closingView(puzzle, state.marksPerFloor), completed: true, solutionShown: true, murderer, feedback: 'none' }
   }
   const completedIds = state.completedIds.includes(puzzle.id)
@@ -648,7 +654,7 @@ function win(state: GameState): GameState {
     saveStreak(advanceStreak(loadStreak(), today))
   }
 
-  clearPlay() // solved — drop the in-progress autosave
+  clearPlay(puzzle.id) // solved — drop the in-progress autosave
   return { ...state, ...closingView(puzzle, state.marksPerFloor), completed: true, murderer, screen: 'victory', completedIds, feedback: 'none' }
 }
 
@@ -707,7 +713,7 @@ export function useGame() {
           upperFloor,
         )
       } else {
-        clearPlay()
+        clearPlay(state.puzzle.id)
       }
     }
   }, [state.marksPerFloor, state.elapsedSeconds, state.screen, state.completed, state.puzzle, state.mode, state.hintsLeft, state.selectedPerson])
