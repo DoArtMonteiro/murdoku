@@ -37,6 +37,8 @@ export interface GameApi {
   submit: () => void
   switchFloor?: (floor: 0 | 1) => void
   revealed?: boolean
+  /** The latest autosave could not be stored. */
+  saveFailed?: boolean
   reveal?: () => void
   startOver?: () => void
 }

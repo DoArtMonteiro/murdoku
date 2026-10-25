@@ -66,10 +66,16 @@ function AppInner() {
 
   // Warm the split chunks on idle so the win / releases transition never
   // stalls on a mid-animation fetch (which caused a visible repaint hiccup).
+  // Cancelled on unmount, so a torn-down app (or test environment) never starts the imports.
   useEffect(() => {
     const warm = () => { importVictory(); importReleases() }
-    const ric = (window as any).requestIdleCallback
-    if (ric) ric(warm); else setTimeout(warm, 400)
+    const w = window as any
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(warm)
+      return () => w.cancelIdleCallback?.(id)
+    }
+    const id = setTimeout(warm, 400)
+    return () => clearTimeout(id)
   }, [])
 
   function nextCase() {
@@ -146,6 +152,7 @@ function AppInner() {
           feedback={game.feedback}
           accusationsLeft={game.accusationsLeft}
           revealed={game.revealed}
+          saveFailed={game.saveFailed}
           attempts={game.attempts}
           resolvedClues={game.resolvedClues}
           onSelectPerson={game.selectPerson}
@@ -193,6 +200,7 @@ function AppInner() {
               onSetMode={game.setMode}
               onSelect={(id) => game.start(id, game.mode)}
               inProgress={game.inProgress}
+              savedAttempts={game.savedAttempts}
               onResume={game.start}
               onOpenReleases={() => setAux('releases')}
               resolvedTheme={theme.resolved}

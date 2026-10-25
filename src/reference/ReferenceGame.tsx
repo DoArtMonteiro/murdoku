@@ -41,6 +41,7 @@ export default function ReferenceGame({ variant, game }: { variant: BoardVariant
   const { start } = game
   const asked = new URLSearchParams(window.location.search).get('case')
   const caseId = asked && game.puzzles.some(p => p.id === asked) ? asked : REFERENCE_CASE_ID
+  const casePuzzle = game.puzzles.find(p => p.id === caseId)
   useEffect(() => {
     if (!ready || started.current) return
     started.current = true
@@ -50,9 +51,9 @@ export default function ReferenceGame({ variant, game }: { variant: BoardVariant
     // classic, otherwise start classic. start() also rewrites the stored mode
     // preference; it is put back below.
     prevMode.current = readStoredMode()
-    const saved = peekSavedMode(caseId)
+    const saved = casePuzzle ? peekSavedMode(casePuzzle) : null
     start(caseId, saved === 'detective' ? 'detective' : 'classic')
-  }, [ready, start, game.puzzle?.id, caseId])
+  }, [ready, start, game.puzzle?.id, caseId, casePuzzle])
   useEffect(() => {
     if (prevMode.current === undefined || game.puzzle?.id !== caseId) return
     const restore = () => restoreStoredMode(prevMode.current ?? null)

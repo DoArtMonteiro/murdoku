@@ -5,9 +5,10 @@ import { getAllPuzzles, getPuzzleById, initCatalogAsync } from '../core/catalog'
 import { deriveEliminations, findMurderer } from '../core/engine'
 import { advanceStreak, dailyPuzzle, loadStreak, saveStreak, todayStamp } from '../core/daily'
 import type { StreakState } from '../core/daily'
-import { IN_PROGRESS_KEY, LEGACY_IN_PROGRESS_KEY, parseInProgress, parseMarksGrid } from '../core/ux'
+import { MODE_KEY, TIMER_KEY } from '../core/storage'
+import { readSave, removeSave, summarizeSaves, writeSave } from '../core/saves'
+import type { SavedAttempts } from '../core/saves'
 import type { InProgressSummary } from '../core/ux'
-import { MODE_KEY, TIMER_KEY, UPPER_FLOOR_KEY, readJson, removeKey, writeJson } from '../core/storage'
 import {
   MAX_ACCUSATIONS, loadCaseState, loadRecords, loadSolved, puzzleFingerprint, saveCaseState, saveRecord, saveSolved,
 } from '../core/progress'
@@ -111,77 +112,6 @@ function loadMode(): GameMode {
 }
 function loadHideTimer(): boolean { try { return localStorage.getItem(TIMER_KEY) === '1' } catch { return false } }
 
-// --- mid-solve autosave (survives backing out to the case list / tab close) --
-// v1 is the public read-only summary source. Keep writing the original key
-// too so existing installs retain their resume behavior and compatibility.
-const PLAY_KEY = IN_PROGRESS_KEY
-const LEGACY_PLAY_KEY = LEGACY_IN_PROGRESS_KEY
-// The key that stores upper floor marks for two-floor puzzles (storage.ts).
-// MUST NOT be renamed — it is a separate key, not a rename of existing keys.
-interface SavedPlay { id: string; mode: GameMode; marks: CellMark[][]; elapsed: number; hints: number; selected: string | null; fp?: string }
-function loadPlay(puzzle: Puzzle): { play: SavedPlay; marksPerFloor: CellMark[][][] } | null {
-  for (const key of [PLAY_KEY, LEGACY_PLAY_KEY]) {
-    const parsed = readJson(key) as Partial<SavedPlay> | null
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) continue
-    // A save made against different content is never applied to this puzzle.
-    if (typeof parsed.fp === 'string' && parsed.fp !== puzzleFingerprint(puzzle)) continue
-    if (!parseInProgress(parsed, [puzzle])) continue
-    const personIds = new Set(puzzle.people.map(x => x.id))
-    const ground = parseMarksGrid(parsed.marks, puzzle.size, personIds)
-    if (!ground) continue
-    const mpf: CellMark[][][] = [ground]
-    // Upper storeys live under their own key, validated just as strictly. A
-    // suspect cannot stand on two storeys, so an upper save that repeats one is dropped.
-    const upper = readJson(UPPER_FLOOR_KEY) as { id?: unknown; marks?: unknown } | null
-    if (upper && typeof upper === 'object' && upper.id === parsed.id) {
-      const grid = parseMarksGrid(upper.marks, puzzle.size, personIds)
-      const onGround = new Set(ground.flat().flatMap(m => (m.kind === 'person' ? [m.person] : [])))
-      const clash = grid?.flat().some(m => m.kind === 'person' && onGround.has(m.person))
-      if (grid && !clash) mpf.push(grid)
-    }
-    return {
-      play: {
-        id: parsed.id as string,
-        mode: parsed.mode as GameMode,
-        marks: ground,
-        elapsed: typeof parsed.elapsed === 'number' && Number.isFinite(parsed.elapsed) && parsed.elapsed >= 0 ? parsed.elapsed : 0,
-        hints: 0,
-        selected: typeof parsed.selected === 'string' && personIds.has(parsed.selected) ? parsed.selected : null,
-      },
-      marksPerFloor: mpf,
-    }
-  }
-  return null
-}
-function savePlay(p: SavedPlay, upperFloorMarks?: CellMark[][]) {
-  const raw = JSON.stringify(p)
-  try {
-    localStorage.setItem(PLAY_KEY, raw)
-    localStorage.setItem(LEGACY_PLAY_KEY, raw)
-  } catch { return }
-  if (upperFloorMarks) writeJson(UPPER_FLOOR_KEY, { id: p.id, marks: upperFloorMarks })
-  else removeKey(UPPER_FLOOR_KEY)
-}
-/**
- * Drops the autosave of case `id`. The slot is shared by every case, so a key
- * holding another case's attempt is left alone; one nobody can read is dropped.
- */
-function clearPlay(id: string) {
-  for (const key of [PLAY_KEY, LEGACY_PLAY_KEY, UPPER_FLOOR_KEY]) {
-    const saved = readJson(key) as { id?: unknown; puzzleId?: unknown } | null
-    const owner = saved && typeof saved === 'object' && !Array.isArray(saved) ? saved.id ?? saved.puzzleId : undefined
-    if (typeof owner !== 'string' || owner === id) removeKey(key)
-  }
-}
-function loadInProgressSummary(puzzles: readonly Puzzle[]): InProgressSummary | null {
-  for (const key of [PLAY_KEY, LEGACY_PLAY_KEY]) {
-    try {
-      const summary = parseInProgress(localStorage.getItem(key), puzzles)
-      if (summary) return summary
-    } catch { /* ignore unavailable storage */ }
-  }
-  return null
-}
 function hasAnyPlacement(marksPerFloor: CellMark[][][]): boolean {
   return marksPerFloor.some(floor => floor.some(row => row.some(c => c.kind === 'person' || c.kind === 'draft' || c.kind === 'x')))
 }
@@ -302,20 +232,13 @@ function reducer(state: GameState, action: Action): GameState {
       if (!puzzle) return state
       try { localStorage.setItem(MODE_KEY, action.mode) } catch { /* ignore */ }
       // Resume an unsubmitted attempt on this exact case + mode, if one exists.
-      const savedResult = loadPlay(puzzle)
-      const saved = savedResult?.play
-      const resume = saved && saved.id === action.puzzleId && saved.mode === action.mode
-        && Array.isArray(saved.marks) && saved.marks.length === puzzle.size
+      // Each case and mode has its own save (src/core/saves.ts), so this never reads another attempt.
+      const saved = readSave(puzzle, action.mode)
+      const resume = !!saved
       const floors = puzzle.floors ?? 1
-      let marksPerFloor: CellMark[][][]
-      if (resume) {
-        // Loaded floor 0 from saved.marks; upper floors from savedResult.marksPerFloor if present
-        marksPerFloor = savedResult!.marksPerFloor.length >= floors
-          ? savedResult!.marksPerFloor.slice(0, floors)
-          : [...savedResult!.marksPerFloor, ...Array.from({ length: floors - savedResult!.marksPerFloor.length }, () => emptyMarks(puzzle.size))]
-      } else {
-        marksPerFloor = emptyMarksPerFloor(puzzle.size, floors)
-      }
+      const marksPerFloor: CellMark[][][] = saved
+        ? Array.from({ length: floors }, (_, f) => saved.floors[f] ?? emptyMarks(puzzle.size))
+        : emptyMarksPerFloor(puzzle.size, floors)
       // Hints and accusations spent on this case live in their own fingerprinted
       // store, NOT in the board autosave: Clear (which empties the autosave) and
       // leaving and re-entering must never hand them back.
@@ -566,7 +489,7 @@ function reducer(state: GameState, action: Action): GameState {
         const sol = state.puzzle.solution[person.id]
         shown[sol.floor ?? 0][sol.row][sol.col] = { kind: 'person', person: person.id, locked: true }
       }
-      clearPlay(state.puzzle.id)
+      removeSave(state.puzzle.id, state.mode)
       // Sticky and fingerprinted: reloading, Start over and winning later do not undo it.
       saveCaseState(state.puzzle, { ...loadCaseState(state.puzzle), revealed: true })
       return {
@@ -585,7 +508,7 @@ function reducer(state: GameState, action: Action): GameState {
       const mpf = emptyMarksPerFloor(state.puzzle.size, floors)
       const spent = loadCaseState(state.puzzle)
       saveCaseState(state.puzzle, { ...spent, wrong: 0, attempts: spent.attempts + 1 })
-      clearPlay(state.puzzle.id)
+      removeSave(state.puzzle.id, state.mode)
       return {
         ...state, marksPerFloor: mpf, marks: mpf[0], activeFloor: 0, history: [], future: [], attempts: spent.attempts + 1,
         resolvedClues: [], accusationsLeft: MAX_ACCUSATIONS, feedback: 'none',
@@ -636,7 +559,7 @@ function win(state: GameState): GameState {
     // nothing. The board is accepted and read out, but no tick, record, streak
     // or badge is earned and the victory screen ("Case closed") is not shown.
     saveCaseState(puzzle, { fp: puzzleFingerprint(puzzle), hinted: [], wrong: 0, attempts: state.attempts, revealed: true })
-    clearPlay(puzzle.id)
+    removeSave(puzzle.id, state.mode)
     return { ...state, ...closingView(puzzle, state.marksPerFloor), completed: true, solutionShown: true, murderer, feedback: 'none' }
   }
   const completedIds = state.completedIds.includes(puzzle.id)
@@ -654,7 +577,7 @@ function win(state: GameState): GameState {
     saveStreak(advanceStreak(loadStreak(), today))
   }
 
-  clearPlay(puzzle.id) // solved — drop the in-progress autosave
+  removeSave(puzzle.id, state.mode) // solved — drop the in-progress autosave
   return { ...state, ...closingView(puzzle, state.marksPerFloor), completed: true, murderer, screen: 'victory', completedIds, feedback: 'none' }
 }
 
@@ -700,23 +623,31 @@ export function useGame() {
   }, [])
 
   // Autosave the in-progress attempt so backing out (or a tab close) never
-  // loses mid-solve placements. Cleared automatically on solve.
-  // Floor 0 marks go to the existing PLAY_KEY (compat). Upper floors go to the
-  // new UPPER_FLOOR_KEY so old clients still resume from floor 0 correctly.
+  // loses mid-solve placements. Cleared automatically on solve. Only this case
+  // and mode's save is written or dropped; every other attempt is untouched.
+  // `saveFailed` is true while the latest write could not be stored.
+  const [saveFailed, setSaveFailed] = useState(false)
+  // What the home screen offers: the Continue strip (newest attempt) and the
+  // case list (every attempt). Re-read whenever the board, the screen or the case changes.
+  const [inProgress, setInProgress] = useState<InProgressSummary | null>(null)
+  const [savedAttempts, setSavedAttempts] = useState<SavedAttempts>({})
   useEffect(() => {
     if (state.screen === 'game' && state.puzzle && !state.completed) {
       if (hasAnyPlacement(state.marksPerFloor)) {
-        const floor0 = state.marksPerFloor[0]
-        const upperFloor = state.marksPerFloor.length > 1 ? state.marksPerFloor[1] : undefined
-        savePlay(
-          { id: state.puzzle.id, mode: state.mode, marks: floor0, elapsed: state.elapsedSeconds, hints: state.hintsLeft, selected: state.selectedPerson, fp: puzzleFingerprint(state.puzzle) },
-          upperFloor,
-        )
+        const ok = writeSave(state.puzzle, { id: state.puzzle.id, mode: state.mode, floors: state.marksPerFloor, elapsed: state.elapsedSeconds, selected: state.selectedPerson })
+        setSaveFailed(!ok)
       } else {
-        clearPlay(state.puzzle.id)
+        removeSave(state.puzzle.id, state.mode)
+        setSaveFailed(false)
       }
     }
-  }, [state.marksPerFloor, state.elapsedSeconds, state.screen, state.completed, state.puzzle, state.mode, state.hintsLeft, state.selectedPerson])
+  }, [state.marksPerFloor, state.elapsedSeconds, state.screen, state.completed, state.puzzle, state.mode, state.selectedPerson])
+  // Not on every timer tick: the strip's elapsed time is re-read whenever the board, the screen or the case changes.
+  useEffect(() => {
+    const saves = summarizeSaves(puzzles)
+    setInProgress(saves.latest)
+    setSavedAttempts(saves.byCase)
+  }, [state.marksPerFloor, state.screen, state.completed, state.puzzle, state.mode, puzzles])
 
   const daily = useMemo(() => dailyPuzzle(puzzles), [puzzles])
 
@@ -744,7 +675,6 @@ export function useGame() {
     return bad
   }, [placedOf, state.puzzle])
 
-  const inProgress = loadInProgressSummary(puzzles)
 
   return {
     ...state,
@@ -758,6 +688,8 @@ export function useGame() {
     placedOf,
     conflicts,
     inProgress,
+    savedAttempts,
+    saveFailed,
     records: loadRecords(),
     timer: formatTime(state.elapsedSeconds),
     start: useCallback((id: string, mode: GameMode) => dispatch({ type: 'START', puzzleId: id, mode }), []),

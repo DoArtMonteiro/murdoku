@@ -648,3 +648,6 @@
   .rs-stack .rs-dossier { gap: 4px; }
   .rs-stack .rs-clues { gap: 2px; }
 }
+
+/* Autosave could not be stored: quiet, but never mistaken for a saved state. */
+.rs-savewarn { margin: 0 0 6px; padding: 6px 10px; border: 1px solid var(--color-danger-text); font: 400 12px/1.4 var(--rs-mono); color: var(--color-danger-text); }

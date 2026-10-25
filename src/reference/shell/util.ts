@@ -1,4 +1,5 @@
-import { IN_PROGRESS_KEY, LEGACY_IN_PROGRESS_KEY } from '../../core/ux'
+import type { Puzzle } from '../../core/types'
+import { savedModeFor } from '../../core/saves'
 import type { PlacedAt } from './types'
 
 export function placedLabel(at: PlacedAt | undefined): string {
@@ -13,7 +14,6 @@ export function backHref(): string {
 }
 
 const MODE_KEY = 'murdoku_mode'
-const PLAY_KEYS = [IN_PROGRESS_KEY, LEGACY_IN_PROGRESS_KEY]
 
 export function readStoredMode(): string | null {
   try { return localStorage.getItem(MODE_KEY) } catch { return null }
@@ -25,15 +25,7 @@ export function restoreStoredMode(mode: string | null): void {
   } catch { /* storage unavailable */ }
 }
 
-/** Mode of the main UI's autosaved attempt on this case, if there is one. */
-export function peekSavedMode(caseId: string): string | null {
-  for (const key of PLAY_KEYS) {
-    try {
-      const raw = localStorage.getItem(key)
-      if (!raw) continue
-      const p = JSON.parse(raw) as { id?: string; mode?: string }
-      if (p?.id === caseId && typeof p.mode === 'string') return p.mode
-    } catch { /* corrupt save: ignore */ }
-  }
-  return null
+/** Mode of the main UI's most recent autosaved attempt on this case, if there is one. */
+export function peekSavedMode(puzzle: Puzzle): string | null {
+  return savedModeFor(puzzle)
 }

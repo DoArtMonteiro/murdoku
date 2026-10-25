@@ -15,6 +15,8 @@ export const RECORDS_KEY = 'murdoku_records'
 export const MODE_KEY = 'murdoku_mode'
 export const TIMER_KEY = 'murdoku_hide_timer'
 export const UPPER_FLOOR_KEY = 'murdoku_floor_marks_v1'
+/** Per-case autosave: `murdoku_save_v2:<case id>:<mode>` (src/core/saves.ts). */
+export const SAVE_KEY_PREFIX = 'murdoku_save_v2:'
 export const CASE_STATE_KEY = 'murdoku_case_state_v1'
 export const FINGERPRINT_KEY = 'murdoku_fingerprints_v1'
 export const CATALOG_KEY_PREFIX = 'murdoku_catalog_v'

@@ -241,6 +241,7 @@ export function Shell({ game, board, variant, theme: hostTheme, onToggleTheme, s
         ? <SuspectDock puzzle={puzzle} selectedPerson={selectedPerson} game={game} litFor={litFor} onSelect={game.selectPerson} taleOf={story ? taleOf : undefined} onAsk={story ? setAskId : undefined} />
         : <SuspectList puzzle={puzzle} selectedPerson={selectedPerson} game={game} litFor={litFor} onSelect={game.selectPerson} taleOf={story ? taleOf : undefined} onAsk={story ? setAskId : undefined} />}
       <div className="rs-foot">
+        {game.saveFailed && <p className="rs-savewarn" role="status" data-testid="save-warning">Progress isn't being saved on this device. Finish here, or this attempt will be lost when you leave.</p>}
         <Toolbar game={game} />
         <AccusePanel game={game} />
       </div>

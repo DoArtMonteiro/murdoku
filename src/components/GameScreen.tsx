@@ -40,6 +40,8 @@ interface Props {
   revealed?: boolean
   /** Times this case has been started over. */
   attempts?: number
+  /** The latest autosave could not be stored (storage full or blocked). */
+  saveFailed?: boolean
   resolvedClues: string[]
   onSelectPerson: (id: string) => void
   onSetTool: (t: Tool) => void
@@ -735,6 +737,11 @@ export default function GameScreen(props: Props) {
       >
 
         <div className="order-2 lg:order-none lg:col-span-full lg:row-start-1">
+          {props.saveFailed && (
+            <p role="status" data-testid="save-warning" className="mx-4 mb-2 border border-danger px-3 py-2 font-mono text-[12px] text-danger-text">
+              Progress isn't being saved on this device. Finish here, or this attempt will be lost when you leave.
+            </p>
+          )}
           <CaseProgressStrip
             puzzle={puzzle}
             placedOf={placedOf}

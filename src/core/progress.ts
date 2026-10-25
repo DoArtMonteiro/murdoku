@@ -2,8 +2,8 @@ import type { Puzzle } from './types'
 import { cellFloor } from './types'
 import { CASE_NOTES_KEY, IN_PROGRESS_KEY, LEGACY_IN_PROGRESS_KEY } from './ux'
 import {
-  CASE_STATE_KEY, FINGERPRINT_KEY, RECORDS_KEY, SOLVED_KEY, UPPER_FLOOR_KEY,
-  isFiniteNumber, isPlainObject, readJson, readObject, readStringArray, removeKey, writeJson,
+  CASE_STATE_KEY, FINGERPRINT_KEY, RECORDS_KEY, SAVE_KEY_PREFIX, SOLVED_KEY, UPPER_FLOOR_KEY,
+  isFiniteNumber, isPlainObject, keysWithPrefix, readJson, readObject, readStringArray, removeKey, writeJson,
 } from './storage'
 import { LEGACY_FINGERPRINTS } from './legacyFingerprints'
 
@@ -154,6 +154,7 @@ export function purgeCaseProgress(id: string): void {
       removeKey(UPPER_FLOOR_KEY)
     }
   }
+  for (const key of keysWithPrefix(`${SAVE_KEY_PREFIX}${id}:`)) removeKey(key)
 }
 
 /**
