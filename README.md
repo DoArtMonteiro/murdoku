@@ -4,7 +4,7 @@ A deduction puzzle where clues help place suspects and a victim around a house, 
 
 **Status:** Live. The published demo is branded **Alibi**; the repository remains Murdoku.
 
-[**Play the demo**](https://murdoku-seven.vercel.app) · [**Browse the source**](https://github.com/WhiteBlindness/murdoku)
+[**Play the demo**](https://murdoku-seven.vercel.app) · [**Browse the source**](https://github.com/DoArtMonteiro/murdoku)
 
 ## Why it exists
 
