@@ -90,12 +90,12 @@ export default function VictoryScreen({ puzzle, murderer, timer, elapsedSeconds,
             boxShadow: '0 0 0 2px color-mix(in srgb, var(--color-danger) 30%, transparent), var(--shadow-cut)',
           }}
         >
-          <p
+          <h1
             id="victory-title"
             className="font-display text-2xl font-bold tracking-[0.35em] text-danger-text uppercase"
           >
             Case Closed
-          </p>
+          </h1>
         </div>
       </motion.div>
 
@@ -184,7 +184,7 @@ export default function VictoryScreen({ puzzle, murderer, timer, elapsedSeconds,
             whileTap={{ scale: 0.97 }}
             type="button"
             onClick={() => setShowReplay(true)}
-            aria-label="Review how the clues solved the case"
+            aria-label="Review clues: how the clues solved the case"
             className="focus-ring w-full py-3 border border-border-strong font-display text-sm tracking-widest uppercase flex items-center justify-center gap-2"
             style={{
               background: 'var(--color-bg-surface)',

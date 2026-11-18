@@ -20,7 +20,6 @@ function renderGame(overrides?: Parameters<typeof makePuzzle>[0], propOverrides?
       canUndo={false}
       canRedo={false}
       feedback="none"
-      correctCount={0}
       resolvedClues={[]}
       onSelectPerson={vi.fn()}
       onSetTool={vi.fn()}
@@ -38,6 +37,25 @@ function renderGame(overrides?: Parameters<typeof makePuzzle>[0], propOverrides?
     />,
   )
 }
+
+describe('GameScreen clue preview', () => {
+  it('switches to the clue floor without selecting or placing a suspect', () => {
+    localStorage.setItem('murdoku_seen_help', '1')
+    const onSwitchFloor = vi.fn()
+    const onSelectPerson = vi.fn()
+    const onCell = vi.fn()
+    renderGame({ floors: 2, clues: [
+      { clue: { kind: 'floor', person: 'p0', floorNum: 1 }, text: 'Upstairs.' },
+      { clue: { kind: 'row', person: 'p0', row: 2 }, text: 'In row 3.' },
+    ] }, { activeFloor: 0, onSwitchFloor, onSelectPerson, onCell })
+    fireEvent.click(screen.getByRole('button', { name: "Show Ada Stone's clue on the board" }))
+    expect(onSwitchFloor).toHaveBeenCalledExactlyOnceWith(1)
+    expect(onSelectPerson).not.toHaveBeenCalled()
+    expect(onCell).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: "Hide Ada Stone's clue on the board" }))
+    expect(onSwitchFloor).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('GameScreen destructive confirmations', () => {
   it('exposes an accessible clear dialog, focuses Cancel, and closes on Escape', async () => {
@@ -97,7 +115,6 @@ describe('GameScreen aria-live region', () => {
         canUndo={false}
         canRedo={false}
         feedback="none"
-        correctCount={0}
         resolvedClues={[]}
         onSelectPerson={vi.fn()}
         onSetTool={vi.fn()}
@@ -133,7 +150,6 @@ describe('GameScreen aria-live region', () => {
         canUndo={true}
         canRedo={false}
         feedback="none"
-        correctCount={0}
         resolvedClues={[]}
         onSelectPerson={vi.fn()}
         onSetTool={vi.fn()}
@@ -173,7 +189,6 @@ describe('GameScreen aria-live region', () => {
         canUndo={false}
         canRedo={false}
         feedback="none"
-        correctCount={0}
         resolvedClues={[]}
         onSelectPerson={vi.fn()}
         onSetTool={vi.fn()}
@@ -205,7 +220,6 @@ describe('GameScreen aria-live region', () => {
         canUndo={false}
         canRedo={false}
         feedback="wrong"
-        correctCount={1}
         resolvedClues={[]}
         onSelectPerson={vi.fn()}
         onSetTool={vi.fn()}
@@ -234,7 +248,7 @@ describe('GameScreen aria-live region', () => {
 // jsdom cannot measure pixels, so these tests assert structural classes rather
 // than computed dimensions. They verify the composition intent: a shared
 // max-width wrapper that keeps board and dossier as one unit, and a square
-// board div that sizes itself via CSS container queries.
+// board div that sizes itself from the isometric scene ratio.
 
 describe('GameScreen layout composition', () => {
   it('renders the shared desktop content cap with its testid', () => {
@@ -253,12 +267,46 @@ describe('GameScreen layout composition', () => {
     expect(cap.className).toMatch(/lg:mx-auto/)
   })
 
-  it('board square div carries aspect-square so it stays square on mobile', () => {
+  it('board wrapper uses the isometric scene ratio on mobile and desktop', () => {
     localStorage.setItem('murdoku_seen_help', '1')
     renderGame()
-    // The MapGrid container uses aspect-square on mobile and min(cqw,cqh) on
-    // desktop — both derived from a single div. Find it by its stable classes.
-    const squareDiv = document.querySelector('.aspect-square')
-    expect(squareDiv).not.toBeNull()
+    const boardWrapper = screen.getByTestId('board').parentElement
+    expect(boardWrapper?.style.aspectRatio).toBe('var(--board-ratio)')
+  })
+
+  it('uses tighter mobile padding without changing the desktop breathing room', () => {
+    localStorage.setItem('murdoku_seen_help', '1')
+    renderGame()
+    const boardSlot = screen.getByTestId('board').parentElement?.parentElement
+    expect(boardSlot).toHaveClass('p-2', 'lg:p-3')
+  })
+})
+
+describe('GameScreen placement arming', () => {
+  it('keeps the selected suspect idle until the player explicitly arms placement', () => {
+    localStorage.setItem('murdoku_seen_help', '1')
+    renderGame()
+    expect(document.querySelectorAll('[data-placement-cue]')).toHaveLength(0)
+
+    fireEvent.click(screen.getByRole('button', { name: /Ada Stone portrait/ }))
+    expect(document.querySelectorAll('[data-placement-cue]').length).toBeGreaterThan(0)
+  })
+
+  it('disarms placement after a target is used', () => {
+    localStorage.setItem('murdoku_seen_help', '1')
+    const onCell = vi.fn()
+    renderGame(undefined, { onCell })
+    fireEvent.click(screen.getByRole('button', { name: /Ada Stone portrait/ }))
+    fireEvent.click(screen.getByRole('gridcell', { name: /Row 1, column 1/ }))
+    expect(onCell).toHaveBeenCalledWith(0, 0)
+    expect(document.querySelectorAll('[data-placement-cue]')).toHaveLength(0)
+  })
+
+  it('arms the selected suspect through the P keyboard shortcut', () => {
+    localStorage.setItem('murdoku_seen_help', '1')
+    renderGame()
+    expect(document.querySelectorAll('[data-placement-cue]')).toHaveLength(0)
+    fireEvent.keyDown(window, { key: 'p' })
+    expect(document.querySelectorAll('[data-placement-cue]').length).toBeGreaterThan(0)
   })
 })

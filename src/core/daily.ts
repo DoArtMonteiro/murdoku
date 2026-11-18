@@ -1,4 +1,5 @@
-import type { Puzzle } from './types'
+import type { Difficulty, Puzzle } from './types'
+import { isFiniteNumber, isPlainObject } from './storage'
 
 // ============================================================================
 // The daily case, the solve streak, and the badge set.
@@ -27,30 +28,69 @@ function hashStamp(stamp: string): number {
   return Math.abs(h)
 }
 
+/** Whole days since 1970-01-01 for a YYYY-MM-DD stamp, or null for anything else. */
+function dayNumber(stamp: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(stamp)
+  if (!m) return null
+  const t = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  if (Number.isNaN(t)) return null
+  const back = new Date(t)
+  // reject 2026-02-31 style stamps that Date.UTC silently rolls over
+  if (back.getUTCFullYear() !== Number(m[1]) || back.getUTCMonth() !== Number(m[2]) - 1 || back.getUTCDate() !== Number(m[3])) return null
+  return Math.floor(t / 86_400_000)
+}
+
+/**
+ * The week's difficulty rhythm, by day of week (0 = Sunday): a gentle start on
+ * Monday, building to Master on Saturday, and a mid-difficulty Sunday. The daily
+ * used to be drawn only from the two-storey tiers, so a player who wanted a
+ * quick Monday case never got one. Keyed by the player's LOCAL calendar date,
+ * so it turns over at their midnight and is the same for everyone on that date.
+ */
+/** Natural id order ('easy-2' before 'easy-10'); one collator, because building one per call is slow. */
+const ID_ORDER = new Intl.Collator('en', { numeric: true })
+
+const WEEK: readonly Difficulty[] = ['Medium', 'Very Easy', 'Easy', 'Medium', 'Hard', 'Expert', 'Master']
+const TIER_ORDER: readonly Difficulty[] = ['Very Easy', 'Easy', 'Medium', 'Hard', 'Expert', 'Master']
+
 /**
  * The case everyone gets today.
  *
- * Hard/Expert/Master cases are two-storey (floors >= 2) and the daily is
- * always drawn from that pool — it is the most complete expression of the
- * puzzle. The three load-bearing guarantees are preserved:
+ * 1. Same date, same case for everyone: the day is read from the stamp itself,
+ *    never from the clock, time zone or the order the catalog arrived in.
+ * 2. The tier follows WEEK. Within a tier the daily walks the cases in id order
+ *    (natural order, so "easy-2" precedes "easy-10"), one step per occurrence of
+ *    that tier, so every case in a tier is served before any repeats.
+ * 3. The stamp is local, not UTC: `todayStamp` uses the player's clock.
  *
- *   1. Everyone gets the same case on the same date — the stamp is hashed
- *      deterministically and the same stamp always yields the same index.
- *   2. The pool is sorted by id (STABLE ORDER) before hashing so adding new
- *      cases to the catalog cannot silently reshuffle past dates.
- *   3. The stamp is local, not UTC — `todayStamp` uses the player's clock so
- *      the case rolls over at their midnight, not at 01:00 for GMT+1 players.
- *
- * Fallback: if the catalog contains no two-storey puzzles at all (possible in
- * tests and in a degraded catalog), the full ordered list is used so a daily
- * case always exists. This is distinct from an empty catalog, which returns null.
+ * If the catalog holds no case of today's tier (a degraded catalog, or a test
+ * fixture), the nearest populated tier is used so a daily always exists. An
+ * empty catalog returns null.
  */
 export function dailyPuzzle(puzzles: Puzzle[], stamp: string = todayStamp()): Puzzle | null {
   if (!puzzles.length) return null
-  const ordered = [...puzzles].sort((a, b) => a.id.localeCompare(b.id))
-  const twoStorey = ordered.filter(p => (p.floors ?? 1) >= 2)
-  const pool = twoStorey.length ? twoStorey : ordered
-  return pool[hashStamp(stamp) % pool.length]
+  const ordered = [...puzzles].sort((a, b) => ID_ORDER.compare(a.id, b.id))
+  const day = dayNumber(stamp)
+  if (day === null) return ordered[hashStamp(stamp) % ordered.length]
+
+  const weekday = (((day + 4) % 7) + 7) % 7 // 1970-01-01 was a Thursday (4)
+  const tier = WEEK[weekday]
+  const want = TIER_ORDER.indexOf(tier)
+  let pool: Puzzle[] = []
+  for (let reach = 0; reach < TIER_ORDER.length && !pool.length; reach++) {
+    for (const idx of reach === 0 ? [want] : [want - reach, want + reach]) {
+      const name = TIER_ORDER[idx]
+      if (name) pool = pool.concat(ordered.filter(p => p.difficulty === name))
+      if (pool.length) break
+    }
+  }
+  if (!pool.length) pool = ordered
+  // One step per time this weekday comes round; Medium appears twice a week
+  // (Wednesday and Sunday), so those two days take alternate steps.
+  const perWeek = WEEK.filter(t => t === tier).length
+  const slot = WEEK.slice(0, weekday).filter(t => t === tier).length
+  const step = Math.floor((day + 4) / 7) * perWeek + slot
+  return pool[((step % pool.length) + pool.length) % pool.length]
 }
 
 export interface StreakState {
@@ -63,11 +103,10 @@ export interface StreakState {
 const EMPTY_STREAK: StreakState = { lastSolved: null, current: 0, best: 0 }
 
 function isStreakState(value: unknown): value is StreakState {
-  if (typeof value !== 'object' || value === null) return false
-  const candidate = value as Record<string, unknown>
-  return (candidate.lastSolved === null || typeof candidate.lastSolved === 'string')
-    && typeof candidate.current === 'number'
-    && typeof candidate.best === 'number'
+  if (!isPlainObject(value)) return false
+  return (value.lastSolved === null || (typeof value.lastSolved === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.lastSolved)))
+    && isFiniteNumber(value.current) && value.current >= 0
+    && isFiniteNumber(value.best) && value.best >= 0
 }
 
 export function loadStreak(): StreakState {
@@ -125,9 +164,6 @@ export interface BadgeInput {
   streak: StreakState
 }
 
-/** Hints a case starts with; a record still holding all three means an unaided solve. */
-const HINTS_START = 3
-
 /**
  * Badges are computed, never stored. Each one is a question answered from
  * `completedIds` + `records`, so there is no separate badge state to corrupt,
@@ -140,7 +176,7 @@ export function computeBadges({ puzzles, completedIds, records, streak }: BadgeI
   const bestTimes = Object.entries(records)
     .filter(([id]) => solved.has(id))
     .map(([, record]) => record.bestSeconds)
-  const unaided = solvedPuzzles.some(p => records[p.id]?.hints === HINTS_START)
+  const unaided = solvedPuzzles.some(p => records[p.id]?.hints === 0)
 
   const badge = (id: string, name: string, description: string, earned: boolean): Badge =>
     ({ id, name, description, earned })

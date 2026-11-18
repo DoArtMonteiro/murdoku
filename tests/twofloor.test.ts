@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { findMurderer, roomIdAt } from '../src/core/engine'
+import { clueHolds, countSolutions, findMurderer, roomIdAt } from '../src/core/engine'
 import { cellFloor, sameColumnStack } from '../src/core/types'
-import { generatePuzzle, reseed } from '../src/core/generate'
-import { countSolutions } from '../src/core/engine'
+import { candidateClues, generatePuzzle, reseed } from '../src/core/generate'
 import type { Puzzle } from '../src/core/types'
 
 // ============================================================================
@@ -89,6 +88,48 @@ describe('two-floor engine semantics', () => {
   it('finds the murderer on the victim\'s own floor', () => {
     // Ben is upstairs, so he cannot be the one left alone with the victim.
     expect(findMurderer(puzzle)).toBe('p0')
+  })
+
+  it('evaluates furniture clues on the person\'s own storey', () => {
+    const furnished: Puzzle = {
+      ...puzzle,
+      furniture: [
+        { type: 'chair', row: 0, col: 0, floor: 0 },
+        { type: 'bed', row: 0, col: 0, floor: 1 },
+      ],
+    }
+    const upstairs = {
+      ...furnished.solution,
+      p1: { row: 0, col: 0, floor: 1 },
+    }
+
+    expect(clueHolds(furnished, { kind: 'onFurniture', person: 'p1', furniture: 'bed' }, upstairs)).toBe(true)
+    expect(clueHolds(furnished, { kind: 'onFurniture', person: 'p1', furniture: 'chair' }, upstairs)).toBe(false)
+  })
+
+  it('generates furniture candidates from the correct storey', () => {
+    const furnished: Puzzle = {
+      ...puzzle,
+      furniture: [
+        { type: 'chair', row: 1, col: 1, floor: 0 },
+        { type: 'bed', row: 1, col: 1, floor: 1 },
+      ],
+    }
+    const upstairsFurniture = candidateClues(furnished).filter(
+      clue => clue.kind === 'onFurniture' && clue.person === 'p1',
+    )
+
+    expect(upstairsFurniture).toContainEqual({ kind: 'onFurniture', person: 'p1', furniture: 'bed' })
+    expect(upstairsFurniture).not.toContainEqual({ kind: 'onFurniture', person: 'p1', furniture: 'chair' })
+  })
+
+  it('never creates a same-room clue involving the victim', () => {
+    const relational = candidateClues(puzzle).filter(clue => clue.kind === 'sameRoomAs')
+
+    expect(relational).not.toContainEqual({ kind: 'sameRoomAs', person: 'v', other: 'p0' })
+    expect(relational.every(clue => clue.kind !== 'sameRoomAs' || (
+      clue.person !== puzzle.victimId && clue.other !== puzzle.victimId
+    ))).toBe(true)
   })
 })
 

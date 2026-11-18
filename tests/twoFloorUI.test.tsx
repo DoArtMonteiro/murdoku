@@ -1,5 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
-import { render, screen } from '@testing-library/react'
+import { act, render, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { useGame } from '../src/hooks/useGame'
 import { getAllPuzzles } from '../src/core/catalog'

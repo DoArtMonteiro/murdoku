@@ -1,0 +1,1862 @@
+{
+  "schemaVersion": 1,
+  "catalogSize": 60,
+  "summary": {
+    "hardErrors": 0,
+    "warnings": 18,
+    "casesWithWarnings": 18
+  },
+  "byDifficulty": {
+    "Very Easy": {
+      "cases": 8,
+      "hardErrors": 0,
+      "warnings": 1,
+      "metrics": {
+        "people": {
+          "min": 4,
+          "max": 4,
+          "mean": 4
+        },
+        "clues": {
+          "min": 5,
+          "max": 7,
+          "mean": 6.25
+        },
+        "forcedAtStart": {
+          "min": 1,
+          "max": 3,
+          "mean": 2.125
+        },
+        "forcedBySingles": {
+          "min": 2,
+          "max": 4,
+          "mean": 3.75
+        },
+        "needsSearch": {
+          "min": 0,
+          "max": 2,
+          "mean": 0.25
+        },
+        "meanCandidates": {
+          "min": 1.25,
+          "max": 3.5,
+          "mean": 1.8438
+        },
+        "startingCandidateEntropy": {
+          "min": 0.25,
+          "max": 1.5425,
+          "mean": 0.6592
+        },
+        "propagationRounds": {
+          "min": 1,
+          "max": 3,
+          "mean": 1.875
+        },
+        "relationalClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "crossFloorClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "redundantClues": {
+          "min": 0,
+          "max": 1,
+          "mean": 0.125
+        },
+        "meanDirectness": {
+          "min": 1.4,
+          "max": 2.1667,
+          "mean": 1.6506
+        }
+      }
+    },
+    "Easy": {
+      "cases": 10,
+      "hardErrors": 0,
+      "warnings": 0,
+      "metrics": {
+        "people": {
+          "min": 4,
+          "max": 4,
+          "mean": 4
+        },
+        "clues": {
+          "min": 4,
+          "max": 7,
+          "mean": 5.6
+        },
+        "forcedAtStart": {
+          "min": 0,
+          "max": 3,
+          "mean": 2.1
+        },
+        "forcedBySingles": {
+          "min": 0,
+          "max": 4,
+          "mean": 3.6
+        },
+        "needsSearch": {
+          "min": 0,
+          "max": 4,
+          "mean": 0.4
+        },
+        "meanCandidates": {
+          "min": 1.25,
+          "max": 2.25,
+          "mean": 1.825
+        },
+        "startingCandidateEntropy": {
+          "min": 0.25,
+          "max": 1,
+          "mean": 0.635
+        },
+        "propagationRounds": {
+          "min": 0,
+          "max": 3,
+          "mean": 1.7
+        },
+        "relationalClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "crossFloorClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "redundantClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "meanDirectness": {
+          "min": 1,
+          "max": 2.6667,
+          "mean": 1.57
+        }
+      }
+    },
+    "Medium": {
+      "cases": 12,
+      "hardErrors": 0,
+      "warnings": 1,
+      "metrics": {
+        "people": {
+          "min": 5,
+          "max": 5,
+          "mean": 5
+        },
+        "clues": {
+          "min": 6,
+          "max": 10,
+          "mean": 8.1667
+        },
+        "forcedAtStart": {
+          "min": 1,
+          "max": 4,
+          "mean": 2.3333
+        },
+        "forcedBySingles": {
+          "min": 2,
+          "max": 5,
+          "mean": 4.3333
+        },
+        "needsSearch": {
+          "min": 0,
+          "max": 3,
+          "mean": 0.6667
+        },
+        "meanCandidates": {
+          "min": 1.4,
+          "max": 3.6,
+          "mean": 2.25
+        },
+        "startingCandidateEntropy": {
+          "min": 0.4,
+          "max": 1.634,
+          "mean": 0.8613
+        },
+        "propagationRounds": {
+          "min": 1,
+          "max": 3,
+          "mean": 1.8333
+        },
+        "relationalClues": {
+          "min": 0,
+          "max": 1,
+          "mean": 0.25
+        },
+        "crossFloorClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "redundantClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "meanDirectness": {
+          "min": 1.375,
+          "max": 2.8889,
+          "mean": 1.956
+        }
+      }
+    },
+    "Hard": {
+      "cases": 12,
+      "hardErrors": 0,
+      "warnings": 1,
+      "metrics": {
+        "people": {
+          "min": 5,
+          "max": 5,
+          "mean": 5
+        },
+        "clues": {
+          "min": 6,
+          "max": 11,
+          "mean": 8.75
+        },
+        "forcedAtStart": {
+          "min": 0,
+          "max": 3,
+          "mean": 1.6667
+        },
+        "forcedBySingles": {
+          "min": 0,
+          "max": 5,
+          "mean": 4
+        },
+        "needsSearch": {
+          "min": 0,
+          "max": 5,
+          "mean": 1
+        },
+        "meanCandidates": {
+          "min": 1.6,
+          "max": 2.8,
+          "mean": 2.0833
+        },
+        "startingCandidateEntropy": {
+          "min": 0.6,
+          "max": 1.2644,
+          "mean": 0.8818
+        },
+        "propagationRounds": {
+          "min": 0,
+          "max": 3,
+          "mean": 1.8333
+        },
+        "relationalClues": {
+          "min": 0,
+          "max": 1,
+          "mean": 0.0833
+        },
+        "crossFloorClues": {
+          "min": 0,
+          "max": 2,
+          "mean": 1.1667
+        },
+        "redundantClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "meanDirectness": {
+          "min": 1.25,
+          "max": 2.5455,
+          "mean": 1.7959
+        }
+      }
+    },
+    "Expert": {
+      "cases": 10,
+      "hardErrors": 0,
+      "warnings": 9,
+      "metrics": {
+        "people": {
+          "min": 6,
+          "max": 6,
+          "mean": 6
+        },
+        "clues": {
+          "min": 10,
+          "max": 12,
+          "mean": 10.7
+        },
+        "forcedAtStart": {
+          "min": 0,
+          "max": 3,
+          "mean": 1.6
+        },
+        "forcedBySingles": {
+          "min": 0,
+          "max": 6,
+          "mean": 3.4
+        },
+        "needsSearch": {
+          "min": 0,
+          "max": 6,
+          "mean": 2.6
+        },
+        "meanCandidates": {
+          "min": 1.6667,
+          "max": 4,
+          "mean": 2.5333
+        },
+        "startingCandidateEntropy": {
+          "min": 0.5975,
+          "max": 1.7486,
+          "mean": 1.1187
+        },
+        "propagationRounds": {
+          "min": 0,
+          "max": 3,
+          "mean": 1.5
+        },
+        "relationalClues": {
+          "min": 0,
+          "max": 1,
+          "mean": 0.1
+        },
+        "crossFloorClues": {
+          "min": 1,
+          "max": 2,
+          "mean": 1.4
+        },
+        "redundantClues": {
+          "min": 0,
+          "max": 1,
+          "mean": 0.9
+        },
+        "meanDirectness": {
+          "min": 1.8,
+          "max": 2.6,
+          "mean": 2.0503
+        }
+      }
+    },
+    "Master": {
+      "cases": 8,
+      "hardErrors": 0,
+      "warnings": 6,
+      "metrics": {
+        "people": {
+          "min": 6,
+          "max": 6,
+          "mean": 6
+        },
+        "clues": {
+          "min": 9,
+          "max": 13,
+          "mean": 10.5
+        },
+        "forcedAtStart": {
+          "min": 0,
+          "max": 4,
+          "mean": 1.625
+        },
+        "forcedBySingles": {
+          "min": 0,
+          "max": 6,
+          "mean": 4.5
+        },
+        "needsSearch": {
+          "min": 0,
+          "max": 6,
+          "mean": 1.5
+        },
+        "meanCandidates": {
+          "min": 2,
+          "max": 4.6667,
+          "mean": 3.2083
+        },
+        "startingCandidateEntropy": {
+          "min": 0.5975,
+          "max": 1.7925,
+          "mean": 1.2693
+        },
+        "propagationRounds": {
+          "min": 0,
+          "max": 4,
+          "mean": 2.125
+        },
+        "relationalClues": {
+          "min": 0,
+          "max": 0,
+          "mean": 0
+        },
+        "crossFloorClues": {
+          "min": 1,
+          "max": 3,
+          "mean": 1.875
+        },
+        "redundantClues": {
+          "min": 0,
+          "max": 1,
+          "mean": 0.75
+        },
+        "meanDirectness": {
+          "min": 1.7778,
+          "max": 2.6154,
+          "mean": 2.183
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "very-easy-1",
+      "caseNumber": "Case No. I",
+      "title": "Midnight Delivery",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#0",
+          "message": "\"In the Living Room.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 4,
+        "clues": 6,
+        "forcedAtStart": 1,
+        "forcedBySingles": 2,
+        "needsSearch": 2,
+        "meanCandidates": 3.5,
+        "startingCandidateEntropy": 1.5425,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 1,
+        "meanDirectness": 1.6667
+      }
+    },
+    {
+      "id": "very-easy-2",
+      "caseNumber": "Case No. II",
+      "title": "The Empty Chair",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 7,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.75,
+        "startingCandidateEntropy": 0.6462,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.8571
+      }
+    },
+    {
+      "id": "very-easy-3",
+      "caseNumber": "Case No. III",
+      "title": "A Fatal Rehearsal",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 7,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.25,
+        "startingCandidateEntropy": 0.25,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.7143
+      }
+    },
+    {
+      "id": "very-easy-4",
+      "caseNumber": "Case No. IV",
+      "title": "Checkmate",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 7,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.5,
+        "startingCandidateEntropy": 0.3962,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.4286
+      }
+    },
+    {
+      "id": "very-easy-5",
+      "caseNumber": "Case No. V",
+      "title": "The Broken Vase",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 6,
+        "forcedAtStart": 1,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 1.0425,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 2.1667
+      }
+    },
+    {
+      "id": "very-easy-6",
+      "caseNumber": "Case No. VI",
+      "title": "The Locked Study",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 5,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.5,
+        "startingCandidateEntropy": 0.5,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.4
+      }
+    },
+    {
+      "id": "very-easy-7",
+      "caseNumber": "Case No. VII",
+      "title": "The Uninvited",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 5,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.25,
+        "startingCandidateEntropy": 0.25,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.4
+      }
+    },
+    {
+      "id": "very-easy-8",
+      "caseNumber": "Case No. VIII",
+      "title": "A Cold Reception",
+      "difficulty": "Very Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 7,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.75,
+        "startingCandidateEntropy": 0.6462,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.5714
+      }
+    },
+    {
+      "id": "easy-1",
+      "caseNumber": "Case No. IX",
+      "title": "The Last Nightcap",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 6,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 0.6462,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.6667
+      }
+    },
+    {
+      "id": "easy-2",
+      "caseNumber": "Case No. X",
+      "title": "Death Before Dinner",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 6,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.5,
+        "startingCandidateEntropy": 0.5,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.5
+      }
+    },
+    {
+      "id": "easy-3",
+      "caseNumber": "Case No. XI",
+      "title": "The Silent Guest",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 4,
+        "forcedAtStart": 1,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.75,
+        "startingCandidateEntropy": 0.75,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1
+      }
+    },
+    {
+      "id": "easy-4",
+      "caseNumber": "Case No. XII",
+      "title": "No Way Out",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 7,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 0.8962,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.4286
+      }
+    },
+    {
+      "id": "easy-5",
+      "caseNumber": "Case No. XIII",
+      "title": "The Final Curtain",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 5,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 2.25,
+        "startingCandidateEntropy": 0.8305,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.6
+      }
+    },
+    {
+      "id": "easy-6",
+      "caseNumber": "Case No. XIV",
+      "title": "A Grave Mistake",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 6,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.25,
+        "startingCandidateEntropy": 0.25,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.6667
+      }
+    },
+    {
+      "id": "easy-7",
+      "caseNumber": "Case No. XV",
+      "title": "The Vanishing Act",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 7,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.5805,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.5714
+      }
+    },
+    {
+      "id": "easy-8",
+      "caseNumber": "Case No. XVI",
+      "title": "The Missing Key",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 6,
+        "forcedAtStart": 3,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.25,
+        "startingCandidateEntropy": 0.25,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 2.6667
+      }
+    },
+    {
+      "id": "easy-9",
+      "caseNumber": "Case No. XVII",
+      "title": "Ashes in the Study",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 5,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 0,
+        "meanCandidates": 1.75,
+        "startingCandidateEntropy": 0.6462,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.6
+      }
+    },
+    {
+      "id": "easy-10",
+      "caseNumber": "Case No. XVIII",
+      "title": "The Seventh Guest",
+      "difficulty": "Easy",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 4,
+        "clues": 4,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 4,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 1,
+        "propagationRounds": 0,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1
+      }
+    },
+    {
+      "id": "medium-1",
+      "caseNumber": "Case No. XIX",
+      "title": "A Toast to Murder",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2.2,
+        "startingCandidateEntropy": 0.8,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.75
+      }
+    },
+    {
+      "id": "medium-2",
+      "caseNumber": "Case No. XX",
+      "title": "The Torn Letter",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 1.4,
+        "startingCandidateEntropy": 0.4,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.375
+      }
+    },
+    {
+      "id": "medium-3",
+      "caseNumber": "Case No. XXI",
+      "title": "Shadows in the Hall",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [
+        {
+          "code": "clue-reveals-murderer",
+          "severity": "warning",
+          "subject": "clue#5",
+          "message": "\"In the Porch.\" places a suspect in the victim's room directly"
+        }
+      ],
+      "metrics": {
+        "people": 5,
+        "clues": 10,
+        "forcedAtStart": 1,
+        "forcedBySingles": 4,
+        "needsSearch": 1,
+        "meanCandidates": 3.4,
+        "startingCandidateEntropy": 1.434,
+        "propagationRounds": 2,
+        "relationalClues": 1,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 2.5
+      }
+    },
+    {
+      "id": "medium-4",
+      "caseNumber": "Case No. XXII",
+      "title": "The Poisoned Pen",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.717,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.375
+      }
+    },
+    {
+      "id": "medium-5",
+      "caseNumber": "Case No. XXIII",
+      "title": "One Last Waltz",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 2,
+        "forcedBySingles": 2,
+        "needsSearch": 3,
+        "meanCandidates": 2.6,
+        "startingCandidateEntropy": 1.117,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.625
+      }
+    },
+    {
+      "id": "medium-6",
+      "caseNumber": "Case No. XXIV",
+      "title": "The Butler’s Secret",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 4,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 1.6,
+        "startingCandidateEntropy": 0.4,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 2.125
+      }
+    },
+    {
+      "id": "medium-7",
+      "caseNumber": "Case No. XXV",
+      "title": "Whispers Upstairs",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 1.4,
+        "startingCandidateEntropy": 0.4,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.625
+      }
+    },
+    {
+      "id": "medium-8",
+      "caseNumber": "Case No. XXVI",
+      "title": "The Cracked Mirror",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 9,
+        "forcedAtStart": 2,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 1.8,
+        "startingCandidateEntropy": 0.717,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 2
+      }
+    },
+    {
+      "id": "medium-9",
+      "caseNumber": "Case No. XXVII",
+      "title": "A Debt Repaid",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 2,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2.2,
+        "startingCandidateEntropy": 0.917,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.875
+      }
+    },
+    {
+      "id": "medium-10",
+      "caseNumber": "Case No. XXVIII",
+      "title": "The Second Shot",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 9,
+        "forcedAtStart": 2,
+        "forcedBySingles": 2,
+        "needsSearch": 3,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.8,
+        "propagationRounds": 1,
+        "relationalClues": 1,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 2.8889
+      }
+    },
+    {
+      "id": "medium-11",
+      "caseNumber": "Case No. XXIX",
+      "title": "Nobody Left",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 2,
+        "forcedBySingles": 4,
+        "needsSearch": 1,
+        "meanCandidates": 2.8,
+        "startingCandidateEntropy": 1,
+        "propagationRounds": 2,
+        "relationalClues": 1,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 2.5
+      }
+    },
+    {
+      "id": "medium-12",
+      "caseNumber": "Case No. XXX",
+      "title": "A Quiet Alibi",
+      "difficulty": "Medium",
+      "floors": 1,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 6,
+        "forcedAtStart": 1,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 3.6,
+        "startingCandidateEntropy": 1.634,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.8333
+      }
+    },
+    {
+      "id": "hard-1",
+      "caseNumber": "Case No. XXXI",
+      "title": "The Wrong Coat",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 11,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 1.8,
+        "startingCandidateEntropy": 0.6,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 0,
+        "meanDirectness": 2.5455
+      }
+    },
+    {
+      "id": "hard-2",
+      "caseNumber": "Case No. XXXII",
+      "title": "Ashes at Midnight",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 10,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 5,
+        "meanCandidates": 2.6,
+        "startingCandidateEntropy": 1.2644,
+        "propagationRounds": 0,
+        "relationalClues": 1,
+        "crossFloorClues": 1,
+        "redundantClues": 0,
+        "meanDirectness": 1.8
+      }
+    },
+    {
+      "id": "hard-3",
+      "caseNumber": "Case No. XXXIII",
+      "title": "The Last Train",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 10,
+        "forcedAtStart": 2,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2.8,
+        "startingCandidateEntropy": 1.1814,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 0,
+        "meanDirectness": 2.1
+      }
+    },
+    {
+      "id": "hard-4",
+      "caseNumber": "Case No. XXXIV",
+      "title": "Room Without a Door",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 7,
+        "forcedAtStart": 1,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.917,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 0,
+        "meanDirectness": 1.5714
+      }
+    },
+    {
+      "id": "hard-5",
+      "caseNumber": "Case No. XXXV",
+      "title": "The Cold Kettle",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-reveals-murderer",
+          "severity": "warning",
+          "subject": "clue#5",
+          "message": "\"In the Hallway.\" places a suspect in the victim's room directly"
+        }
+      ],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 2,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.8,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 0,
+        "meanDirectness": 1.25
+      }
+    },
+    {
+      "id": "hard-6",
+      "caseNumber": "Case No. XXXVI",
+      "title": "A Name in Pencil",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 10,
+        "forcedAtStart": 2,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 1.6,
+        "startingCandidateEntropy": 0.6,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 0,
+        "meanDirectness": 2.2
+      }
+    },
+    {
+      "id": "hard-7",
+      "caseNumber": "Case No. XXXVII",
+      "title": "The Unlit Lamp",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 9,
+        "forcedAtStart": 1,
+        "forcedBySingles": 1,
+        "needsSearch": 4,
+        "meanCandidates": 1.8,
+        "startingCandidateEntropy": 0.8,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.5556
+      }
+    },
+    {
+      "id": "hard-8",
+      "caseNumber": "Case No. XXXVIII",
+      "title": "Three Empty Glasses",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 2,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.834,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 0,
+        "meanDirectness": 1.375
+      }
+    },
+    {
+      "id": "hard-9",
+      "caseNumber": "Case No. XXXIX",
+      "title": "The Late Arrival",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 6,
+        "forcedAtStart": 1,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2.2,
+        "startingCandidateEntropy": 1.034,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 0,
+        "redundantClues": 0,
+        "meanDirectness": 1.5
+      }
+    },
+    {
+      "id": "hard-10",
+      "caseNumber": "Case No. XL",
+      "title": "A Story Rehearsed",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 9,
+        "forcedAtStart": 1,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2.4,
+        "startingCandidateEntropy": 1.117,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 0,
+        "meanDirectness": 2
+      }
+    },
+    {
+      "id": "hard-11",
+      "caseNumber": "Case No. XLI",
+      "title": "The Missing Hour",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 9,
+        "forcedAtStart": 2,
+        "forcedBySingles": 2,
+        "needsSearch": 3,
+        "meanCandidates": 1.8,
+        "startingCandidateEntropy": 0.717,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 0,
+        "meanDirectness": 1.7778
+      }
+    },
+    {
+      "id": "hard-12",
+      "caseNumber": "Case No. XLII",
+      "title": "Nothing Was Taken",
+      "difficulty": "Hard",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 5,
+        "clues": 8,
+        "forcedAtStart": 3,
+        "forcedBySingles": 5,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.717,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 0,
+        "meanDirectness": 1.875
+      }
+    },
+    {
+      "id": "expert-1",
+      "caseNumber": "Case No. XLIII",
+      "title": "The Open Window",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Hallway.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 10,
+        "forcedAtStart": 1,
+        "forcedBySingles": 1,
+        "needsSearch": 5,
+        "meanCandidates": 2.1667,
+        "startingCandidateEntropy": 1.0283,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 1,
+        "meanDirectness": 1.8
+      }
+    },
+    {
+      "id": "expert-2",
+      "caseNumber": "Case No. XLIV",
+      "title": "A Witness Recants",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#10",
+          "message": "\"Never set foot in the Garden.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 11,
+        "forcedAtStart": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.1667,
+        "startingCandidateEntropy": 0.9308,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 2
+      }
+    },
+    {
+      "id": "expert-3",
+      "caseNumber": "Case No. XLV",
+      "title": "The Locked Pantry",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Living Room.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 10,
+        "forcedAtStart": 1,
+        "forcedBySingles": 1,
+        "needsSearch": 5,
+        "meanCandidates": 2.1667,
+        "startingCandidateEntropy": 1.0283,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 2.4
+      }
+    },
+    {
+      "id": "expert-4",
+      "caseNumber": "Case No. XLVI",
+      "title": "Dust on the Sill",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#10",
+          "message": "\"Never set foot in the Dining Room.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 11,
+        "forcedAtStart": 3,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 1.6667,
+        "startingCandidateEntropy": 0.5975,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 1.8182
+      }
+    },
+    {
+      "id": "expert-5",
+      "caseNumber": "Case No. XLVII",
+      "title": "The Borrowed Knife",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Living Room.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 10,
+        "forcedAtStart": 2,
+        "forcedBySingles": 2,
+        "needsSearch": 4,
+        "meanCandidates": 2.6667,
+        "startingCandidateEntropy": 1.1795,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 2
+      }
+    },
+    {
+      "id": "expert-6",
+      "caseNumber": "Case No. XLVIII",
+      "title": "A Clock Stopped",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Office.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 10,
+        "forcedAtStart": 1,
+        "forcedBySingles": 1,
+        "needsSearch": 5,
+        "meanCandidates": 4,
+        "startingCandidateEntropy": 1.7486,
+        "propagationRounds": 1,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 2.6
+      }
+    },
+    {
+      "id": "expert-7",
+      "caseNumber": "Case No. XLIX",
+      "title": "The Second Study",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 6,
+        "clues": 12,
+        "forcedAtStart": 1,
+        "forcedBySingles": 5,
+        "needsSearch": 1,
+        "meanCandidates": 2.6667,
+        "startingCandidateEntropy": 1.2486,
+        "propagationRounds": 3,
+        "relationalClues": 1,
+        "crossFloorClues": 2,
+        "redundantClues": 0,
+        "meanDirectness": 2.25
+      }
+    },
+    {
+      "id": "expert-8",
+      "caseNumber": "Case No. L",
+      "title": "No One Heard",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#11",
+          "message": "\"Never set foot in the Dining Room.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 12,
+        "forcedAtStart": 3,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.3333,
+        "startingCandidateEntropy": 0.887,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 1,
+        "meanDirectness": 1.9167
+      }
+    },
+    {
+      "id": "expert-9",
+      "caseNumber": "Case No. LI",
+      "title": "The Spare Key",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Hallway.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 10,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 6,
+        "meanCandidates": 3.1667,
+        "startingCandidateEntropy": 1.5537,
+        "propagationRounds": 0,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 1.9
+      }
+    },
+    {
+      "id": "expert-10",
+      "caseNumber": "Case No. LII",
+      "title": "A Quiet Confession",
+      "difficulty": "Expert",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#10",
+          "message": "\"Never set foot in the Hallway.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 11,
+        "forcedAtStart": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.3333,
+        "startingCandidateEntropy": 0.9845,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 1,
+        "meanDirectness": 1.8182
+      }
+    },
+    {
+      "id": "master-1",
+      "caseNumber": "Case No. LIII",
+      "title": "The Torn Ledger",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#10",
+          "message": "\"Never set foot in the Living Room.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 11,
+        "forcedAtStart": 4,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2,
+        "startingCandidateEntropy": 0.5975,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 2.2727
+      }
+    },
+    {
+      "id": "master-2",
+      "caseNumber": "Case No. LIV",
+      "title": "Shadows at the Door",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#10",
+          "message": "\"Never set foot in the Kitchen.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 11,
+        "forcedAtStart": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 4.6667,
+        "startingCandidateEntropy": 1.5,
+        "propagationRounds": 4,
+        "relationalClues": 0,
+        "crossFloorClues": 3,
+        "redundantClues": 1,
+        "meanDirectness": 2.1818
+      }
+    },
+    {
+      "id": "master-3",
+      "caseNumber": "Case No. LV",
+      "title": "The Last Guest",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 6,
+        "clues": 13,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 6,
+        "meanCandidates": 3,
+        "startingCandidateEntropy": 1.5283,
+        "propagationRounds": 0,
+        "relationalClues": 0,
+        "crossFloorClues": 3,
+        "redundantClues": 0,
+        "meanDirectness": 2.6154
+      }
+    },
+    {
+      "id": "master-4",
+      "caseNumber": "Case No. LVI",
+      "title": "A Debt Unsettled",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [],
+      "metrics": {
+        "people": 6,
+        "clues": 12,
+        "forcedAtStart": 2,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 3.1667,
+        "startingCandidateEntropy": 1.3178,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 2,
+        "redundantClues": 0,
+        "meanDirectness": 2.0833
+      }
+    },
+    {
+      "id": "master-5",
+      "caseNumber": "Case No. LVII",
+      "title": "The Silent Kitchen",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#9",
+          "message": "\"Never set foot in the Kitchen.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 10,
+        "forcedAtStart": 1,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 3.3333,
+        "startingCandidateEntropy": 1.4591,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 2.2
+      }
+    },
+    {
+      "id": "master-6",
+      "caseNumber": "Case No. LVIII",
+      "title": "Two Sets of Prints",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#8",
+          "message": "\"Never set foot in the Hallway.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 9,
+        "forcedAtStart": 0,
+        "forcedBySingles": 0,
+        "needsSearch": 6,
+        "meanCandidates": 4.5,
+        "startingCandidateEntropy": 1.7925,
+        "propagationRounds": 0,
+        "relationalClues": 0,
+        "crossFloorClues": 3,
+        "redundantClues": 1,
+        "meanDirectness": 2.3333
+      }
+    },
+    {
+      "id": "master-7",
+      "caseNumber": "Case No. LIX",
+      "title": "The Final Alibi",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#8",
+          "message": "\"Never set foot in the Kitchen.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 9,
+        "forcedAtStart": 1,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.3333,
+        "startingCandidateEntropy": 1.0975,
+        "propagationRounds": 2,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 1.7778
+      }
+    },
+    {
+      "id": "master-8",
+      "caseNumber": "Case No. LX",
+      "title": "Nobody Was Home",
+      "difficulty": "Master",
+      "floors": 2,
+      "issues": [
+        {
+          "code": "clue-redundant",
+          "severity": "warning",
+          "subject": "clue#8",
+          "message": "\"Never set foot in the Living Room.\" can be removed without losing uniqueness"
+        }
+      ],
+      "metrics": {
+        "people": 6,
+        "clues": 9,
+        "forcedAtStart": 3,
+        "forcedBySingles": 6,
+        "needsSearch": 0,
+        "meanCandidates": 2.6667,
+        "startingCandidateEntropy": 0.8617,
+        "propagationRounds": 3,
+        "relationalClues": 0,
+        "crossFloorClues": 1,
+        "redundantClues": 1,
+        "meanDirectness": 2
+      }
+    }
+  ],
+  "unclassifiedFailures": []
+}

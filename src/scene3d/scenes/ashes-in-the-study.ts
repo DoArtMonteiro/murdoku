@@ -1,0 +1,71 @@
+import type { SceneSpec } from '../schema'
+
+// Casa de estudo com cozinha de serviço e jardim murado a sul.
+export const ashesInTheStudy: SceneSpec = {
+  puzzleId: 'easy-9',
+  floor: 0,
+  entry: { wall: 'north', at: 6.4 },
+  shell: { features: [{ wall: 'north', at: 4.8, kind: 'window' }] },
+  floors: [
+    { id: 'front-yard', cells: [0, 0, 2, 3], material: 'grass', kind: 'exterior' },
+    { id: 'kitchen', cells: [0, 4, 3, 6], material: 'tile', kind: 'interior' },
+    { id: 'garden-court', cells: [4, 4, 6, 6], material: 'grass', kind: 'courtyard' },
+  ],
+  walls: [
+    { id: 'yard-office', from: [3, 0], to: [3, 4], height: 'half', openings: [{ at: 0.7, width: 1.15, kind: 'door' }] },
+    { id: 'kitchen-garden', from: [4, 4], to: [4, 7], height: 'half', openings: [{ at: 4.7, width: 1.15, kind: 'open' }] },
+    { id: 'yard-kitchen', from: [0, 4], to: [4, 4], height: 'half', openings: [{ at: 0.65, width: 1.15, kind: 'door' }] },
+    { id: 'office-garden', from: [3, 4], to: [7, 4], height: 'half', openings: [{ at: 5.7, width: 1.15, kind: 'open' }] },
+  ],
+  furniture: [
+    // Escritório: estante larga na parede norte, secretária com cadeira na parede leste,
+    // canto de leitura com duas poltronas e sofá sobre o tapete, relógio junto à meia parede oeste.
+    { id: 'study-bookshelf', model: 'bookcaseClosedWide', logic: 'bookshelf@0,3', against: { wall: 'north', at: 4.12 } },
+    { id: 'study-bookshelf-books', model: 'books', on: { parent: 'study-bookshelf', surface: 'top' } },
+    { id: 'study-desk', model: 'desk', logic: 'desk@1,6', against: { wall: 'east', at: 1.5 } },
+    { id: 'study-desk-chair', model: 'chairDesk', at: [6.05, 1.5], facing: 'E' },
+    { id: 'study-laptop', model: 'laptop', on: { parent: 'study-desk' } },
+    { id: 'study-desk-lamp', model: 'lampSquareTable', on: { parent: 'study-desk', offset: [0.25, 0] } },
+    { id: 'study-chair', model: 'loungeChair', logic: 'chair@1,3', at: [3.6, 2.1], facing: 'E' },
+    { id: 'study-armchair', model: 'loungeChair', at: [5.1, 2.1], facing: 'W' },
+    { id: 'study-sofa', model: 'loungeSofa', against: { wall: 'office-garden', side: 'N', at: 4.35 }, facing: 'N' },
+    { id: 'study-lamp', model: 'lampRoundFloor', at: [3.3, 3.0] },
+    { id: 'study-clock', model: 'speaker', logic: 'clock@3,3', against: { wall: 'yard-office', side: 'E', at: 3.6 } },
+    { id: 'study-plant', model: 'pottedPlant', at: [5.3, 0.3] },
+    // Pátio da frente: árvore no canto, vedação nos limites abertos, caminho entre as duas portas.
+    { id: 'yard-shrub', model: 'plant_bushSmall', logic: 'shrub@3,1', at: [1.5, 3.5] },
+    { id: 'yard-flower', model: 'flower_yellowA', logic: 'plant@0,1', at: [1.5, 0.5] },
+    { id: 'yard-flower-south', model: 'flower_purpleA', logic: 'plant@3,2', at: [2.5, 3.5] },
+    { id: 'yard-tree', model: 'tree_oak', at: [0.5, 0.55] },
+    { id: 'yard-fence-north', model: 'fence_simple', at: [1.9, 0.07], facing: 'S' },
+    { id: 'yard-fence-west', model: 'fence_simple', at: [0.07, 1.85], facing: 'E' },
+    { id: 'yard-bench', model: 'bench', at: [0.38, 2.9], facing: 'E' },
+    // Cozinha: bancada contra a meia parede norte (lava-loiça, frigorífico, armário, fogão),
+    // península com placa a oeste e mesa com três cadeiras a sul.
+    { id: 'kitchen-sink', model: 'kitchenSink', against: { wall: 'yard-kitchen', side: 'S', at: 1.48 } },
+    { id: 'kitchen-fridge', model: 'kitchenFridgeSmall', logic: 'fridge@4,2', against: { wall: 'yard-kitchen', side: 'S', at: 2.02 } },
+    { id: 'kitchen-cabinet', model: 'kitchenCabinet', against: { wall: 'yard-kitchen', side: 'S', at: 2.56 } },
+    { id: 'kitchen-stove-east', model: 'kitchenStove', logic: 'stove@4,3', against: { wall: 'yard-kitchen', side: 'S', at: 3.12 } },
+    { id: 'kitchen-peninsula-a', model: 'kitchenCabinet', at: [0.33, 5.45], facing: 'S' },
+    { id: 'kitchen-peninsula-b', model: 'kitchenCabinetDrawer', at: [0.88, 5.45], facing: 'S' },
+    { id: 'kitchen-stove-south', model: 'kitchenStoveElectric', logic: 'stove@5,1', at: [1.43, 5.45], facing: 'S' },
+    { id: 'kitchen-table', model: 'table', logic: 'table@6,2', at: [3.0, 6.45] },
+    { id: 'kitchen-chair-nw', model: 'chair', at: [2.75, 5.9], facing: 'S' },
+    { id: 'kitchen-chair-ne', model: 'chair', at: [3.25, 5.9], facing: 'S' },
+    { id: 'kitchen-chair-west', model: 'chair', at: [2.25, 6.45], facing: 'E' },
+    // Jardim murado: arbusto e flor das pistas, banco na parede leste e arbusto baixo no canto.
+    { id: 'garden-shrub', model: 'plant_bushSmall', logic: 'shrub@5,4', at: [4.7, 5.5] },
+    { id: 'garden-flower', model: 'flower_redA', logic: 'plant@6,4', at: [4.5, 6.5] },
+    { id: 'garden-bench', model: 'bench', against: { wall: 'east', at: 5.8 } },
+    { id: 'garden-bush-east', model: 'plant_bushLarge', at: [6.6, 4.5] },
+    { id: 'garden-flowers', model: 'flower_yellowA', at: [6.4, 6.55], yaw: 20 },
+  ],
+  rugs: [
+    { id: 'study-rug', model: 'rugRectangle', at: [4.35, 2.6] },
+    { id: 'kitchen-rug', model: 'rugRectangle', at: [3.0, 6.3] },
+    { id: 'yard-path-a', model: 'path_stone', at: [2.3, 0.95] },
+    { id: 'yard-path-b', model: 'path_stone', at: [1.3, 2.2], facing: 'E' },
+    { id: 'yard-path-c', model: 'path_stone', at: [0.7, 3.3] },
+    { id: 'garden-path', model: 'path_stone', at: [5.7, 4.6] },
+  ],
+}

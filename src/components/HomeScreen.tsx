@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion'
-import { Users, LayoutGrid, Sparkles, Search, Timer, ArrowLeft, Building2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Users, LayoutGrid, Sparkles, Search, Timer, ArrowLeft, Building2, Bookmark } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import type { Puzzle, Difficulty, GameMode } from '../core/types'
 import { filterCases } from '../core/ux'
 import type { InProgressSummary } from '../core/ux'
+import type { SavedAttempts } from '../core/saves'
 import type { CaseRecord } from '../hooks/useGame'
 import ThemeToggle from './ThemeToggle'
 import BoardPreview from './BoardPreview'
+import About from './About'
 import { dailyPuzzle, loadStreak, streakIsLive, computeBadges } from '../core/daily'
 
 interface Props {
@@ -21,7 +24,12 @@ interface Props {
   onToggleTheme: () => void
   inProgress?: InProgressSummary | null
   onResume?: (id: string, mode: GameMode) => void
+  /** Every saved attempt per case (newest first); the case list marks them and opens them in their own mode. */
+  savedAttempts?: SavedAttempts
 }
+
+const MODE_LABEL: Record<GameMode, string> = { classic: 'Classic', detective: 'Detective' }
+const NO_SAVES: SavedAttempts = {}
 
 function fmt(s: number) { return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` }
 
@@ -52,11 +60,12 @@ type StoreyFilter = 'all' | 'one' | 'two'
 
 export default function HomeScreen({
   puzzles, completedIds, records, mode, onSetMode, onSelect,
-  onOpenReleases, resolvedTheme, onToggleTheme, inProgress = null, onResume,
+  onOpenReleases, resolvedTheme, onToggleTheme, inProgress = null, onResume, savedAttempts = NO_SAVES,
 }: Props) {
   // 'landing' = Screen 1; any Difficulty string = Screen 2 (case list for that tier)
   const [view, setView] = useState<'landing' | Difficulty>('landing')
   const [storeyFilter, setStoreyFilter] = useState<StoreyFilter>('all')
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   const resumablePuzzle = inProgress ? puzzles.find(puzzle => puzzle.id === inProgress.id) : undefined
 
@@ -65,6 +74,38 @@ export default function HomeScreen({
     if (onResume) onResume(inProgress.id, inProgress.mode)
     else onSelect(inProgress.id)
   }
+
+  // Opening a case from the list or the daily panel. With no saved attempt it
+  // starts in the selected mode, as always; with one saved in the selected mode
+  // it resumes that. Otherwise the player picks: each saved attempt resumes in
+  // its own mode, and a new game is only offered in a mode with nothing saved,
+  // so nothing saved is ever replaced from here.
+  const [chooser, setChooser] = useState<{ id: string; opener: HTMLElement | null } | null>(null)
+  function openCase(id: string) {
+    const saved = savedAttempts[id] ?? []
+    if (!saved.length) onSelect(id)
+    else if (saved.length === 1 && saved[0].mode === mode) startIn(id, mode)
+    else setChooser({ id, opener: document.activeElement instanceof HTMLElement ? document.activeElement : null })
+  }
+  function startIn(id: string, m: GameMode) {
+    if (onResume) onResume(id, m)
+    else onSelect(id)
+  }
+  function closeChooser() {
+    const opener = chooser?.opener
+    setChooser(null)
+    opener?.focus()
+  }
+  const chooserPuzzle = chooser ? puzzles.find(p => p.id === chooser.id) : undefined
+  const chooserDialog = chooser && chooserPuzzle ? (
+    <ResumeChooser
+      puzzle={chooserPuzzle}
+      attempts={savedAttempts[chooser.id] ?? []}
+      mode={mode}
+      onStart={m => { setChooser(null); startIn(chooserPuzzle.id, m) }}
+      onClose={closeChooser}
+    />
+  ) : null
 
   const atmosphereLayers = (
     <>
@@ -90,17 +131,21 @@ export default function HomeScreen({
 
   if (view !== 'landing') {
     return (
-      <TierScreen
-        difficulty={view}
-        puzzles={puzzles}
-        completedIds={completedIds}
-        records={records}
-        mode={mode}
-        onSetMode={onSetMode}
-        onSelect={onSelect}
-        onBack={() => setView('landing')}
-        atmosphereLayers={atmosphereLayers}
-      />
+      <>
+        <TierScreen
+          difficulty={view}
+          puzzles={puzzles}
+          completedIds={completedIds}
+          records={records}
+          savedAttempts={savedAttempts}
+          mode={mode}
+          onSetMode={onSetMode}
+          onSelect={openCase}
+          onBack={() => setView('landing')}
+          atmosphereLayers={atmosphereLayers}
+        />
+        {chooserDialog}
+      </>
     )
   }
 
@@ -227,7 +272,7 @@ export default function HomeScreen({
             </div>
 
             {/* ── Today's Case (primary CTA) ── */}
-            <DailyPanel puzzles={puzzles} completedIds={completedIds} records={records} onSelect={onSelect} />
+            <DailyPanel puzzles={puzzles} completedIds={completedIds} records={records} onSelect={openCase} />
 
           </div>{/* end left column */}
 
@@ -344,6 +389,7 @@ export default function HomeScreen({
               return visibleDiffs.map(diff => {
                 const tierPuzzles = puzzles.filter(p => p.difficulty === diff)
                 const solvedInTier = tierPuzzles.filter(p => completedIds.includes(p.id)).length
+                const savedInTier = tierPuzzles.filter(p => savedAttempts[p.id]?.length).length
                 const gridSize = tierGridSize(puzzles, diff)
                 const floors = tierFloors(puzzles, diff)
                 const storeyLabel = floors >= 2 ? '2 floors' : '1 floor'
@@ -354,7 +400,6 @@ export default function HomeScreen({
                     onClick={() => setView(diff)}
                     className="focus-ring group flex items-center justify-between border border-border-strong bg-bg-surface px-4 transition-colors hover:border-accent-strong"
                     style={{ minHeight: 52 }}
-                    aria-label={`${diff} cases, ${gridSize} grid, ${storeyLabel}, ${solvedInTier} of ${tierPuzzles.length} solved`}
                   >
                     <div className="flex items-center gap-3">
                       {/* Difficulty colour swatch — same visual language as card spine */}
@@ -367,7 +412,7 @@ export default function HomeScreen({
                         className="font-display font-bold uppercase tracking-[0.12em]"
                         style={{ fontSize: 14, color: diffText(diff) }}
                       >
-                        {diff}
+                        {diff}{' '}<span className="sr-only">cases</span>
                       </span>
                       <span
                         className="font-mono text-text-muted"
@@ -388,8 +433,13 @@ export default function HomeScreen({
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-text-secondary" style={{ fontSize: 11 }}>
-                      {solvedInTier}/{tierPuzzles.length}
+                    <span className="flex items-center gap-3 font-mono text-text-secondary" style={{ fontSize: 11 }}>
+                      {savedInTier > 0 && (
+                        <span data-testid={`tier-saved-${DIFF_TOKEN[diff]}`} className="flex items-center gap-1 text-accent-text">
+                          <Bookmark size={11} aria-hidden />{savedInTier} in progress
+                        </span>
+                      )}
+                      {solvedInTier}/{tierPuzzles.length}{' '}<span className="sr-only">solved</span>
                     </span>
                   </button>
                 )
@@ -402,7 +452,7 @@ export default function HomeScreen({
         <BadgeShelf puzzles={puzzles} completedIds={completedIds} records={records} />
 
         {/* Footer */}
-        <footer className="pb-safe pb-6 flex justify-center gap-4 mt-auto">
+        <footer className="pb-safe pb-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-auto">
           {(() => {
             const solvedCount = completedIds.filter(id => puzzles.some(p => p.id === id)).length
             const bestTimes = puzzles.map(p => records[p.id]?.bestSeconds).filter((v): v is number => v != null)
@@ -420,9 +470,18 @@ export default function HomeScreen({
               </>
             )
           })()}
+          <button
+            type="button"
+            onClick={() => setAboutOpen(true)}
+            className="focus-ring min-h-11 px-1 text-paper-muted text-[11px] tracking-wider font-sans hover:text-accent-text transition-colors"
+          >
+            About &amp; credits
+          </button>
         </footer>
 
       </div>{/* /content column */}
+      {chooserDialog}
+      {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
     </motion.div>
   )
 }
@@ -434,6 +493,7 @@ interface TierScreenProps {
   puzzles: Puzzle[]
   completedIds: string[]
   records: Record<string, CaseRecord>
+  savedAttempts: SavedAttempts
   mode: GameMode
   onSetMode: (m: GameMode) => void
   onSelect: (id: string) => void
@@ -442,7 +502,7 @@ interface TierScreenProps {
 }
 
 function TierScreen({
-  difficulty, puzzles, completedIds, records, mode, onSetMode, onSelect, onBack, atmosphereLayers,
+  difficulty, puzzles, completedIds, records, savedAttempts, mode, onSetMode, onSelect, onBack, atmosphereLayers,
 }: TierScreenProps) {
   const [query, setQuery] = useState('')
 
@@ -467,7 +527,7 @@ function TierScreen({
           <button
             type="button"
             onClick={onBack}
-            aria-label="Back to landing"
+            aria-label="Cases, back to landing"
             className="focus-ring flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors"
             style={{ minHeight: 44, minWidth: 44 }}
           >
@@ -532,7 +592,7 @@ function TierScreen({
         </section>
 
         {/* ── Case grid ── */}
-        <main className="flex-1 overflow-y-auto pb-8">
+        <div className="flex-1 overflow-y-auto pb-8">
           {matchingPuzzles.length === 0 && (
             <p className="border border-border-strong bg-bg-surface p-6 text-center font-mono text-sm text-text-secondary" role="status">
               No cases match that search.
@@ -542,6 +602,7 @@ function TierScreen({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             {matchingPuzzles.map((p) => {
               const solved = completedIds.includes(p.id)
+              const saved = savedAttempts[p.id] ?? []
               return (
                 <button
                   key={p.id}
@@ -576,6 +637,16 @@ function TierScreen({
                     <h2 className="font-display text-[17px] font-bold leading-[1.15] tracking-[0.01em] mb-2.5 uppercase" style={{ color: '#19150F' }}>
                       {p.title}
                     </h2>
+
+                    {saved.length > 0 && (
+                      <p data-testid={`card-saved-${p.id}`} className="-mt-1 mb-2.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.12em]" style={{ color: '#62400B' }}>
+                        <Bookmark size={11} aria-hidden />
+                        <span>In progress</span>
+                        {saved.map(a => (
+                          <span key={a.mode} className="tabular-nums">· {MODE_LABEL[a.mode]} {a.placedCount}/{p.people.length}</span>
+                        ))}
+                      </p>
+                    )}
 
                     <div className="flex items-center gap-3 text-[11px] font-sans" style={{ color: '#4B4232' }}>
                       <span className="flex items-center gap-1"><LayoutGrid size={12} aria-hidden />{p.size}×{p.size}</span>
@@ -614,10 +685,107 @@ function TierScreen({
               )
             })}
           </div>
-        </main>
+        </div>
 
       </div>{/* /content column */}
     </motion.div>
+  )
+}
+
+// ── ResumeChooser ───────────────────────────────────────────────────────────
+// Asked when a case holds saved progress that the selected mode alone would not
+// open. Each saved attempt resumes in its own mode; a new game is offered only
+// in a mode with nothing saved, so this dialog never replaces saved progress.
+
+function ResumeChooser({ puzzle, attempts, mode, onStart, onClose }: {
+  puzzle: Puzzle
+  attempts: readonly InProgressSummary[]
+  mode: GameMode
+  onStart: (m: GameMode) => void
+  onClose: () => void
+}) {
+  const titleId = useId()
+  const descriptionId = useId()
+  const panelRef = useRef<HTMLDivElement>(null)
+  const firstRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => { firstRef.current?.focus() }, [])
+  const freshMode = attempts.some(a => a.mode === mode) ? null : mode
+  const savedModes = attempts.map(a => MODE_LABEL[a.mode]).join(' and ')
+
+  function onKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
+    if (e.key !== 'Tab' || !panelRef.current) return
+    const buttons = Array.from(panelRef.current.querySelectorAll('button'))
+    const first = buttons[0], last = buttons[buttons.length - 1]
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'var(--overlay-scrim)' }}
+      onClick={onClose}
+      onKeyDown={onKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
+      data-testid="resume-chooser"
+    >
+      <div
+        ref={panelRef}
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-sm border bg-bg-surface p-5"
+        style={{ borderColor: 'var(--color-border-strong)', boxShadow: 'var(--shadow-elevated)' }}
+      >
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted">{puzzle.caseNumber}</p>
+        <p id={titleId} className="mt-1 font-display text-lg font-bold uppercase tracking-[0.08em] text-text-primary">
+          {puzzle.title}
+        </p>
+        <p id={descriptionId} className="mt-1 mb-4 font-mono text-[12px] leading-snug text-text-secondary">
+          Saved progress in {savedModes}. Each attempt opens in its own mode{freshMode ? '' : '; to start one again, open it and clear the board'}.
+        </p>
+        <div className="flex flex-col gap-2">
+          {attempts.map((a, i) => (
+            <button
+              key={a.mode}
+              ref={i === 0 ? firstRef : undefined}
+              type="button"
+              data-testid={`resume-${a.mode}`}
+              onClick={() => onStart(a.mode)}
+              className="focus-ring min-h-[44px] border px-3 py-2 text-left"
+              style={{ borderColor: 'var(--color-accent)', background: 'color-mix(in srgb, var(--color-accent) 12%, transparent)' }}
+            >
+              <span className="block font-display text-sm font-bold uppercase tracking-[0.1em] text-text-primary">Resume {MODE_LABEL[a.mode]}</span>
+              <span className="block font-mono text-[11px] tabular-nums text-text-secondary">
+                {a.placedCount} / {puzzle.people.length} placed · {fmt(a.elapsedSeconds)}{i === 0 && attempts.length > 1 ? ' · most recent' : ''}
+              </span>
+            </button>
+          ))}
+          {freshMode && (
+            <button
+              type="button"
+              data-testid="resume-fresh"
+              onClick={() => onStart(freshMode)}
+              className="focus-ring min-h-[44px] border px-3 py-2 text-left"
+              style={{ borderColor: 'var(--color-border-strong)' }}
+            >
+              <span className="block font-display text-sm font-bold uppercase tracking-[0.1em] text-text-primary">New {MODE_LABEL[freshMode]} game</span>
+              <span className="block font-mono text-[11px] text-text-secondary">Your saved {savedModes} progress is kept.</span>
+            </button>
+          )}
+          <button
+            type="button"
+            data-testid="resume-cancel"
+            onClick={onClose}
+            className="focus-ring min-h-[44px] px-3 font-display text-sm uppercase tracking-[0.1em] text-text-secondary hover:text-text-primary"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

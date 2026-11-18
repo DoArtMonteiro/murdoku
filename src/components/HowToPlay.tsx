@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import { useModalKeys } from '../hooks/useModalKeys'
 import { motion } from 'framer-motion'
 import { X, MousePointerClick, Pencil, Lightbulb, Wand2 } from 'lucide-react'
 import type { GameMode } from '../core/types'
@@ -8,6 +10,19 @@ interface Props {
 }
 
 export default function HowToPlay({ mode, onClose }: Props) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  // Move focus into the dialog on open and give it back to whatever opened it on close.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    closeRef.current?.focus()
+    return () => { if (opener?.isConnected) opener.focus() }
+  }, [])
+
+  // Escape closes and Tab stays inside, even after a click on text has moved focus to the panel or <body>.
+  useModalKeys(panelRef, onClose)
+
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -16,6 +31,8 @@ export default function HowToPlay({ mode, onClose }: Props) {
       onClick={onClose}
     >
       <motion.div
+        ref={panelRef}
+        tabIndex={-1}
         initial={{ scale: 0.94, y: 8 }} animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.96, opacity: 0 }}
         transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
@@ -24,7 +41,7 @@ export default function HowToPlay({ mode, onClose }: Props) {
         aria-modal="true"
         aria-labelledby="how-to-play-title"
         data-testid="how-to-play"
-        className="clipped-corner w-full max-w-md border border-border-strong bg-bg-panel p-4 max-h-[min(720px,calc(100dvh-2rem))] overflow-y-auto overscroll-contain sm:p-5"
+        className="clipped-corner w-full max-w-md border border-border-strong bg-bg-panel p-4 max-h-[min(720px,calc(100dvh-2rem))] overflow-y-auto overscroll-contain outline-none sm:p-5"
         style={{ boxShadow: 'var(--shadow-elevated)' }}
       >
         <div className="film-perforation mb-4 h-2 w-full opacity-60" aria-hidden="true" />
@@ -40,6 +57,7 @@ export default function HowToPlay({ mode, onClose }: Props) {
             </h2>
           </div>
           <button
+            ref={closeRef}
             onClick={onClose}
             aria-label="Close"
             className="focus-ring text-paper-muted p-2.5 border border-border-strong hover:text-text-primary hover:border-accent-text transition-colors"
@@ -70,6 +88,12 @@ export default function HowToPlay({ mode, onClose }: Props) {
             <span className="font-display text-text-primary font-semibold">Find the killer.</span>
             <span className="font-mono text-[12px] text-text-secondary leading-relaxed block mt-1">
               Solve the board, then submit. Whoever ends up alone with the victim in the same room is the murderer.
+            </span>
+          </Step>
+          <Step n={4}>
+            <span className="font-display text-text-primary font-semibold">What &ldquo;beside&rdquo; means.</span>
+            <span data-testid="beside-rule" className="font-mono text-[12px] text-text-secondary leading-relaxed block mt-1">
+              &ldquo;Beside a TV&rdquo; means a TV touches your square along a side, in the same room and on the same floor, and you are not standing on it. Corners do not count, and neither does a TV on the far side of a wall.
             </span>
           </Step>
         </ol>

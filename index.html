@@ -15,32 +15,12 @@
 
     <!--
       No-flash theme bootstrap. This is the ONLY blocking script and it only
-      applies a *remembered user override*. With JS disabled the CSS in
-      theme.css still renders a correct theme from prefers-color-scheme.
+      applies a *remembered user override*. It is a file, not inline code, so the
+      page can run under a Content-Security-Policy with no inline script. With JS
+      disabled the CSS in theme.css still renders a correct theme from
+      prefers-color-scheme. Fonts are bundled (src/styles/fonts.css).
     -->
-    <script>
-      (function () {
-        try {
-          var t = localStorage.getItem('murdoku_theme');
-          if (t === 'light' || t === 'dark') {
-            document.documentElement.classList.add('theme-' + t);
-          }
-        } catch (e) {}
-      })();
-    </script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!--
-      Continuity-desk type payload. Barlow Condensed = industrial headline (titles),
-      Courier Prime = case-file typewriter (clues, evidence, timer), Hanken
-      Grotesk = dense UI chrome. Weights are pinned deliberately; do not widen
-      the ranges without re-checking the transfer size.
-    -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Hanken+Grotesk:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <!--

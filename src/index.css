@@ -1,3 +1,4 @@
+@import './styles/fonts.css';
 @import './styles/theme.css';
 
 @tailwind base;
@@ -73,8 +74,7 @@
     background-color: var(--color-bg-base);
     /* Subtle warm vignette: centre lighter (near-base), corners deeper (inset).
        The opacity is low — this is atmosphere, not a loud texture. */
-    background-image: url('/assets/graphite-desk.jpg');
-    background-size: 720px 720px;
+    background-image: var(--texture-desk);
     background-blend-mode: soft-light;
   }
 
@@ -124,11 +124,6 @@
   .evidence-strip {
     position: relative;
     clip-path: polygon(0 2px, 4% 0, 11% 2px, 22% 0, 36% 3px, 50% 1px, 64% 3px, 82% 0, 100% 2px, 100% calc(100% - 2px), 86% 100%, 72% calc(100% - 3px), 55% 100%, 37% calc(100% - 2px), 19% 100%, 0 calc(100% - 2px));
-  }
-
-  .contact-sheet-portrait {
-    filter: sepia(0.18) grayscale(0.2) contrast(1.08);
-    background-repeat: no-repeat;
   }
 
   /* The clue-to-board connector line was removed: it was positioned with
@@ -224,7 +219,7 @@
      Extends .case-panel with interactive lift behaviour. */
   .case-card {
     background-color: #D8C8A4;
-    background-image: url('/assets/evidence-paper.jpg');
+    background-image: var(--texture-paper);
     background-size: cover;
     background-blend-mode: multiply;
     color: #19150F;

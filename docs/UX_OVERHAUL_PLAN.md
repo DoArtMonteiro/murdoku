@@ -14,7 +14,7 @@ Tested locally at `1440x1000` and `390x844` in the current light theme, includin
 - Home correctly avoids loading all portraits; the game loads only the active case’s four portraits. No avatar-request explosion was observed.
 - The current dev page recorded 33 resources and no obvious runtime error. Performance work should focus on DOM density, render containment, and avoiding new image payloads.
 
-Baseline screenshots live in `C:\Users\Duarte\.dev-browser\tmp\murdoku-*-before.png`.
+Baseline screenshots live in a location outside the repository.
 
 ## 2. Direction decision
 

@@ -1,0 +1,2 @@
+# Keep the generated report identical to the serializer on every platform.
+docs/reports/puzzle-catalog.json text eol=lf

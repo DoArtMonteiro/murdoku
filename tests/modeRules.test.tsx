@@ -108,7 +108,6 @@ function makeGameScreenProps(overrides: Partial<Parameters<typeof GameScreen>[0]
     canUndo: false,
     canRedo: false,
     feedback: 'none' as const,
-    correctCount: 0,
     resolvedClues: [],
     onSelectPerson: vi.fn(),
     onSetTool: vi.fn(),

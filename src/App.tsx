@@ -1,14 +1,30 @@
-import { Suspense, lazy, useState, useEffect } from 'react'
+import { Suspense, lazy, useState, useEffect, useRef } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { useGame } from './hooks/useGame'
 import { useTheme } from './hooks/useTheme'
 import HomeScreen from './components/HomeScreen'
 import GameScreen from './components/GameScreen'
+import ErrorBoundary from './components/ErrorBoundary'
+import { warmAvatars } from './components/avatarImage'
 
 const importVictory = () => import('./components/VictoryScreen')
 const importReleases = () => import('./components/ReleaseNotes')
 const VictoryScreen = lazy(importVictory)
 const ReleaseNotes = lazy(importReleases)
+// Reference prototypes: `?ref=nightplan` | `?ref=plan3d` | `?ref=illustrated` play
+// very-easy-1 on a competing board, and `?ref=city` shows the casebook map.
+// They exist for design review and are compiled in for development only:
+// `import.meta.env.DEV` is a build-time constant, so a production build drops
+// both the routes and every module behind them.
+const REFERENCE_ROUTES = import.meta.env.DEV
+const ReferenceGame = REFERENCE_ROUTES ? lazy(() => import('./reference/ReferenceGame')) : null
+const CityMap = REFERENCE_ROUTES ? lazy(() => import('./reference/city/CityMap')) : null
+const refParam = () => (REFERENCE_ROUTES ? new URLSearchParams(window.location.search).get('ref') : null)
+const isCityRoute = () => refParam() === 'city'
+function referenceVariant(): 'nightplan' | 'plan3d' | 'illustrated' | null {
+  const v = refParam()
+  return v === 'nightplan' || v === 'plan3d' || v === 'illustrated' ? v : null
+}
 
 function Fallback() {
   return (
@@ -24,9 +40,11 @@ export default function App() {
   // it never touched Framer's JS-driven springs, so without this the whole app
   // ignored prefers-reduced-motion.
   return (
-    <MotionConfig reducedMotion="user">
-      <AppInner />
-    </MotionConfig>
+    <ErrorBoundary>
+      <MotionConfig reducedMotion="user">
+        <AppInner />
+      </MotionConfig>
+    </ErrorBoundary>
   )
 }
 
@@ -37,12 +55,31 @@ function AppInner() {
 
   useEffect(() => { window.scrollTo(0, 0) }, [game.screen, aux])
 
+  // Dev deep link: `?case=<id>` opens a case directly so the scene QA loop
+  // (screenshots, diagnostics) does not have to click through the catalog.
+  // Only honoured once, on the home screen, and never in production builds.
+  const refVariant = useRef(referenceVariant()).current
+  const deepLinked = useRef(false)
+  useEffect(() => {
+    if (!import.meta.env.DEV || deepLinked.current) return
+    const id = new URLSearchParams(window.location.search).get('case')
+    if (!id || game.screen !== 'home' || !game.puzzles.some(p => p.id === id)) return
+    deepLinked.current = true
+    game.start(id, game.mode)
+  }, [game])
+
   // Warm the split chunks on idle so the win / releases transition never
   // stalls on a mid-animation fetch (which caused a visible repaint hiccup).
+  // Cancelled on unmount, so a torn-down app (or test environment) never starts the imports.
   useEffect(() => {
-    const warm = () => { importVictory(); importReleases() }
-    const ric = (window as any).requestIdleCallback
-    if (ric) ric(warm); else setTimeout(warm, 400)
+    const warm = () => { importVictory(); importReleases(); warmAvatars() }
+    const w = window as any
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(warm)
+      return () => w.cancelIdleCallback?.(id)
+    }
+    const id = setTimeout(warm, 400)
+    return () => clearTimeout(id)
   }, [])
 
   function nextCase() {
@@ -50,6 +87,22 @@ function AppInner() {
     const order = game.puzzles.map(p => p.id)
     const next = order[order.indexOf(game.puzzle.id) + 1]
     if (next) game.start(next, game.mode)
+  }
+
+  if (CityMap && isCityRoute()) {
+    return (
+      <Suspense fallback={<Fallback />}>
+        <CityMap game={game} />
+      </Suspense>
+    )
+  }
+
+  if (ReferenceGame && refVariant) {
+    return (
+      <Suspense fallback={<Fallback />}>
+        <ReferenceGame variant={refVariant} game={game} />
+      </Suspense>
+    )
   }
 
   // Cold start: the 60-case catalog is generated one case per macrotask AFTER
@@ -84,7 +137,7 @@ function AppInner() {
   // The solving screen wants full width; everything else sits in a phone frame.
   if (aux === 'none' && game.screen === 'game' && game.puzzle) {
     return (
-      <div className="min-h-screen bg-bg-deep text-paper font-sans">
+      <main className="min-h-screen bg-bg-deep text-paper font-sans">
         <GameScreen
           puzzle={game.puzzle}
           mode={game.mode}
@@ -101,7 +154,10 @@ function AppInner() {
           canUndo={game.history.length > 0}
           canRedo={game.future.length > 0}
           feedback={game.feedback}
-          correctCount={game.correctCount}
+          accusationsLeft={game.accusationsLeft}
+          revealed={game.revealed}
+          saveFailed={game.saveFailed}
+          attempts={game.attempts}
           resolvedClues={game.resolvedClues}
           onSelectPerson={game.selectPerson}
           onSetTool={game.setTool}
@@ -114,13 +170,18 @@ function AppInner() {
           onAssist={game.assist}
           onToggleTimer={game.toggleTimer}
           onSubmit={game.submit}
+          onReveal={game.reveal}
+          onStartOver={game.startOver}
           onDismissFeedback={game.dismissFeedback}
           onBack={() => game.navigate('home')}
           onSwitchFloor={game.switchFloor}
         />
-      </div>
+      </main>
     )
   }
+
+  // The release notes bring their own <main>; every other screen is the page's one.
+  const Page = aux === 'releases' ? 'div' : 'main'
 
   return (
     <div className="min-h-screen bg-bg-inset text-paper font-sans">
@@ -133,7 +194,7 @@ function AppInner() {
         helps (HomeScreen, ReleaseNotes), and the full viewport where the work
         happens (GameScreen). Do not reintroduce a width cap here.
       */}
-      <div className="relative w-full min-h-screen bg-bg-deep">
+      <Page className="relative w-full min-h-screen bg-bg-deep">
         <Suspense fallback={<Fallback />}>
           {aux === 'releases' && <ReleaseNotes onBack={() => setAux('none')} />}
 
@@ -146,6 +207,7 @@ function AppInner() {
               onSetMode={game.setMode}
               onSelect={(id) => game.start(id, game.mode)}
               inProgress={game.inProgress}
+              savedAttempts={game.savedAttempts}
               onResume={game.start}
               onOpenReleases={() => setAux('releases')}
               resolvedTheme={theme.resolved}
@@ -167,7 +229,7 @@ function AppInner() {
             />
           )}
         </Suspense>
-      </div>
+      </Page>
     </div>
   )
 }
