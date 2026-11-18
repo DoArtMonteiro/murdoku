@@ -138,18 +138,43 @@ describe('deployment files', () => {
     expect(unhashed.sort()).toEqual(['index.html', 'manifest.webmanifest', 'registerSW.js', 'sw.js', 'theme-init.js', 'workbox-*.js'])
   })
 
-  it('configures an assets-only Worker with no routes', () => {
-    const config = readFileSync(join(root, 'wrangler.jsonc'), 'utf8').replace(/^\s*\/\/.*$/gm, '')
+  it('keeps the Worker config out of the repository root and names the right Worker', () => {
+    expect(readdirSync(root).filter(name => /^wrangler\./.test(name))).toEqual([])
+    const config = readFileSync(join(root, 'deploy/cloudflare/wrangler.jsonc'), 'utf8').replace(/^\s*\/\/.*$/gm, '')
     const parsed = JSON.parse(config)
     expect(parsed).toMatchObject({
       name: 'alibi-game',
       account_id: 'e7051a1583673d9caec0521af5104117',
       workers_dev: true,
-      assets: { directory: './dist', not_found_handling: 'single-page-application' },
+      main: './worker.js',
+      assets: {
+        directory: '../../dist',
+        binding: 'ASSETS',
+        not_found_handling: 'single-page-application',
+        run_worker_first: ['/assets/*', '/kenney3d/*', '/kenney/*', '/workbox-*'],
+      },
     })
     expect(parsed.compatibility_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-    expect(parsed).not.toHaveProperty('main')
     expect(parsed).not.toHaveProperty('routes')
     expect(parsed).not.toHaveProperty('route')
+    const scripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts
+    expect(scripts['deploy:cloudflare']).toContain('--config deploy/cloudflare/wrangler.jsonc')
+    expect(scripts['deploy:cloudflare:dry-run']).toContain('--dry-run --config deploy/cloudflare/wrangler.jsonc')
+  })
+
+  it('puts every directory of the build under the missing-file guard', () => {
+    // run_worker_first in the Worker config names exactly these; a new directory must be added there.
+    const dirs = [...new Set([...files.keys()].filter(name => name.includes('/')).map(name => name.split('/')[0]))].sort()
+    expect(dirs).toEqual(['assets', 'kenney', 'kenney3d'])
+  })
+
+  it('precaches the models and sprites, so a case never opened still draws offline', () => {
+    const sw = files.get('sw.js')!
+    const models = [...files.keys()].filter(name => name.endsWith('.glb'))
+    const sprites = [...files.keys()].filter(name => name.startsWith('kenney/') && name.endsWith('.png'))
+    expect(models.length).toBe(161)
+    expect(sprites.length).toBe(150)
+    for (const name of [...models, ...sprites]) expect(sw, name).toContain(`url:"${name}"`)
+    expect(sw).toContain('url:"THIRD-PARTY-NOTICES.txt"')
   })
 })

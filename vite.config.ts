@@ -27,15 +27,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,woff2,txt}'],
-        runtimeCaching: [
-          {
-            // Kenney glTF models for the 3D board: small, immutable, fetched on demand.
-            urlPattern: /\/kenney3d\/.*\.glb$/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'kenney-models', expiration: { maxEntries: 200 } },
-          },
-        ],
+        // Everything the game draws is precached, the Kenney 3D models and sprites
+        // included, so a case that was never opened still renders offline. The
+        // default 2 MiB per-file limit is kept on purpose: the largest model is far
+        // below it, and a file that grew past it would fail the build loudly.
+        globPatterns: ['**/*.{js,css,html,svg,woff2,txt,glb,png}'],
       },
     }),
   ],
