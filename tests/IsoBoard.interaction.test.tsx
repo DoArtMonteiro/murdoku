@@ -80,3 +80,18 @@ describe('isometric interaction readability', () => {
     expect(container.querySelector('[data-placement-cue="1-3"]')).toBeNull()
   })
 })
+
+describe('board semantics', () => {
+  it('puts every gridcell in a row of the grid, with no unnamed svg role between them', () => {
+    const { container } = render(<IsoBoard {...base} />)
+    const grid = container.querySelector('[role="grid"]')!
+    const rows = grid.querySelectorAll('[role="row"]')
+    expect(rows).toHaveLength(6)
+    rows.forEach(row => expect(row.querySelectorAll('[role="gridcell"]')).toHaveLength(6))
+    expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(36)
+    container.querySelectorAll('[role="gridcell"]').forEach(cell => {
+      expect(cell.parentElement).toHaveAttribute('role', 'row')
+      expect(cell.parentElement!.parentElement).toHaveAttribute('role', 'none')
+    })
+  })
+})

@@ -326,11 +326,17 @@ export default function IsoBoard({
       data-companion-floor={twoStorey ? companionFloor : undefined}
       className="relative w-full select-none"
       style={{ aspectRatio: `${frame.width} / ${frame.height}` }}
-      role="grid"
-      aria-label={`Isometric house, ${N} by ${N} grid, floor ${floor + 1}`}
-      aria-describedby={envOnly ? undefined : descriptionId}
     >
-      <div ref={wrapRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      {/* The grid is the drawing and its hit layer only. The live status line, the
+          clue label and the screen-reader hint are siblings of it, because a grid
+          may own nothing but rows. */}
+      <div
+        ref={wrapRef}
+        role="grid"
+        aria-label={`Isometric house, ${N} by ${N} grid, floor ${floor + 1}`}
+        aria-describedby={envOnly ? undefined : descriptionId}
+        style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}
+      >
         <canvas
           ref={canvasRef}
           data-scene-canvas=""
@@ -507,8 +513,12 @@ export default function IsoBoard({
           {/* ---------------- HIT LAYER ----------------
               Precise floor polygons above everything, so a click lands on the
               cell the player aimed at and never on a model that overhangs it. */}
-          <svg width={frame.width} height={frame.height} aria-hidden={envOnly || undefined} style={{ position: 'absolute', inset: 0, zIndex: 500, pointerEvents: 'none' }}>
-            {Array.from({ length: N }, (_, r) => Array.from({ length: N }, (_, c) => (
+          {/* The grid role needs rows, and a gridcell needs a row for a parent. The
+              <svg> is marked presentational so it does not interrupt that chain
+              (an svg otherwise has its own role), and each board row is a
+              <g role="row"> around its cells. */}
+          <svg role="none" width={frame.width} height={frame.height} aria-hidden={envOnly || undefined} style={{ position: 'absolute', inset: 0, zIndex: 500, pointerEvents: 'none' }}>
+            {Array.from({ length: N }, (_, r) => <g key={`hr${r}`} role="row">{Array.from({ length: N }, (_, c) => (
               <polygon
                 key={`h${r}-${c}`}
                 points={points(cellPoly(r, c))}
@@ -535,7 +545,7 @@ export default function IsoBoard({
                 }}
                 aria-label={`Row ${r + 1}, column ${c + 1}${roomName(r, c) ? `, ${roomName(r, c)}` : ''}${marks[r][c].kind !== 'empty' ? `, ${guidanceFor(r, c)}` : ''}`}
               />
-            )))}
+            ))}</g>)}
           </svg>
         </div>
       </div>
