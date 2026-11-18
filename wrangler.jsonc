@@ -1,0 +1,13 @@
+{
+  // Static assets only: the game is a client-side app, so there is no Worker script.
+  // Build first (`npm run build`); the directory below is what gets served.
+  "name": "alibi-game",
+  "account_id": "e7051a1583673d9caec0521af5104117",
+  "compatibility_date": "2026-11-18",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    // Unknown paths get index.html, so the app also opens from any URL.
+    "not_found_handling": "single-page-application"
+  }
+}

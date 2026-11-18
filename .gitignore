@@ -38,3 +38,6 @@ assets-dropbox/
 # Session-local design audit state. The durable design system remains tracked.
 .impeccable/hook.cache.json
 audit-evidence/
+
+# Local Cloudflare dev state.
+.wrangler/

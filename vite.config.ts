@@ -27,38 +27,13 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,jpg,woff2}'],
-        // Cache Google Fonts so repeat/offline visits paint instantly.
+        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
         runtimeCaching: [
           {
             // Kenney glTF models for the 3D board: small, immutable, fetched on demand.
             urlPattern: /\/kenney3d\/.*\.glb$/,
             handler: 'CacheFirst',
             options: { cacheName: 'kenney-models', expiration: { maxEntries: 200 } },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-stylesheets' },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            // Suspect portraits — cache so repeat/offline visits are instant.
-            urlPattern: /^https:\/\/api\.dicebear\.com\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'dicebear-avatars',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 90 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
           },
         ],
       },
