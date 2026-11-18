@@ -137,7 +137,7 @@ function AppInner() {
   // The solving screen wants full width; everything else sits in a phone frame.
   if (aux === 'none' && game.screen === 'game' && game.puzzle) {
     return (
-      <div className="min-h-screen bg-bg-deep text-paper font-sans">
+      <main className="min-h-screen bg-bg-deep text-paper font-sans">
         <GameScreen
           puzzle={game.puzzle}
           mode={game.mode}
@@ -176,9 +176,12 @@ function AppInner() {
           onBack={() => game.navigate('home')}
           onSwitchFloor={game.switchFloor}
         />
-      </div>
+      </main>
     )
   }
+
+  // The release notes bring their own <main>; every other screen is the page's one.
+  const Page = aux === 'releases' ? 'div' : 'main'
 
   return (
     <div className="min-h-screen bg-bg-inset text-paper font-sans">
@@ -191,7 +194,7 @@ function AppInner() {
         helps (HomeScreen, ReleaseNotes), and the full viewport where the work
         happens (GameScreen). Do not reintroduce a width cap here.
       */}
-      <div className="relative w-full min-h-screen bg-bg-deep">
+      <Page className="relative w-full min-h-screen bg-bg-deep">
         <Suspense fallback={<Fallback />}>
           {aux === 'releases' && <ReleaseNotes onBack={() => setAux('none')} />}
 
@@ -226,7 +229,7 @@ function AppInner() {
             />
           )}
         </Suspense>
-      </div>
+      </Page>
     </div>
   )
 }

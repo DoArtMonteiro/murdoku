@@ -88,7 +88,6 @@ export default function CaseProgressStrip({
                 onClick={() => onSelectPerson(person.id)}
                 aria-pressed={selected}
                 aria-current={selected ? 'step' : undefined}
-                aria-label={`Step ${index + 1}, ${person.name}, ${stateLabel}${person.isVictim ? ', victim' : ''}`}
                 data-person={person.id}
                 data-state={state}
                 className="focus-ring group relative flex min-h-[52px] w-full items-center gap-2 border px-2.5 py-2 text-left transition-colors sm:px-3"
@@ -122,7 +121,7 @@ export default function CaseProgressStrip({
 
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-display text-[13px] font-semibold uppercase tracking-[0.08em]">
-                    {person.name}
+                    <span className="sr-only">Step {index + 1}, </span>{person.name}
                   </span>
                   <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-mono text-[10px] uppercase tracking-[0.13em]" style={{ color: '#4B4232' }}>
                     {conflicted ? <AlertTriangle size={12} aria-hidden="true" /> : placed ? <Check size={12} aria-hidden="true" /> : suggested ? <CircleDashed size={12} aria-hidden="true" /> : <UserRound size={12} aria-hidden="true" />}

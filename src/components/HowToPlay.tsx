@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { motion } from 'framer-motion'
 import { X, MousePointerClick, Pencil, Lightbulb, Wand2 } from 'lucide-react'
 import type { GameMode } from '../core/types'
@@ -8,14 +10,35 @@ interface Props {
 }
 
 export default function HowToPlay({ mode, onClose }: Props) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  // Move focus into the dialog on open and give it back to whatever opened it on close.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    closeRef.current?.focus()
+    return () => { if (opener?.isConnected) opener.focus() }
+  }, [])
+
+  function onKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
+    if (e.key !== 'Tab' || !panelRef.current) return
+    const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button'))
+    const first = controls[0], last = controls[controls.length - 1]
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'var(--overlay-scrim)' }}
       onClick={onClose}
+      onKeyDown={onKeyDown}
     >
       <motion.div
+        ref={panelRef}
         initial={{ scale: 0.94, y: 8 }} animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.96, opacity: 0 }}
         transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
@@ -40,6 +63,7 @@ export default function HowToPlay({ mode, onClose }: Props) {
             </h2>
           </div>
           <button
+            ref={closeRef}
             onClick={onClose}
             aria-label="Close"
             className="focus-ring text-paper-muted p-2.5 border border-border-strong hover:text-text-primary hover:border-accent-text transition-colors"

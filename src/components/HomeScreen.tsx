@@ -400,7 +400,6 @@ export default function HomeScreen({
                     onClick={() => setView(diff)}
                     className="focus-ring group flex items-center justify-between border border-border-strong bg-bg-surface px-4 transition-colors hover:border-accent-strong"
                     style={{ minHeight: 52 }}
-                    aria-label={`${diff} cases, ${gridSize} grid, ${storeyLabel}, ${solvedInTier} of ${tierPuzzles.length} solved${savedInTier ? `, ${savedInTier} in progress` : ''}`}
                   >
                     <div className="flex items-center gap-3">
                       {/* Difficulty colour swatch — same visual language as card spine */}
@@ -413,7 +412,7 @@ export default function HomeScreen({
                         className="font-display font-bold uppercase tracking-[0.12em]"
                         style={{ fontSize: 14, color: diffText(diff) }}
                       >
-                        {diff}
+                        {diff}{' '}<span className="sr-only">cases</span>
                       </span>
                       <span
                         className="font-mono text-text-muted"
@@ -440,7 +439,7 @@ export default function HomeScreen({
                           <Bookmark size={11} aria-hidden />{savedInTier} in progress
                         </span>
                       )}
-                      {solvedInTier}/{tierPuzzles.length}
+                      {solvedInTier}/{tierPuzzles.length}{' '}<span className="sr-only">solved</span>
                     </span>
                   </button>
                 )
@@ -593,7 +592,7 @@ function TierScreen({
         </section>
 
         {/* ── Case grid ── */}
-        <main className="flex-1 overflow-y-auto pb-8">
+        <div className="flex-1 overflow-y-auto pb-8">
           {matchingPuzzles.length === 0 && (
             <p className="border border-border-strong bg-bg-surface p-6 text-center font-mono text-sm text-text-secondary" role="status">
               No cases match that search.
@@ -686,7 +685,7 @@ function TierScreen({
               )
             })}
           </div>
-        </main>
+        </div>
 
       </div>{/* /content column */}
     </motion.div>

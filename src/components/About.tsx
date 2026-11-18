@@ -9,7 +9,7 @@ interface Props {
  * Where Alibi comes from, and what it is not. The first paragraph credits the
  * format's originator and states that Alibi is independent; the rest credit the
  * third-party material that ships with the game. Keep the wording in step with
- * PROVENANCE.md and THIRD-PARTY-NOTICES.md.
+ * PROVENANCE.md and public/THIRD-PARTY-NOTICES.txt.
  */
 export default function About({ onClose }: Props) {
   const titleId = useId()
@@ -57,7 +57,7 @@ export default function About({ onClose }: Props) {
 
         <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-text-muted">MADE WITH</p>
         <ul className="mt-2 flex flex-col gap-2 font-mono text-[12px] leading-relaxed text-text-secondary">
-          <li>3D furniture and plant models by Kenney (kenney.nl), released under CC0.</li>
+          <li>3D furniture and plant models, and the isometric furniture sprites, by Kenney (kenney.nl), released under CC0.</li>
           <li>Suspect avatars: the Notionists style by Zoish, released under CC0 1.0, drawn with DiceBear.</li>
           <li>Type: Barlow Condensed, Courier Prime and Hanken Grotesk, under the SIL Open Font License 1.1.</li>
         </ul>
