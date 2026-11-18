@@ -55,7 +55,7 @@ export function Shell({ game, board, variant, theme: hostTheme, onToggleTheme, s
   const toggleTheme = onToggleTheme
   const puzzle = game.puzzle!
   const story = useMemo(() => (storyProp === undefined ? storyFor(puzzle.id) : storyProp), [storyProp, puzzle.id])
-  const portraits = useMemo(() => Object.fromEntries((story?.suspects ?? []).flatMap(s => (s.portrait === undefined ? [] : [[s.personId, s.portrait] as const]))), [story])
+  const portraits = useMemo(() => Object.fromEntries(puzzle.people.map(p => [p.id, p])), [puzzle])
   const taleOf = useCallback((id: string) => story?.suspects.find(s => s.personId === id), [story])
   const { found, markFound } = useFound(puzzle.id)
   const [caseFileOpen, setCaseFileOpen] = useState(false)

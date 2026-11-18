@@ -237,9 +237,6 @@ export function validateStory(puzzle: Puzzle, story: CaseStory): string[] {
   const ids = story.suspects.map(s => s.personId)
   if (new Set(ids).size !== ids.length) add('duplicate suspect entries')
   for (const p of puzzle.people) if (!ids.includes(p.id)) add(`${p.name} has no story entry`)
-  const portraits = story.suspects.map(s => s.portrait).filter((x): x is number => x !== undefined)
-  if (new Set(portraits).size !== portraits.length) add('two people share a portrait')
-  for (const x of portraits) if (!Number.isInteger(x) || x < 0 || x > 7) add(`portrait ${x} out of range`)
 
   // pre-solve prose checks
   const preSolve: Array<{ where: string; text: string; scope: 'public' | { personId: string; clue?: ClueRef } }> = []

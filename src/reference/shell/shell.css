@@ -13,8 +13,7 @@
 }
 .rs-root, .rs-loading {
   background-color: var(--color-bg-base);
-  background-image: url('/assets/graphite-desk.jpg');
-  background-size: 720px 720px;
+  background-image: var(--texture-desk);
   background-blend-mode: soft-light;
   color: var(--color-text-primary);
   font-family: var(--rs-sans);
@@ -134,7 +133,7 @@
 .rs-token-sel.rs-token-bad { outline: 3px solid var(--color-accent-strong); outline-offset: 3px; }
 .rs-token-victim { position: absolute; top: 7%; right: 7%; z-index: 1; }
 .rs-chalk { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
-.rs-portrait { display: block; flex: none; background-repeat: no-repeat; background-color: #2a2824; }
+.rs-portrait { display: block; flex: none; overflow: hidden; background-color: #2a2824; }
 .rs-cross { width: 40%; height: 40%; pointer-events: none; }
 .rs-draft { font: 700 12px var(--rs-mono); color: var(--color-text-primary); background: var(--color-bg-surface); padding: 1px 3px; border: 1px dotted var(--color-border-strong); }
 @keyframes rs-shake { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
@@ -373,11 +372,9 @@
 .rs-frame-mat { position: relative; display: grid; place-items: center; width: 100%; height: 100%; background: #241b13; box-shadow: inset 0 0 0 1px #6b4e16, inset 0 0 8px #000a; overflow: hidden; }
 .rs-frame-mat::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: soft-light; opacity: .55;
-  background: radial-gradient(circle at 50% 42%, transparent 52%, #1a0f2e 100%), url('/assets/evidence-paper.jpg') center / 220px;
+  background: radial-gradient(circle at 50% 42%, transparent 52%, #1a0f2e 100%), var(--texture-paper);
 }
-.rs-frame .rs-portrait { filter: sepia(.5) saturate(1.25) contrast(1.06) brightness(.96) hue-rotate(-8deg); }
 .rs-frame-victim { background: linear-gradient(135deg, #cfcfcf, #6c6f78 40%, #b9bcc4 60%, #4d5059); }
-.rs-frame-victim .rs-portrait { filter: grayscale(.85) contrast(1.05) brightness(.85); }
 .rs-role { display: block; font: 600 13px/1.25 var(--rs-serif); font-style: italic; letter-spacing: .03em; color: var(--rs-gilt); }
 .rs-motive { font-style: normal; color: var(--color-text-secondary); }
 .rs-li { position: relative; list-style: none; }

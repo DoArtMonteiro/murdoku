@@ -32,8 +32,6 @@ export interface SuspectStory {
   alibi: string
   /** One or more voiced lines per real clue. */
   lines: InterrogationLine[]
-  /** Contact-sheet portrait index 0..7 (0-3 top row, 4-7 bottom row). Defaults to the shell's hash. */
-  portrait?: number
 }
 
 /** Evidence objects are never a clue-relevant FurnitureType. */

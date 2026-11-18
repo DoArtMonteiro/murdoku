@@ -459,6 +459,7 @@ export default function MapGrid({
                       return (
                         <span
                           aria-hidden="true"
+                          data-token-initial=""
                           className="absolute bottom-0 right-0 flex items-center justify-center font-display font-bold leading-none pointer-events-none select-none"
                           style={{
                             fontSize,

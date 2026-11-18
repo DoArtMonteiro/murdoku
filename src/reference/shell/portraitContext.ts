@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+import type { Person } from '../../core/types'
 
-/** Per-case portrait choices (story.portrait): person id -> contact-sheet index. */
-export const PortraitMap = createContext<Readonly<Record<string, number>>>({})
+/** The people of the case being played, by id: the avatar needs a seed and an accent. */
+export const PortraitMap = createContext<Readonly<Record<string, Person>>>({})

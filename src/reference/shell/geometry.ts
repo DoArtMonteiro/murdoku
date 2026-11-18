@@ -60,18 +60,6 @@ export function fitSquare(w: number, h: number): number {
   return Math.max(0, Math.floor(Math.min(w, h)))
 }
 
-/** Sprite math shared with src/components/SuspectCard.tsx (4×2 contact sheet). */
-export function portraitStyle(personId: string, chosen?: number): { backgroundImage: string; backgroundSize: string; backgroundPosition: string } {
-  const idx = chosen !== undefined && chosen >= 0 && chosen < 8 ? chosen : [...personId].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 8
-  const col = idx % 4
-  const row = Math.floor(idx / 4)
-  return {
-    backgroundImage: 'url("/assets/contact-sheet.jpg")',
-    backgroundSize: '400% 200%',
-    backgroundPosition: `${col * 33.333}% ${row * 100}%`,
-  }
-}
-
 export interface PhonePlan {
   /** Frame size handed to the board (it may be wider than the screen: the lot beyond the crop is dropped). */
   size: number

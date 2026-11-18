@@ -37,7 +37,6 @@ export const veryEasy1Story: CaseStory = {
     {
       personId: 'p0',
       fullName: 'Owen Hollis',
-      portrait: 4,
       role: 'The Victim',
       oneLiner: 'He wrote everything down, which is how he knew exactly who owed him.',
       motive: { label: 'Ledgers', text: 'A careful man with a long memory for what others owed him.' },
@@ -50,7 +49,6 @@ export const veryEasy1Story: CaseStory = {
     {
       personId: 'p1',
       fullName: 'Priya Nandakumar',
-      portrait: 1,
       role: 'The Business Partner',
       oneLiner: 'Calm under pressure, exact with figures, and not given to raising her voice.',
       motive: { label: 'Accounts', text: 'Owen had asked to see the import accounts again, and the parcel on the porch is addressed to him in his own hand.' },
@@ -63,7 +61,6 @@ export const veryEasy1Story: CaseStory = {
     {
       personId: 'p2',
       fullName: 'Faye Hollis',
-      portrait: 3,
       role: 'The Sister',
       oneLiner: 'Turns every argument into a headache and every headache into an early night.',
       motive: { label: 'Money', text: 'Owen had refused to lend her money again that evening; the torn envelope carries the same hand that wrote her refusal.' },
@@ -75,7 +72,6 @@ export const veryEasy1Story: CaseStory = {
     {
       personId: 'p3',
       fullName: 'Tomas Ferreira',
-      portrait: 6,
       role: 'The Night Courier',
       oneLiner: 'Paid by the parcel, so he is not one to stand about, except tonight.',
       motive: { label: 'Grudge', text: 'A damaged consignment last month and a claim Owen put off paying; the parcel on the porch is the delivery he was due to hand over.' },

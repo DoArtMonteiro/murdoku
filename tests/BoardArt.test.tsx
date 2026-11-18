@@ -175,7 +175,7 @@ describe('Colour-blind-safe suspect token', () => {
     )
     // The initial 'N' (for Nadia) must appear inside the token as a text node.
     // aria-hidden so it does not double-speak the cell's accessible name.
-    const initials = Array.from(container.querySelectorAll('[aria-hidden="true"]'))
+    const initials = Array.from(container.querySelectorAll('[data-token-initial]'))
       .filter(el => el.textContent?.trim() === 'N')
     expect(initials.length).toBeGreaterThan(0)
     initials.forEach(el => {
@@ -209,7 +209,7 @@ describe('Colour-blind-safe suspect token', () => {
     const { container: lightContainer, unmount: ul } = render(
       <MapGrid puzzle={puzzleLight} marks={placed} conflicts={new Set()} onCellClick={() => undefined} />,
     )
-    const lightInitial = Array.from(lightContainer.querySelectorAll('[aria-hidden="true"]'))
+    const lightInitial = Array.from(lightContainer.querySelectorAll('[data-token-initial]'))
       .find(el => el.textContent?.trim() === 'A')
     expect(lightInitial).toBeDefined()
     // Light accent → dark ink (CSS var containing 'contour' or '1A1A1A')
@@ -219,7 +219,7 @@ describe('Colour-blind-safe suspect token', () => {
     const { container: darkContainer } = render(
       <MapGrid puzzle={puzzleDark} marks={placed} conflicts={new Set()} onCellClick={() => undefined} />,
     )
-    const darkInitial = Array.from(darkContainer.querySelectorAll('[aria-hidden="true"]'))
+    const darkInitial = Array.from(darkContainer.querySelectorAll('[data-token-initial]'))
       .find(el => el.textContent?.trim() === 'Z')
     expect(darkInitial).toBeDefined()
     // Dark accent → light ink (CSS var containing 'numeral' or 'F1E8CE')

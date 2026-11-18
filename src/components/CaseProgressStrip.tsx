@@ -34,7 +34,7 @@ export default function CaseProgressStrip({
       style={{
         borderColor: 'var(--color-border-strong)',
         backgroundColor: '#D8C8A4',
-        backgroundImage: 'url("/assets/evidence-paper.jpg")',
+        backgroundImage: 'var(--texture-paper)',
         backgroundSize: 'cover',
         backgroundBlendMode: 'multiply',
         boxShadow: 'var(--shadow-cut)',
@@ -101,7 +101,7 @@ export default function CaseProgressStrip({
                     ? 'color-mix(in srgb, var(--color-accent) 60%, var(--color-border-strong))'
                     : 'var(--color-border-strong)',
                   backgroundColor: selected ? '#D9A94E' : placed ? '#D4C095' : '#E2D7BD',
-                  backgroundImage: 'url("/assets/evidence-paper.jpg")',
+                  backgroundImage: 'var(--texture-paper)',
                   backgroundSize: 'cover',
                   backgroundBlendMode: 'multiply',
                   color: conflicted ? '#641F19' : '#19150F',

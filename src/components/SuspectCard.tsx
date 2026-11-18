@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Check, Lock, Crosshair } from 'lucide-react'
 import type { Person } from '../core/types'
+import Avatar from './Avatar'
 
 interface Props {
   person: Person
@@ -32,9 +33,6 @@ export default function SuspectCard({
   person, clues, selected, placed, locked, conflicted, resolved, showCheck,
   located, canLocate, onSelect, onToggleResolved, onToggleLocate,
 }: Props) {
-  const portraitIndex = [...person.id].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 8
-  const portraitColumn = portraitIndex % 4
-  const portraitRow = Math.floor(portraitIndex / 4)
   return (
     <motion.div
       whileTap={{ scale: 0.99 }}
@@ -47,7 +45,7 @@ export default function SuspectCard({
            Selected: person.accent ring — accent carries the boundary at that point. */
         borderColor: selected ? person.accent : 'var(--color-border-strong)',
         backgroundColor: selected ? '#E4C477' : '#DDD1B3',
-        backgroundImage: 'url("/assets/evidence-paper.jpg")',
+        backgroundImage: 'var(--texture-paper)',
         backgroundSize: 'cover',
         backgroundBlendMode: 'multiply',
         /* Selected: double-ring — outer accent halo signals commitment */
@@ -72,16 +70,8 @@ export default function SuspectCard({
             boxShadow: '0 3px 8px -1px rgba(0,0,0,0.6)',
           }}
         >
-          <span
-            className="contact-sheet-portrait block h-11 w-11"
-            role="img"
-            aria-label={`${person.name} portrait`}
-            style={{
-              backgroundImage: 'url("/assets/contact-sheet.jpg")',
-              backgroundSize: '400% 200%',
-              backgroundPosition: `${portraitColumn * 33.333}% ${portraitRow * 100}%`,
-            }}
-          >
+          <span role="img" aria-label={`${person.name} portrait`} className="block h-11 w-11">
+            <Avatar seed={person.avatarSeed} accent={person.accent} size={44} dead={person.isVictim} name={person.name} />
           </span>
           {placed && (
             /* Placement marker: sharp square badge (no rounding) for the noir

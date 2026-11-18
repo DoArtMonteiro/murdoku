@@ -137,15 +137,15 @@ describe('shell: accessible grid and numerals', () => {
     expect(screen.getByTestId('caption')).toHaveTextContent(/R5 · C3 · Living Room/)
   })
 
-  it('draws one portrait token per placed person from the offline contact sheet, victim with chalk', () => {
+  it('draws one avatar token per placed person, bundled and offline, victim with chalk', () => {
     const marks = emptyMarks()
     puzzle.people.forEach((p, i) => { marks[i][i] = { kind: 'person', person: p.id } })
     marks[5][0] = { kind: 'x' }
     const placedOf = Object.fromEntries(puzzle.people.map((p, i) => [p.id, { row: i, col: i, floor: 0 }]))
     const { container } = render(shell(makeGame({ marks, placedOf })))
     expect(container.querySelectorAll('.rs-token')).toHaveLength(puzzle.people.length)
-    const bg = (container.querySelector('.rs-token .rs-portrait') as HTMLElement).style.backgroundImage
-    expect(bg).toContain('/assets/contact-sheet.jpg')
+    expect(container.querySelectorAll('.rs-token .rs-portrait')).toHaveLength(puzzle.people.length)
+    expect(container.innerHTML).not.toMatch(/contact-sheet|\.jpg/)
     expect(container.innerHTML).not.toMatch(/dicebear|src="http|url\("?http/)
     expect(screen.getAllByTestId('chalk-outline')).toHaveLength(1)
     expect(container.querySelectorAll('.rs-cross')).toHaveLength(1)

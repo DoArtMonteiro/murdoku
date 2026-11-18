@@ -1,18 +1,20 @@
 import { memo, useContext } from 'react'
+import Avatar from '../../components/Avatar'
 import { PortraitMap } from './portraitContext'
-import { portraitStyle } from './geometry'
 
-/** Offline photo portrait from the shared contact sheet. */
+/** The suspect's bundled illustrated avatar (no network), sized by the box. */
 export const Portrait = memo(function Portrait({ personId, size, label }: { personId: string; size: number; label?: string }) {
-  const chosen = useContext(PortraitMap)[personId]
+  const person = useContext(PortraitMap)[personId]
   return (
     <span
       className="rs-portrait"
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
-      style={{ width: size, height: size, ...portraitStyle(personId, chosen) }}
-    />
+      style={{ width: size, height: size }}
+    >
+      <Avatar seed={person?.avatarSeed ?? personId} accent={person?.accent} size={size} className="h-full w-full" dead={person?.isVictim} name={person?.name ?? personId} />
+    </span>
   )
 })
 
