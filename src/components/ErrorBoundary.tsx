@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { keysWithPrefix, removeKey } from '../core/storage'
+import { isChunkLoadError, reloadOnceForChunkError } from '../core/chunkErrors'
 
 interface Props {
   children: ReactNode
@@ -25,6 +26,9 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    // A file that could not be loaded after an update is not a crash of the game: load the
+    // current version once. The message below takes over if that does not help.
+    if (isChunkLoadError(error)) reloadOnceForChunkError(this.reload)
     console.error('Alibi crashed while rendering', error, info.componentStack)
   }
 
@@ -41,6 +45,34 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.error) return this.props.children
+    if (isChunkLoadError(this.state.error)) {
+      // Not a data problem, so no way to clear saves is offered here.
+      return (
+        <div
+          role="alert"
+          className="min-h-screen bg-bg-deep text-paper font-sans flex items-center justify-center p-6"
+          style={{ background: 'var(--color-bg-deep, #14110d)', color: 'var(--color-text-primary, #f1e9d6)' }}
+        >
+          <div className="max-w-md w-full grid gap-4 border p-5" style={{ borderColor: 'var(--color-border-strong, #5a4f3c)' }}>
+            <h1 className="font-display text-xl font-bold uppercase tracking-[0.12em]">Part of the game did not load</h1>
+            <p className="text-sm leading-relaxed">
+              This usually means the game was updated while this page was open, or the connection dropped.
+              Reload to get the current version. Your saved progress is not affected.
+            </p>
+            <div>
+              <button
+                type="button"
+                onClick={this.reload}
+                className="focus-ring min-h-[44px] px-4 border font-display font-bold uppercase tracking-[0.12em]"
+                style={{ borderColor: 'currentColor' }}
+              >
+                Reload
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
     return (
       <div
         role="alert"
