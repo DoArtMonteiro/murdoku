@@ -5,20 +5,24 @@ import { useTheme } from './hooks/useTheme'
 import HomeScreen from './components/HomeScreen'
 import GameScreen from './components/GameScreen'
 import ErrorBoundary from './components/ErrorBoundary'
+import { warmAvatars } from './components/avatarImage'
 
 const importVictory = () => import('./components/VictoryScreen')
 const importReleases = () => import('./components/ReleaseNotes')
 const VictoryScreen = lazy(importVictory)
 const ReleaseNotes = lazy(importReleases)
-// R1 reference case: `?ref=nightplan` | `?ref=plan3d` plays very-easy-1 in one of
-// the two competing board variants. Honoured in production builds on purpose:
-// the reference build is what the owner reviews.
-const ReferenceGame = lazy(() => import('./reference/ReferenceGame'))
-// `?ref=city`: visual-language prototype of the city / casebook (R2).
-const CityMap = lazy(() => import('./reference/city/CityMap'))
-const isCityRoute = () => new URLSearchParams(window.location.search).get('ref') === 'city'
+// Reference prototypes: `?ref=nightplan` | `?ref=plan3d` | `?ref=illustrated` play
+// very-easy-1 on a competing board, and `?ref=city` shows the casebook map.
+// They exist for design review and are compiled in for development only:
+// `import.meta.env.DEV` is a build-time constant, so a production build drops
+// both the routes and every module behind them.
+const REFERENCE_ROUTES = import.meta.env.DEV
+const ReferenceGame = REFERENCE_ROUTES ? lazy(() => import('./reference/ReferenceGame')) : null
+const CityMap = REFERENCE_ROUTES ? lazy(() => import('./reference/city/CityMap')) : null
+const refParam = () => (REFERENCE_ROUTES ? new URLSearchParams(window.location.search).get('ref') : null)
+const isCityRoute = () => refParam() === 'city'
 function referenceVariant(): 'nightplan' | 'plan3d' | 'illustrated' | null {
-  const v = new URLSearchParams(window.location.search).get('ref')
+  const v = refParam()
   return v === 'nightplan' || v === 'plan3d' || v === 'illustrated' ? v : null
 }
 
@@ -68,7 +72,7 @@ function AppInner() {
   // stalls on a mid-animation fetch (which caused a visible repaint hiccup).
   // Cancelled on unmount, so a torn-down app (or test environment) never starts the imports.
   useEffect(() => {
-    const warm = () => { importVictory(); importReleases() }
+    const warm = () => { importVictory(); importReleases(); warmAvatars() }
     const w = window as any
     if (w.requestIdleCallback) {
       const id = w.requestIdleCallback(warm)
@@ -85,7 +89,7 @@ function AppInner() {
     if (next) game.start(next, game.mode)
   }
 
-  if (isCityRoute()) {
+  if (CityMap && isCityRoute()) {
     return (
       <Suspense fallback={<Fallback />}>
         <CityMap game={game} />
@@ -93,7 +97,7 @@ function AppInner() {
     )
   }
 
-  if (refVariant) {
+  if (ReferenceGame && refVariant) {
     return (
       <Suspense fallback={<Fallback />}>
         <ReferenceGame variant={refVariant} game={game} />

@@ -9,6 +9,7 @@ import type { SavedAttempts } from '../core/saves'
 import type { CaseRecord } from '../hooks/useGame'
 import ThemeToggle from './ThemeToggle'
 import BoardPreview from './BoardPreview'
+import About from './About'
 import { dailyPuzzle, loadStreak, streakIsLive, computeBadges } from '../core/daily'
 
 interface Props {
@@ -64,6 +65,7 @@ export default function HomeScreen({
   // 'landing' = Screen 1; any Difficulty string = Screen 2 (case list for that tier)
   const [view, setView] = useState<'landing' | Difficulty>('landing')
   const [storeyFilter, setStoreyFilter] = useState<StoreyFilter>('all')
+  const [about, setAbout] = useState<{ opener: HTMLElement | null } | null>(null)
 
   const resumablePuzzle = inProgress ? puzzles.find(puzzle => puzzle.id === inProgress.id) : undefined
 
@@ -451,7 +453,7 @@ export default function HomeScreen({
         <BadgeShelf puzzles={puzzles} completedIds={completedIds} records={records} />
 
         {/* Footer */}
-        <footer className="pb-safe pb-6 flex justify-center gap-4 mt-auto">
+        <footer className="pb-safe pb-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-auto">
           {(() => {
             const solvedCount = completedIds.filter(id => puzzles.some(p => p.id === id)).length
             const bestTimes = puzzles.map(p => records[p.id]?.bestSeconds).filter((v): v is number => v != null)
@@ -469,10 +471,18 @@ export default function HomeScreen({
               </>
             )
           })()}
+          <button
+            type="button"
+            onClick={() => setAbout({ opener: document.activeElement instanceof HTMLElement ? document.activeElement : null })}
+            className="focus-ring min-h-11 px-1 text-paper-muted text-[11px] tracking-wider font-sans hover:text-accent-text transition-colors"
+          >
+            About &amp; credits
+          </button>
         </footer>
 
       </div>{/* /content column */}
       {chooserDialog}
+      {about && <About onClose={() => { const opener = about.opener; setAbout(null); opener?.focus() }} />}
     </motion.div>
   )
 }

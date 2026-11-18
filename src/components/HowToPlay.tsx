@@ -72,6 +72,12 @@ export default function HowToPlay({ mode, onClose }: Props) {
               Solve the board, then submit. Whoever ends up alone with the victim in the same room is the murderer.
             </span>
           </Step>
+          <Step n={4}>
+            <span className="font-display text-text-primary font-semibold">What &ldquo;beside&rdquo; means.</span>
+            <span data-testid="beside-rule" className="font-mono text-[12px] text-text-secondary leading-relaxed block mt-1">
+              &ldquo;Beside a TV&rdquo; means a TV touches your square along a side, in the same room and on the same floor, and you are not standing on it. Corners do not count, and neither does a TV on the far side of a wall.
+            </span>
+          </Step>
         </ol>
 
         {/* Mode identity line */}

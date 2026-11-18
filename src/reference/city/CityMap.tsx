@@ -138,7 +138,7 @@ export default function CityMap({ game }: { game: CityGame }) {
       <header className="ct-head">
         <a className="ct-back" href="/" aria-label="Voltar ao jogo"><span aria-hidden="true">←</span><span className="ct-back-t">Jogo</span></a>
         <div className="ct-title">
-          <p className="ct-eyebrow">Murdoku · Livro de casos</p>
+          <p className="ct-eyebrow">Alibi · Livro de casos</p>
           <h1>Portinhal <span aria-hidden="true">—</span> Casebook</h1>
         </div>
         <div className="ct-total" role="group" aria-label={`${solvedTotal} de ${layout.pins.length} casos resolvidos`}>

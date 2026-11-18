@@ -25,7 +25,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Murdoku crashed while rendering', error, info.componentStack)
+    console.error('Alibi crashed while rendering', error, info.componentStack)
   }
 
   private reload = () => {
