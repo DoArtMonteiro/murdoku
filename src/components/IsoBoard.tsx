@@ -5,6 +5,7 @@ import { resolveScene } from '../scene3d/resolve'
 import { sceneFor } from '../scene3d/scenes'
 import { withoutLookalikes } from '../scene3d/lookalikes'
 import type { SceneRenderer } from '../scene3d/renderer'
+import { isChunkLoadError, reloadOnceForChunkError } from '../core/chunkErrors'
 import { validateScene, formatViolations } from '../scene3d/validate'
 import { CELL, makeStoreyFrame, STOREY_HEIGHT, type StoreyView } from '../scene3d/units'
 import Avatar from './Avatar'
@@ -129,6 +130,8 @@ export default function IsoBoard({
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const rendererRef = useRef<SceneRenderer | null>(null)
   const [rendererReady, setRendererReady] = useState(0)
+  // The 3D chunk could not be loaded and a reload has already been tried (see below).
+  const [sceneMissing, setSceneMissing] = useState(false)
   const [scale, setScale] = useState(1)
 
   // three.js is loaded on demand: the DOM board (hit grid, tokens, marks)
@@ -146,6 +149,12 @@ export default function IsoBoard({
       const el = wrapRef.current
       if (created && el) created.setSize(el.clientWidth || frame.width, el.clientHeight || frame.height)
       setRendererReady(v => v + 1)
+    }).catch(error => {
+      if (cancelled) return
+      // The file is gone (the game was updated under this page): load the current version once.
+      // If that was already tried, say so instead of leaving an empty board.
+      if (isChunkLoadError(error)) { if (!reloadOnceForChunkError()) setSceneMissing(true) }
+      else throw error
     })
     return () => { cancelled = true; created?.dispose(); rendererRef.current = null }
   }, [scene, companion, frame.width, frame.height])
@@ -557,6 +566,26 @@ export default function IsoBoard({
           {axisLabels.cols.map(label => axisChip('col', label))}
           {axisTitle('row')}
           {axisTitle('col')}
+        </div>
+      )}
+      {sceneMissing && (
+        <div
+          role="alert"
+          className="absolute inset-x-2 top-2 flex flex-wrap items-center gap-3 border p-3 font-mono text-[12px] leading-snug"
+          style={{ zIndex: 600, background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', borderColor: 'var(--color-border-strong)' }}
+        >
+          <span className="min-w-0 flex-1">
+            The 3D house did not load. This usually means the game was updated while this page was open.
+            Your progress is not affected; the grid below still works.
+          </span>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="focus-ring min-h-[44px] border px-4 font-display text-sm font-bold uppercase tracking-[0.12em]"
+            style={{ borderColor: 'currentColor' }}
+          >
+            Reload
+          </button>
         </div>
       )}
       {!envOnly && <>
