@@ -34,6 +34,7 @@ describe('credits', () => {
     expect(dialog).toHaveTextContent('CC0')
     expect(dialog).toHaveTextContent('Zoish')
     expect(dialog).toHaveTextContent('DiceBear')
+    expect(screen.getByTestId('notices-link')).toHaveAttribute('href', '/THIRD-PARTY-NOTICES.txt')
   })
 
   it('close with Escape and give the focus back', () => {

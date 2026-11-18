@@ -27,7 +27,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,woff2,txt}'],
         runtimeCaching: [
           {
             // Kenney glTF models for the 3D board: small, immutable, fetched on demand.

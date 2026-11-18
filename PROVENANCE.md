@@ -16,10 +16,10 @@ This is a record of facts, not legal advice. Licence terms are taken from the li
 | 3D furniture and plant models (161 `.glb`) | `public/kenney3d/` | Kenney Furniture Kit (140 models) and a 21-model subset of the Nature Kit. Licence: CC0 per the pack pages on kenney.nl. | Count and file names match the packs; the files were not byte-compared with the official downloads, and no licence file came with them. Inferred. |
 | Isometric furniture sprites (150 `.png`) | `public/kenney/` | Isometric renders from the Kenney Furniture Kit. CC0. | Inferred, as above. |
 | Suspect avatars | drawn in the browser from `@dicebear/core` and `@dicebear/notionists` | "Notionists" style by Zoish, CC0 1.0; DiceBear code, MIT. The artwork travels inside the npm package, so the game makes no request to a DiceBear service. | Verified from the package's own `LICENSE`. |
-| Fonts | `@fontsource/*` packages, Latin subset, bundled as `.woff2` | Barlow Condensed, Courier Prime, Hanken Grotesk, all SIL Open Font License 1.1. Served from the game's own origin. | Verified from each package's `LICENSE`; full text in `THIRD-PARTY-NOTICES.md`. |
+| Fonts | `@fontsource/*` packages, Latin subset, bundled as `.woff2` | Barlow Condensed, Courier Prime, Hanken Grotesk, all SIL Open Font License 1.1. Served from the game's own origin. | Verified from each package's `LICENSE`; full text in `public/THIRD-PARTY-NOTICES.txt`. |
 | Paper and desk surfaces | CSS custom properties `--texture-paper`, `--texture-desk` in `src/styles/theme.css` | Gradients written for this project. No image file. | Verified. |
 | App icon | `public/icon.svg` | Hand-written SVG in the repository. Who drew it is not recorded. | Unknown author, probably the project. |
-| Runtime libraries | npm | React, React DOM, Scheduler, Framer Motion (with motion-dom, motion-utils), lucide-react, three.js, tslib, Workbox (service worker), idb | Licences in `THIRD-PARTY-NOTICES.md`, read from the installed packages. |
+| Runtime libraries | npm | React, React DOM, Scheduler, Framer Motion (with motion-dom, motion-utils), lucide-react, three.js, tslib, Workbox (service worker), idb | Licences in `public/THIRD-PARTY-NOTICES.txt` (served at `/THIRD-PARTY-NOTICES.txt`, linked from About & credits), read from the installed packages. |
 
 Nothing else is served: no audio, video, other raster images, tracking or remote scripts. The build makes no request to a third-party host.
 
@@ -42,11 +42,11 @@ Cases come from a seeded generator and from hand-authored case definitions in th
 
 Murdoku was created by Manuel Garand, according to murdoku.com/about. The game says so, and says that it is independent and not affiliated with, endorsed by or sponsored by him, the owner of the Murdoku name or the publishers of the Murdoku books (About & credits on the home screen). It does not claim any permission, because none is recorded.
 
-The name Murdoku is registered as a trademark in Canada (CIPO registration TMA1459099, Studios Digivoid Inc., registered 2026-10-30, read from the CIPO record on 2026-11-18). Other jurisdictions were not checked at the source. The published game is named Alibi and shows "Murdoku" only in the credit sentence. The browser storage keys that begin with `murdoku_` are internal, are never shown to players, and are kept so that existing saved progress keeps working.
+The published game is named Alibi and shows "Murdoku" only in the credit sentence. The browser storage keys that begin with `murdoku_` are internal, are never shown to players, and are kept so that existing saved progress keeps working. Whether the name Murdoku is protected anywhere, and what that means for this project, was not assessed here.
 
 ## Open questions for the owner
 
 1. How the four removed images were made. They are no longer shipped, but they remain in the repository history.
 2. Who drew `icon.svg`.
-3. Whether any permission from the creator of the format or the owner of the name exists.
+3. Whether any permission from the creator of the format or the owner of the name exists, and whether the name needs more than the credit and non-affiliation notice (a question for a lawyer).
 4. Whether the 161 models and 150 sprites match the official Kenney downloads byte for byte.

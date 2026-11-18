@@ -92,8 +92,14 @@ describe('deployment files', () => {
     return block
   }
 
-  it('ships the headers file with the site', () => {
+  it('ships the headers file and the licence notices with the site', () => {
     expect(files.has('_headers')).toBe(true)
+    expect(files.has('THIRD-PARTY-NOTICES.txt')).toBe(true)
+    const notices = readFileSync(join(outDir, 'THIRD-PARTY-NOTICES.txt'), 'utf8')
+    for (const name of ['react 19', 'three 0', 'framer-motion', 'lucide-react', '@dicebear/core', 'workbox-core', '@fontsource/barlow-condensed', '@fontsource/courier-prime', '@fontsource/hanken-grotesk']) {
+      expect(notices, name).toContain(name)
+    }
+    expect(notices).toContain('SIL OPEN FONT LICENSE Version 1.1')
   })
 
   it('sets a strict Content-Security-Policy: no inline code, no eval, no outside host', () => {
@@ -101,6 +107,7 @@ describe('deployment files', () => {
     expect(csp).toBeDefined()
     expect(csp).not.toMatch(/unsafe-inline|unsafe-eval|\*|https?:/)
     expect(csp).toContain("default-src 'none'")
+    expect(csp).toContain("img-src 'self' data:;")
     expect(csp).toContain("script-src 'self'")
     expect(csp).toContain("frame-ancestors 'none'")
     expect(csp).toContain("object-src 'none'")

@@ -1,14 +1,15 @@
-# Third-party notices
+THIRD-PARTY NOTICES
+=====================
 
-Alibi includes the material below. Each section gives the package, its version, its licence as declared in the package, and the licence file shipped with that package, reproduced unchanged. Versions are the ones in `package-lock.json`. This file covers what is in the build served to players; tools used only to build or test the game are not listed.
+Alibi includes the material below. Each entry gives the package, its version, its licence as declared in the package, and the licence file shipped with that package, reproduced unchanged. Versions are the ones in package-lock.json. This file covers what is in the build served to players; tools used only to build or test the game are not listed.
 
-The 3D models, the isometric sprites and the avatar artwork are released under CC0 and need no notice; they are credited in the game (About & credits) and in PROVENANCE.md.
+The 3D models, the isometric sprites and the avatar artwork are released under CC0 and need no notice; they are credited in the game (About & credits).
 
-## Code bundled into the game
+Code bundled into the game
+--------------------------
 
-### react 19.2.7 (MIT)
+react 19.2.7 (MIT)
 
-```text
 MIT License
 
 Copyright (c) Meta Platforms, Inc. and affiliates.
@@ -30,11 +31,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### react-dom 19.2.7 (MIT)
+==========
 
-```text
+react-dom 19.2.7 (MIT)
+
 MIT License
 
 Copyright (c) Meta Platforms, Inc. and affiliates.
@@ -56,11 +57,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### scheduler 0.27.0 (MIT)
+==========
 
-```text
+scheduler 0.27.0 (MIT)
+
 MIT License
 
 Copyright (c) Meta Platforms, Inc. and affiliates.
@@ -82,11 +83,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### framer-motion 12.42.2 (MIT)
+==========
 
-```text
+framer-motion 12.42.2 (MIT)
+
 The MIT License (MIT)
 
 Copyright (c) 2018 Framer B.V.
@@ -108,11 +109,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### motion-dom 12.42.2 (MIT)
+==========
 
-```text
+motion-dom 12.42.2 (MIT)
+
 The MIT License (MIT)
 
 Copyright (c) 2024 [Motion](https://motion.dev) B.V.
@@ -134,11 +135,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### motion-utils 12.39.0 (MIT)
+==========
 
-```text
+motion-utils 12.39.0 (MIT)
+
 The MIT License (MIT)
 
 Copyright (c) 2024 [Motion](https://motion.dev) B.V.
@@ -160,11 +161,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### lucide-react 1.23.0 (ISC)
+==========
 
-```text
+lucide-react 1.23.0 (ISC)
+
 ISC License
 
 Copyright (c) 2026 Lucide Icons and Contributors
@@ -208,11 +209,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### three 0.185.1 (MIT)
+==========
 
-```text
+three 0.185.1 (MIT)
+
 The MIT License
 
 Copyright © 2010-2026 three.js authors
@@ -234,11 +235,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
 
-### tslib 2.8.1 (0BSD)
+==========
 
-```text
+tslib 2.8.1 (0BSD)
+
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any
@@ -251,11 +252,11 @@ INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
 LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
-```
 
-### @dicebear/core 9.4.3 (MIT)
+==========
 
-```text
+@dicebear/core 9.4.3 (MIT)
+
 MIT License
 
 Copyright (c) 2024 Florian Körner
@@ -277,11 +278,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### @dicebear/notionists 9.4.2 (MIT)
+==========
 
-```text
+@dicebear/notionists 9.4.2 (MIT)
+
 Licenses
 --------
 
@@ -316,13 +317,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-## Service worker (Workbox, copied into the build as `sw.js` and `workbox-*.js`)
+==========
 
-### workbox-core 7.4.1 (MIT)
+Service worker (Workbox, copied into the build as `sw.js` and `workbox-*.js`)
+-----------------------------------------------------------------------------
 
-```text
+workbox-core 7.4.1 (MIT)
+
 Copyright 2018 Google LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -342,11 +344,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
 
-### workbox-expiration 7.4.1 (MIT)
+==========
 
-```text
+workbox-expiration 7.4.1 (MIT)
+
 Copyright 2018 Google LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -366,11 +368,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
 
-### workbox-precaching 7.4.1 (MIT)
+==========
 
-```text
+workbox-precaching 7.4.1 (MIT)
+
 Copyright 2018 Google LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -390,11 +392,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
 
-### workbox-routing 7.4.1 (MIT)
+==========
 
-```text
+workbox-routing 7.4.1 (MIT)
+
 Copyright 2018 Google LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -414,11 +416,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
 
-### workbox-strategies 7.4.1 (MIT)
+==========
 
-```text
+workbox-strategies 7.4.1 (MIT)
+
 Copyright 2018 Google LLC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -438,24 +440,25 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
 
-### idb 7.1.1 (ISC)
+==========
 
-```text
+idb 7.1.1 (ISC)
+
 ISC License (ISC)
 Copyright (c) 2016, Jake Archibald <jaffathecake@gmail.com>
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
 
 THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-```
 
-## Fonts (SIL Open Font License 1.1, served from the build)
+==========
 
-### @fontsource/barlow-condensed 5.3.0 (OFL-1.1)
+Fonts (SIL Open Font License 1.1, served from the build)
+--------------------------------------------------------
 
-```text
+@fontsource/barlow-condensed 5.3.0 (OFL-1.1)
+
 Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-ThinItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-ExtraLight.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-ExtraLightItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-Light.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-LightItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-Regular.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-Italic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-Medium.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-MediumItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-SemiBold.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-SemiBoldItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-Bold.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-BoldItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-ExtraBold.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-ExtraBoldItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-Black.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow) BarlowCondensed-BlackItalic.ttf: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
@@ -549,11 +552,11 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
-```
 
-### @fontsource/courier-prime 5.3.0 (OFL-1.1)
+==========
 
-```text
+@fontsource/courier-prime 5.3.0 (OFL-1.1)
+
 Copyright 2015 The Courier Prime Project Authors (https://github.com/quoteunquoteapps/CourierPrime). CourierPrime-Italic.ttf: Copyright 2015 The Courier Prime Project Authors (https://github.com/quoteunquoteapps/CourierPrime). CourierPrime-Bold.ttf: Copyright 2015 The Courier Prime Project Authors (https://github.com/quoteunquoteapps/CourierPrime). CourierPrime-BoldItalic.ttf: Copyright 2015 The Courier Prime Project Authors (https://github.com/quoteunquoteapps/CourierPrime).
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
@@ -647,11 +650,11 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
-```
 
-### @fontsource/hanken-grotesk 5.3.0 (OFL-1.1)
+==========
 
-```text
+@fontsource/hanken-grotesk 5.3.0 (OFL-1.1)
+
 Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk) HankenGrotesk-Italic[wght].ttf: Copyright 2021 The Hanken Grotesk Project Authors (https://github.com/marcologous/hanken-grotesk)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
@@ -745,4 +748,5 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
-```
+
+==========

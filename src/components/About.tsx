@@ -14,12 +14,17 @@ interface Props {
 export default function About({ onClose }: Props) {
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   useEffect(() => { closeRef.current?.focus() }, [])
 
-  // The only control is the close button, so Tab stays on it.
+  // Keep Tab inside the dialog: the link and the close button are its only controls.
   function onKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') { e.stopPropagation(); onClose() }
-    else if (e.key === 'Tab') { e.preventDefault(); closeRef.current?.focus() }
+    if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
+    if (e.key !== 'Tab' || !panelRef.current) return
+    const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('a[href], button'))
+    const first = controls[0], last = controls[controls.length - 1]
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
   }
 
   return (
@@ -34,6 +39,7 @@ export default function About({ onClose }: Props) {
       data-testid="about"
     >
       <div
+        ref={panelRef}
         onClick={e => e.stopPropagation()}
         className="w-full max-w-md border bg-bg-surface p-5 max-h-[min(720px,calc(100dvh-2rem))] overflow-y-auto overscroll-contain"
         style={{ borderColor: 'var(--color-border-strong)', boxShadow: 'var(--shadow-elevated)' }}
@@ -55,6 +61,18 @@ export default function About({ onClose }: Props) {
           <li>Suspect avatars: the Notionists style by Zoish, released under CC0 1.0, drawn with DiceBear.</li>
           <li>Type: Barlow Condensed, Courier Prime and Hanken Grotesk, under the SIL Open Font License 1.1.</li>
         </ul>
+
+        <p className="mt-4 font-mono text-[12px] leading-relaxed text-text-secondary">
+          <a
+            href="/THIRD-PARTY-NOTICES.txt"
+            target="_blank"
+            rel="noopener"
+            className="focus-ring underline underline-offset-2"
+            data-testid="notices-link"
+          >
+            Licences of the software and fonts in this game
+          </a>
+        </p>
 
         <button
           ref={closeRef}
