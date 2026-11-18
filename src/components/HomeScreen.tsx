@@ -65,7 +65,7 @@ export default function HomeScreen({
   // 'landing' = Screen 1; any Difficulty string = Screen 2 (case list for that tier)
   const [view, setView] = useState<'landing' | Difficulty>('landing')
   const [storeyFilter, setStoreyFilter] = useState<StoreyFilter>('all')
-  const [about, setAbout] = useState<{ opener: HTMLElement | null } | null>(null)
+  const [aboutOpen, setAboutOpen] = useState(false)
 
   const resumablePuzzle = inProgress ? puzzles.find(puzzle => puzzle.id === inProgress.id) : undefined
 
@@ -472,7 +472,7 @@ export default function HomeScreen({
           })()}
           <button
             type="button"
-            onClick={() => setAbout({ opener: document.activeElement instanceof HTMLElement ? document.activeElement : null })}
+            onClick={() => setAboutOpen(true)}
             className="focus-ring min-h-11 px-1 text-paper-muted text-[11px] tracking-wider font-sans hover:text-accent-text transition-colors"
           >
             About &amp; credits
@@ -481,7 +481,7 @@ export default function HomeScreen({
 
       </div>{/* /content column */}
       {chooserDialog}
-      {about && <About onClose={() => { const opener = about.opener; setAbout(null); opener?.focus() }} />}
+      {aboutOpen && <About onClose={() => setAboutOpen(false)} />}
     </motion.div>
   )
 }

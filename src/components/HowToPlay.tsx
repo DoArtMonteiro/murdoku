@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useModalKeys } from '../hooks/useModalKeys'
 import { motion } from 'framer-motion'
 import { X, MousePointerClick, Pencil, Lightbulb, Wand2 } from 'lucide-react'
 import type { GameMode } from '../core/types'
@@ -20,14 +20,8 @@ export default function HowToPlay({ mode, onClose }: Props) {
     return () => { if (opener?.isConnected) opener.focus() }
   }, [])
 
-  function onKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
-    if (e.key !== 'Tab' || !panelRef.current) return
-    const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button'))
-    const first = controls[0], last = controls[controls.length - 1]
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
-  }
+  // Escape closes and Tab stays inside, even after a click on text has moved focus to the panel or <body>.
+  useModalKeys(panelRef, onClose)
 
   return (
     <motion.div
@@ -35,10 +29,10 @@ export default function HowToPlay({ mode, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'var(--overlay-scrim)' }}
       onClick={onClose}
-      onKeyDown={onKeyDown}
     >
       <motion.div
         ref={panelRef}
+        tabIndex={-1}
         initial={{ scale: 0.94, y: 8 }} animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.96, opacity: 0 }}
         transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
@@ -47,7 +41,7 @@ export default function HowToPlay({ mode, onClose }: Props) {
         aria-modal="true"
         aria-labelledby="how-to-play-title"
         data-testid="how-to-play"
-        className="clipped-corner w-full max-w-md border border-border-strong bg-bg-panel p-4 max-h-[min(720px,calc(100dvh-2rem))] overflow-y-auto overscroll-contain sm:p-5"
+        className="clipped-corner w-full max-w-md border border-border-strong bg-bg-panel p-4 max-h-[min(720px,calc(100dvh-2rem))] overflow-y-auto overscroll-contain outline-none sm:p-5"
         style={{ boxShadow: 'var(--shadow-elevated)' }}
       >
         <div className="film-perforation mb-4 h-2 w-full opacity-60" aria-hidden="true" />

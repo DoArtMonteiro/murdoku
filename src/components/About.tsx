@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useModalKeys } from '../hooks/useModalKeys'
 
 interface Props {
   onClose: () => void
@@ -15,24 +15,20 @@ export default function About({ onClose }: Props) {
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  useEffect(() => { closeRef.current?.focus() }, [])
-
-  // Keep Tab inside the dialog: the link and the close button are its only controls.
-  function onKeyDown(e: ReactKeyboardEvent<HTMLDivElement>) {
-    if (e.key === 'Escape') { e.stopPropagation(); onClose(); return }
-    if (e.key !== 'Tab' || !panelRef.current) return
-    const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('a[href], button'))
-    const first = controls[0], last = controls[controls.length - 1]
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
-  }
+  // Focus moves into the dialog on open and returns to whatever opened it on close.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    closeRef.current?.focus()
+    return () => { if (opener?.isConnected) opener.focus() }
+  }, [])
+  // Escape closes and Tab stays inside, even after a click on text has moved focus to the panel or <body>.
+  useModalKeys(panelRef, onClose)
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'var(--overlay-scrim)' }}
       onClick={onClose}
-      onKeyDown={onKeyDown}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -40,8 +36,9 @@ export default function About({ onClose }: Props) {
     >
       <div
         ref={panelRef}
+        tabIndex={-1}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md border bg-bg-surface p-5 max-h-[min(720px,calc(100dvh-2rem))] overflow-y-auto overscroll-contain"
+        className="w-full max-w-md border bg-bg-surface p-5 max-h-[min(720px,calc(100dvh-2rem))] overflow-y-auto overscroll-contain outline-none"
         style={{ borderColor: 'var(--color-border-strong)', boxShadow: 'var(--shadow-elevated)' }}
       >
         <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-text-muted">ABOUT</p>
