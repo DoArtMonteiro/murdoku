@@ -6,9 +6,9 @@ Alibi is served by a Cloudflare Worker named `alibi-game`: the built site (`dist
 
 > **Remove the old `murdoku` Workers Builds connection before this branch is merged to `main`.**
 >
-> If this repository is still connected to the existing `murdoku` Worker through Workers Builds, the merge will start a build there. That build must not deploy this project over the old Worker, and a CI setting can override the `name` in a Wrangler config. Disconnect the `murdoku` connection in the Cloudflare dashboard (Workers & Pages, the `murdoku` Worker, Settings, Builds) first. Connect `alibi-game` afterwards, if wanted, with the commands below.
+> If this repository is still connected to the existing `murdoku` Worker through Workers Builds, the merge will start a build there, and that build will not use the config in this folder. Measured with Wrangler 4.164.0: a bare `npx wrangler deploy --dry-run` at the repository root finds no config, detects the Vite project, names the Worker **`murdoku`** (from the `name` in `package.json`) and plans to install packages and write a config of its own. A real bare `wrangler deploy` there would therefore deploy this build to `murdoku` without the guard Worker. A CI setting can also override the `name` in any config. Disconnect the `murdoku` connection in the Cloudflare dashboard (Workers & Pages, the `murdoku` Worker, Settings, Builds) first. Connect `alibi-game` afterwards, if wanted, with the commands below.
 
-This is why there is no `wrangler.jsonc` at the repository root: a tool looking for a root config finds nothing and cannot pick this one up by accident. Always pass the config explicitly. Do not move it back to the root.
+The config is kept out of the repository root so that a tool looking for a root config cannot pick this one up by accident, but that is not isolation: the bare command above still works against whatever Worker its settings name. Always pass the config explicitly. The repository's literal `wrangler deploy --dry-run` no longer validates anything at the root (it stops at the auto-detection step); use `npm run deploy:cloudflare:dry-run`. Do not move the config back to the root. Renaming the package (`name` in `package.json`) would change which Worker a bare deploy targets, but not make it safe; that is an owner decision.
 
 ## Files
 
