@@ -1,7 +1,6 @@
 // Pure, deterministic model of "Portinhal", the casebook city (R2 prototype).
 // Nothing here touches game logic: it only READS puzzles + completedIds and
 // derives where each case lives on the map and whether it is locked.
-// Visual language: scratchpad/r2/CITY-LANGUAGE.md.
 import type { Difficulty, Puzzle } from '../../core/types'
 
 export type StyleId = 'victorian' | 'artdeco' | 'tudor' | 'modernist' | 'mediterranean'

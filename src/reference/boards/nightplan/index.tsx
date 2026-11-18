@@ -1,6 +1,6 @@
 // ============================================================================
 // PROTOTYPE 1 — "Night Plan": a 2D architect's floor plan on a bone sheet.
-// Spec: scratchpad/r1/F-spec.md (palette §1, sheet §3, walls/doors/windows §4,
+// Spec (palette §1, sheet §3, walls/doors/windows §4,
 // pictograms §5, light §7). Purely visual: aria-hidden, no handlers, no
 // network, deterministic for (puzzle, floor, size). Theme is accepted but the
 // sheet does not theme (§1.1).

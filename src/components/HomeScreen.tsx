@@ -527,7 +527,7 @@ function TierScreen({
           <button
             type="button"
             onClick={onBack}
-            aria-label="Back to landing"
+            aria-label="Cases, back to landing"
             className="focus-ring flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors"
             style={{ minHeight: 44, minWidth: 44 }}
           >

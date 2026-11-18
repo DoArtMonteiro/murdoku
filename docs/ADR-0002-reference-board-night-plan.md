@@ -16,7 +16,7 @@ Both use the same layout contract (`src/reference/contract.ts`): an axis-aligned
 
 ## Evidence
 
-The art director (Fable) assessed both versions on their own (`scratchpad/r1/fable-ab/CRITIQUE.md`). A fresh adversarial reviewer also tested them (`scratchpad/r1/gate/REPORT.md`). Both are archived in the R1 evidence tarball.
+The art director (Fable) assessed both versions on their own. A fresh adversarial reviewer also tested them. Both are archived in the R1 evidence tarball.
 
 | Measure | Night Plan | Plan 3D |
 |---|---|---|

@@ -1,6 +1,6 @@
 # Root-cause report — why the Midnight Delivery diorama kept failing
 
-Scope: commits 466263a → 9ef1545 on `art-kenney-v2`, the `claude/midnight-delivery-polish` follow-up (babcba9) and the uncommitted iteration preserved on `checkpoint/pre-fable-rebuild-2026-09-02`. Baseline screenshots of the last state are in `C:\Users\Duarte\murdoku-checkpoints\baseline\`.
+Scope: commits 466263a → 9ef1545 on `art-kenney-v2`, the `claude/midnight-delivery-polish` follow-up (babcba9) and the uncommitted iteration preserved on `checkpoint/pre-fable-rebuild-2026-09-02`. Baseline screenshots of the last state are in a location outside the repository.
 
 ## The one root cause
 

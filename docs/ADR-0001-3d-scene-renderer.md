@@ -18,7 +18,7 @@ To become robust the sprite path would need, per sprite and per facing: calibrat
 
 ### B — use the glTF models directly (three.js, orthographic camera)
 
-Prototype (`proto/iso3d.ts`, since removed; screenshots in `C:\Users\Duarte\murdoku-checkpoints\proto\`) built in one pass: floor tiles, shell walls with thickness and corners, a partition with a door frame, bed, sofa, counter run, desk, fridge, table and chairs, one directional light with shadows.
+Prototype (`proto/iso3d.ts`, since removed; screenshots in a location outside the repository) built in one pass: floor tiles, shell walls with thickness and corners, a partition with a door frame, bed, sofa, counter run, desk, fridge, table and chairs, one directional light with shadows.
 
 Measured on the prototype:
 
