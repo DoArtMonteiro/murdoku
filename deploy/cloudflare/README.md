@@ -29,7 +29,7 @@ npm run deploy:cloudflare:dry-run   # builds, then wrangler deploy --dry-run; ch
 npm run deploy:cloudflare           # builds, then deploys Worker alibi-game
 ```
 
-Both scripts build first (`dist/` must exist) and pass `--config deploy/cloudflare/wrangler.jsonc`. To check which Worker a run targets, add `--outdir <folder>` to the dry run: the `README.md` it writes there names the Worker (`alibi-game`).
+Both scripts build first (`dist/` must exist) and pass `--config deploy/cloudflare/wrangler.jsonc`. To check which Worker a run targets, add `--outdir <absolute folder>` to the dry run: the `README.md` it writes there names the Worker (`alibi-game`).
 
 For Workers Builds on `alibi-game`, set the build command to `npm ci && npm run build` and the deploy command to `npx wrangler@4.164.0 deploy --config deploy/cloudflare/wrangler.jsonc`.
 
