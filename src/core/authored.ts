@@ -2,6 +2,7 @@ import type {
   Puzzle, Room, Furniture, Person, Cell, Clue, GridSize, Difficulty,
 } from './types'
 import { furnitureCells, furnitureFootprint } from './types'
+import { compareText } from './compare'
 import { clueHolds, countSolutions, findMurderer, roomIdAt } from './engine'
 import { candidateClues, clueDirectness, pruneClues, clueToText, selectClueTexts, ACCENTS } from './generate'
 
@@ -64,7 +65,7 @@ export interface AuthoredCaseSpec {
 }
 
 const clueKey = (clue: Clue): string => JSON.stringify(
-  Object.entries(clue).sort(([a], [b]) => a.localeCompare(b)),
+  Object.entries(clue).sort(([a], [b]) => compareText(a, b)),
 )
 
 function buildRoomOf(rooms: Room[], size: number): string[][] {

@@ -3,6 +3,7 @@ import type {
   Person, Clue, ClueText,
 } from './types'
 import { furnitureCells } from './types'
+import { compareText } from './compare'
 import { countSolutions, furnitureAt, roomIdAt, findMurderer, cellsAdjacent, besideFurniture, unaryClueHolds, clueHolds } from './engine'
 
 // ============================================================================
@@ -1466,9 +1467,9 @@ export function pruneClues(
   order: 'seeded' | 'stable' = 'seeded',
 ): Clue[] {
   let cur = [...clues]
-  const keyOf = (clue: Clue) => JSON.stringify(Object.entries(clue).sort(([a], [b]) => a.localeCompare(b)))
+  const keyOf = (clue: Clue) => JSON.stringify(Object.entries(clue).sort(([a], [b]) => compareText(a, b)))
   const requiredKeys = new Set(required.map(keyOf))
-  const candidates = order === 'stable' ? [...cur].sort((a, b) => keyOf(a).localeCompare(keyOf(b))) : shuffle([...cur])
+  const candidates = order === 'stable' ? [...cur].sort((a, b) => compareText(keyOf(a), keyOf(b))) : shuffle([...cur])
   for (const c of candidates) {
     if (requiredKeys.has(keyOf(c))) continue
     const trial = cur.filter(x => x !== c)

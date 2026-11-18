@@ -1,6 +1,7 @@
 import type { Box3, ResolvedScene } from './resolve'
 import type { CellRect, ExteriorSupportBaySpec } from './schema'
 import { CELL, FLOOR_THICKNESS, STOREY_HEIGHT } from './units'
+import { compareText } from '../core/compare'
 
 export const MAX_EXTERIOR_SUPPORT_BAY_CELLS = 3
 
@@ -97,7 +98,7 @@ export function exteriorSupportMembers(scene: Pick<ResolvedScene, 'n' | 'floorY'
   }
   const supportTop = STOREY_HEIGHT - FLOOR_THICKNESS
   const beamBottom = supportTop - PERIMETER_BEAM_HEIGHT
-  const sortedBays = [...scene.exteriorSupportBays].sort((a, b) => a.id.localeCompare(b.id))
+  const sortedBays = [...scene.exteriorSupportBays].sort((a, b) => compareText(a.id, b.id))
   const posts = new Map<string, { col: number; row: number; groundCells: Array<{ col: number; row: number }> }>()
 
   for (const bay of sortedBays) {
@@ -193,5 +194,5 @@ export function exteriorSupportMembers(scene: Pick<ResolvedScene, 'n' | 'floorY'
     }
     addPost(post, signs)
   }
-  return [...members.values()].sort((a, b) => a.id.localeCompare(b.id))
+  return [...members.values()].sort((a, b) => compareText(a.id, b.id))
 }
