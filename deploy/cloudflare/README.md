@@ -15,11 +15,13 @@ The config is kept out of the repository root so that a tool looking for a root 
 | File | Purpose |
 |---|---|
 | `wrangler.jsonc` | Worker `alibi-game`, assets from `../../dist`, single-page-application fallback, `workers.dev` only, no routes or custom domains. |
-| `worker.js` | Runs first for `/assets/*`, `/kenney3d/*`, `/kenney/*` and `/workbox-*`. If the asset layer would answer one of those with the app shell, it returns `404` with `Cache-Control: no-store`. Everything else is served by the asset layer with the headers in `public/_headers`. |
+| `worker.js` | Runs first for `/assets/*` and `/workbox-*` only (about 21 Worker invocations on a first visit). If the asset layer would answer one of those with the app shell, it returns `404` with `Cache-Control: no-store`. Everything else is served by the asset layer with the headers in `public/_headers`. |
 
 Why the guard exists: Cloudflare answers any unknown path with `index.html` and status 200. For a page that is right. For a missing script it is not: the browser would receive HTML as a script and, because `/assets/*` is cached as immutable, keep it under that name for a year. After a rollback that makes the name valid again, the cached HTML would still be served.
 
-When you add a new top-level directory to `public/`, add it to `run_worker_first` in `wrangler.jsonc`. `tests/productionBuild.test.ts` fails until you do.
+Why only those paths: every request under a `run_worker_first` pattern invokes the Worker, and the precache downloads every model and sprite on a first visit (about 330 files). `/assets/*` is the only place a stale answer is dangerous, because it is cached as immutable; the guard covers it and the workbox helper (`/workbox-*`, which the service worker imports).
+
+What is not guarded: a missing model under `/kenney3d/` or sprite under `/kenney/` is answered by the asset layer's single-page fallback, with the shell as `200 text/html` and the default `Cache-Control: public, max-age=0, must-revalidate`. It is revalidated on every use, never cached as immutable, and a model or sprite that exists is never replaced by it. Files listed in the precache are never requested under a name that does not exist. If a path is ever given an immutable cache rule in `public/_headers`, add it to `run_worker_first` in `wrangler.jsonc`; `tests/productionBuild.test.ts` fails until you do.
 
 ## Deploy
 

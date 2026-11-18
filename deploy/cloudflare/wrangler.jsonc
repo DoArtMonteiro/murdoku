@@ -19,7 +19,10 @@
     "binding": "ASSETS",
     // Unknown paths get index.html, so the app also opens from any URL.
     "not_found_handling": "single-page-application",
-    // Paths that name a file, never a page. A miss here must be a 404, not the app shell.
-    "run_worker_first": ["/assets/*", "/kenney3d/*", "/kenney/*", "/workbox-*"]
+    // Only the paths whose files are cached as immutable (/assets/*, see public/_headers) and the
+    // service-worker helper. A miss there must be a 404, not the app shell. Every request under these
+    // patterns invokes the Worker (about 21 on a first visit); models and sprites are left out on
+    // purpose, so a missing one gets the shell with a revalidating header, never an immutable one.
+    "run_worker_first": ["/assets/*", "/workbox-*"]
   }
 }

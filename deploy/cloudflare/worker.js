@@ -1,6 +1,7 @@
-// Runs first only for paths that always name a file (see run_worker_first in
-// wrangler.jsonc). Everything is answered by the static-assets layer, so existing
-// files keep their headers from public/_headers.
+// Runs first only for /assets/* and /workbox-* (see run_worker_first in wrangler.jsonc):
+// the files that are fingerprinted and cached as immutable, plus the service worker's
+// helper. Everything is answered by the static-assets layer, so existing files keep
+// their headers from public/_headers.
 //
 // The single-page-application fallback answers an unknown path with index.html and
 // status 200. For a page that is right. For /assets/<hash>.js it is wrong: a stale

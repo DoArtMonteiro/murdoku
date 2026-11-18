@@ -151,7 +151,7 @@ describe('deployment files', () => {
         directory: '../../dist',
         binding: 'ASSETS',
         not_found_handling: 'single-page-application',
-        run_worker_first: ['/assets/*', '/kenney3d/*', '/kenney/*', '/workbox-*'],
+        run_worker_first: ['/assets/*', '/workbox-*'],
       },
     })
     expect(parsed.compatibility_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
@@ -162,8 +162,24 @@ describe('deployment files', () => {
     expect(scripts['deploy:cloudflare:dry-run']).toContain('--dry-run --config deploy/cloudflare/wrangler.jsonc')
   })
 
-  it('puts every directory of the build under the missing-file guard', () => {
-    // run_worker_first in the Worker config names exactly these; a new directory must be added there.
+  it('runs the guard Worker for every path that the headers cache as immutable, and only those', () => {
+    const lines = readFileSync(join(root, 'public/_headers'), 'utf8').split(/\r?\n/)
+    const immutable: string[] = []
+    lines.forEach((line, index) => {
+      if (!/^\S/.test(line) || line.startsWith('#')) return
+      const rules: string[] = []
+      for (const next of lines.slice(index + 1)) {
+        if (!next.startsWith('  ')) break
+        rules.push(next)
+      }
+      if (rules.some(rule => /Cache-Control:.*immutable/i.test(rule))) immutable.push(line.trim())
+    })
+    expect(immutable).toEqual(['/assets/*'])
+    const config = JSON.parse(readFileSync(join(root, 'deploy/cloudflare/wrangler.jsonc'), 'utf8').replace(/^\s*\/\/.*$/gm, ''))
+    // /workbox-* is the service worker's helper, guarded because a missing one would break installation.
+    expect(config.assets.run_worker_first).toEqual([...immutable, '/workbox-*'])
+    // Everything else in the build is revalidated, so a stale answer cannot stick. A new directory
+    // with an immutable rule must be added to run_worker_first (the check above fails until it is).
     const dirs = [...new Set([...files.keys()].filter(name => name.includes('/')).map(name => name.split('/')[0]))].sort()
     expect(dirs).toEqual(['assets', 'kenney', 'kenney3d'])
   })
