@@ -100,6 +100,12 @@ describe('deployment files', () => {
       expect(notices, name).toContain(name)
     }
     expect(notices).toContain('SIL OPEN FONT LICENSE Version 1.1')
+    // The Workbox section lists exactly the modules the built service-worker helper contains.
+    const helper = [...files.keys()].find(name => /^workbox-[0-9a-f]+\.js$/.test(name))!
+    const used = [...new Set([...(files.get(helper) ?? '').matchAll(/workbox:([a-z-]+):\d/g)].map(match => `workbox-${match[1]}`))].sort()
+    const listed = [...notices.matchAll(/^(workbox-[a-z-]+) \d/gm)].map(match => match[1]).sort()
+    expect(listed).toEqual(used)
+    expect(notices).not.toMatch(/^(idb|tslib) \d/m)
   })
 
   it('sets a strict Content-Security-Policy: no inline code, no eval, no outside host', () => {
