@@ -3,6 +3,7 @@ import { easy, hard } from './fixtures'
 import type { Puzzle } from '../../src/core/types'
 import { initState, reduce, toSaved } from '../../src/casebook/game'
 import type { Action, GameState } from '../../src/casebook/game'
+import { puzzleFingerprint } from '../../src/core/progress'
 import { emptySave, parseSave, saveKey } from '../../src/casebook/save'
 import { cellKey, conflictIds } from '../../src/casebook/cells'
 
@@ -156,16 +157,16 @@ describe('a revealed answer', () => {
   it('persists across a reload, and a stale or malformed flag is ignored', () => {
     const s = run(hard, initState(hard, emptySave()), { t: 'reveal' })
     expect(toSaved(s).revealed).toBe(true)
-    expect(initState(hard, parseSave(hard, JSON.parse(JSON.stringify(toSaved(s))))).revealed).toBe(true)
-    expect(parseSave(hard, { revealed: 'yes' }).revealed).toBe(false)
-    expect(parseSave(hard, {}).revealed).toBe(false)
+    expect(initState(hard, parseSave(hard, JSON.parse(JSON.stringify({ ...toSaved(s), fp: puzzleFingerprint(hard) })))).revealed).toBe(true)
+    expect(parseSave(hard, { fp: puzzleFingerprint(hard), revealed: 'yes' }).revealed).toBe(false)
+    expect(parseSave(hard, { fp: puzzleFingerprint(hard) }).revealed).toBe(false)
   })
 })
 
 describe('save', () => {
   it('uses its own namespace and drops anything invalid', () => {
     expect(saveKey('hard-2')).toBe('alibi_casebook_v1:hard-2')
-    const s = parseSave(easy, { placement: { p0: { row: 5, col: 0 }, zz: { row: 0, col: 0 }, p1: { row: 99, col: 0 } }, pencil: { p0: ['0:1:1', 'bad'] }, strikes: 9, outcome: 'proved' })
+    const s = parseSave(easy, { fp: puzzleFingerprint(easy), placement: { p0: { row: 5, col: 0 }, zz: { row: 0, col: 0 }, p1: { row: 99, col: 0 } }, pencil: { p0: ['0:1:1', 'bad'] }, strikes: 9, outcome: 'proved' })
     expect(s.placement).toEqual({ p0: { row: 5, col: 0, floor: 0 } })
     expect(s.pencil.p0).toEqual(['0:1:1'])
     expect(s.strikes).toBe(3)

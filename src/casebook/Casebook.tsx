@@ -68,7 +68,7 @@ export default function Casebook({ puzzle, coach }: { puzzle: Puzzle; coach?: Co
   const [sound, setSound] = useState(loadSoundPref)
 
   useEffect(() => { warmAvatars(); let live = true; loadBoard().then(m => { if (live) setBoard(m) }, () => {}); return () => { live = false } }, [])
-  useEffect(() => { if (!coach) writeSave(puzzle.id, toSaved(state)) }, [coach, puzzle.id, state.placement, state.pencil, state.strikes, state.outcome, state.hintsUsed, state.revealed]) // eslint-disable-line
+  useEffect(() => { if (!coach) writeSave(puzzle, toSaved(state)) }, [coach, puzzle.id, state.placement, state.pencil, state.strikes, state.outcome, state.hintsUsed, state.revealed]) // eslint-disable-line
 
   const story = useMemo(() => coach?.story ?? storyFor(puzzle), [puzzle, coach?.story])
   const solved = state.outcome === 'proved' || state.outcome === 'called' || state.outcome === 'cold'

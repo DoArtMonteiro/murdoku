@@ -1,11 +1,11 @@
 // ============================================================================
 // The casebook batch: deep cases for the redesigned play screen.
 //
-// A case is regenerated from (config, seed, minChainDepth) with CASEBOOK_RECIPE,
-// so the stored seeds are enough to reproduce the baked data exactly
-// (tests/depth/casebook.test.ts does that). The baked file
-// src/data/casebook.generated.json, written by scripts/bake-casebook.mjs, is
-// the canonical data the app loads; this module and the generator never ship.
+// A case is generated from (config, seed, minChainDepth) with CASEBOOK_RECIPE. The baked
+// file src/data/casebook.generated.json, written once by scripts/bake-casebook.mjs, is
+// the canonical data the app loads: it is not regenerated, and tests/bakedCasebook.test.ts
+// pins its digest and fingerprints. This module and the generator never ship, and a
+// change here does not change the shipped cases.
 //
 // The plan is ordered as a ramp: shorter inference chains first, longer later
 // (ties broken by board: single floor before two floors).

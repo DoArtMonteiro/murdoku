@@ -1,7 +1,11 @@
 // In-progress save for the slice. A NEW key per case, `alibi_casebook_v1:<id>`;
 // the slice never reads or writes a `murdoku_*` key. Everything is wrapped in
 // try/catch (private mode, quota) and validated on load, so a stale or edited
-// save can only ever be ignored.
+// save can only ever be ignored. Each save carries the fingerprint of the puzzle
+// it was made on (core/progress.ts); a save whose fingerprint is missing or does
+// not match the puzzle now in the build is discarded, never applied, so a changed
+// puzzle cannot load placements made on an older one.
+import { puzzleFingerprint } from '../core/progress'
 import type { Cell, Puzzle } from '../core/types'
 import { floorsOf, norm } from './cells'
 
@@ -25,9 +29,12 @@ export const emptySave = (): Saved => ({ placement: {}, pencil: {}, strikes: 0, 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 const int = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x)
 
+/** What is stored: the save, plus the fingerprint of the puzzle it belongs to. */
+export type StoredSave = Saved & { fp: string }
+
 export function parseSave(p: Puzzle, raw: unknown): Saved {
   const out = emptySave()
-  if (!isObj(raw)) return out
+  if (!isObj(raw) || raw.fp !== puzzleFingerprint(p)) return out
   const ids = new Set(p.people.map(x => x.id))
   const inRange = (c: unknown): c is Cell =>
     isObj(c) && int(c.row) && int(c.col) && c.row >= 0 && c.col >= 0 && c.row < p.size && c.col < p.size
@@ -54,6 +61,7 @@ export function loadSave(p: Puzzle): Saved {
   } catch { return emptySave() }
 }
 
-export function writeSave(caseId: string, s: Saved): void {
-  try { localStorage.setItem(saveKey(caseId), JSON.stringify(s)) } catch { /* storage unavailable: play on, unsaved */ }
+export function writeSave(p: Puzzle, s: Saved): void {
+  const stored: StoredSave = { ...s, fp: puzzleFingerprint(p) }
+  try { localStorage.setItem(saveKey(p.id), JSON.stringify(stored)) } catch { /* storage unavailable: play on, unsaved */ }
 }
