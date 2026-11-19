@@ -76,6 +76,7 @@ export default function Tutorial() {
   const avail = useElementSize(stageRef)
   const [sound, setSound] = useState(loadSoundPref)
   const [chipsW, setChipsW] = useState(340)
+  const lineRef = useRef<HTMLParagraphElement>(null)
 
   useEffect(() => { warmAvatars(); let live = true; loadBoard().then(m => { if (live) setBoard(m) }, () => {}); return () => { live = false } }, [])
 
@@ -187,7 +188,10 @@ export default function Tutorial() {
   const onLong = useCallback((cell: Parameters<typeof norm>[0]) => { if (!away) dispatch({ t: 'long', cell }) }, [away])
   const accuse = (id: string) => { setAccused(id); dispatch({ t: 'accuse', id }) }
   const closeSheet = useCallback(() => { setSheet(false); dispatch({ t: 'clearVerdict' }) }, [])
-  const replay = () => { dispatch({ t: 'tutorialReset' }); setRoll(null); setFinished(false); setSheet(false); setAccused(null); setStarted(true) }
+  // The instruction line is hidden (inert) behind the prologue, so a live region could not announce it on Begin:
+  // focus moves onto it instead, and the beat is read out from a region that exists from the start.
+  const begin = () => { setStarted(true); window.setTimeout(() => lineRef.current?.focus({ preventScroll: true }), 0) }
+  const replay = () => { dispatch({ t: 'tutorialReset' }); setRoll(null); setFinished(false); setSheet(false); setAccused(null); setStarted(true); window.setTimeout(() => lineRef.current?.focus({ preventScroll: true }), 0) }
 
   const sel = puzzle.people.find(p => p.id === state.selected)!
   const role = vis.roleOf(sel.id)
@@ -243,11 +247,11 @@ export default function Tutorial() {
                 <div className="cb-mid" style={{ '--cb-chips-h': `${reserve}px` } as CSSProperties}>
                   <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} />
                   <div className="cb-readout tut-readout" data-testid="readout">
-                    <p className="tut-line" role="status" aria-live="polite" data-testid="instruction">{beat.text}</p>
-                    {report && state.ghost && (
+                    <p className="tut-line" ref={lineRef} tabIndex={-1} data-testid="instruction">{beat.text}</p>
+                    {((report && state.ghost) || state.hint) && (
                       <Readout
                         puzzle={puzzle} selected={sel} oneLiner={null} premise="" premiseOpen={false} onTogglePremise={() => {}}
-                        ghostPerson={state.ghost.person} report={report} hint={null} outcome={null} tier={null} firstMove={false} onRoll={() => {}}
+                        ghostPerson={state.ghost?.person ?? null} report={report} hint={state.hint} outcome={null} tier={null} firstMove={false} onRoll={() => {}}
                       />
                     )}
                   </div>
@@ -266,7 +270,7 @@ export default function Tutorial() {
                   <p className="tut-card-body">{case0Story.premise}</p>
                   <p className="tut-card-voice">&ldquo;{INVESTIGATOR_LINE}&rdquo;</p>
                   <div className="tut-card-bar">
-                    <button type="button" className="cb-primary" onClick={() => setStarted(true)}>Begin — about 90 seconds</button>
+                    <button type="button" className="cb-primary" onClick={begin}>Begin — about 90 seconds</button>
                   </div>
                 </div>
               )}
@@ -277,6 +281,7 @@ export default function Tutorial() {
 
       {sheet && <AccuseSheet puzzle={puzzle} wrongName={wrongName} onAccuse={accuse} onClose={closeSheet} />}
       <div className="cb-sr" role="status" aria-live="polite">{state.announce}</div>
+      <div className="cb-sr" role="status" aria-live="polite" data-testid="beat-live">{started && !finished && !roll ? `Step ${beat.n} of ${BEATS}. ${beat.text}` : ''}</div>
     </div>
   )
 }

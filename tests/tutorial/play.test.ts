@@ -148,6 +148,35 @@ describe('walk-through: the beats', () => {
       expect(ts.seen).toBe(true)
     })
 
+    it('a Suppose switch left on does not strand her: the next tap on the right square switches it off and places her', () => {
+      const ts = run(toGreta(), { t: 'suppose' }, { t: 'cell', cell: WRONG_SQUARE }, { t: 'cell', cell: p.solution.p2 })
+      expect(ts.game.supposeOn).toBe(false)
+      expect(ts.game.ghost).toBeNull()
+      expect(cellKey(ts.game.placement.p2)).toBe(cellKey(p.solution.p2))
+      expect(beatFor(p, ts).id).toBe('scene')
+    })
+
+    it('a plain TAP on the wrong square places her there, brings her back to the front, and a hold on it still shows the contradiction', () => {
+      let ts = run(toGreta(), { t: 'cell', cell: WRONG_SQUARE })
+      // she stands on the wrong square, selection did not run on to Marco, and the beat still points at that square
+      expect(cellKey(ts.game.placement.p2)).toBe(cellKey(WRONG_SQUARE))
+      expect(ts.game.selected).toBe(ROLE.supposed)
+      expect(beatFor(p, ts).id).toBe('suppose')
+      expect(beatFor(p, ts).targets).toEqual([{ kind: 'cell', cell: WRONG_SQUARE }])
+      ts = run(ts, { t: 'long', cell: WRONG_SQUARE })
+      expect(ts.seen).toBe(true)
+      ts = run(ts, { t: 'cell', cell: p.solution.p2 })
+      expect(cellKey(ts.game.placement.p2)).toBe(cellKey(p.solution.p2))
+      expect(beatFor(p, ts).id).toBe('scene')
+    })
+
+    it('a stray tap that is not on her squares is also brought back, and she can still be lifted by tapping her own square', () => {
+      const ts = run(toGreta(), { t: 'cell', cell: cell(2, 2) })
+      expect(ts.game.selected).toBe(ROLE.supposed)
+      const lifted = run(ts, { t: 'cell', cell: cell(2, 2) })
+      expect(lifted.game.placement.p2).toBeUndefined()
+    })
+
     it('a contradiction seen once is never un-seen', () => {
       const ts = run(toGreta(), { t: 'long', cell: WRONG_SQUARE }, { t: 'dropGhost' }, { t: 'undo' })
       expect(ts.seen).toBe(true)

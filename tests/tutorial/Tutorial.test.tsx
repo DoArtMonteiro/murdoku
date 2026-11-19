@@ -46,7 +46,9 @@ describe('Case 0 on screen', () => {
     expect(haloStyle()).toContain('.cb-chips li:nth-child(1) .cb-chip')
     // no modal covers the board while a beat is on
     expect(document.querySelector('[role=dialog]')).toBeNull()
-    expect(screen.getByTestId('instruction')).toHaveAttribute('aria-live', 'polite')
+    // read out from a live region that existed before the beat, and focus lands on the line after Begin
+    expect(screen.getByTestId('beat-live')).toHaveTextContent('Step 1 of 8. Tap a statement — the lamp shows where it can be true.')
+    expect(screen.getByTestId('beat-live')).toHaveAttribute('aria-live', 'polite')
   })
 
   it('plays all eight beats from the on-screen text alone, hears the roll-call, and stores done', async () => {
@@ -70,13 +72,13 @@ describe('Case 0 on screen', () => {
 
     expect(instruction()).toBe('Not sure? Hold a square to suppose.')
     expect(haloStyle()).toContain('[data-row="0"][data-col="3"]')
-    // the Suppose button then the square: the same as a hold
+    // the Suppose button then the square: the same as a hold, and the switch is left on
     fireEvent.click(screen.getByRole('button', { name: 'Suppose' }))
     fireEvent.click(cellAt(0, 3))
     expect(instruction()).toBe('Place the third suspect on the other lit square.')
     expect(screen.getByTestId('readout')).toHaveTextContent('No square left for Marco.')
-    fireEvent.click(screen.getByRole('button', { name: 'Suppose' }))
     fireEvent.click(cellAt(0, 2))
+    expect(screen.getByRole('button', { name: 'Suppose' })).toHaveAttribute('aria-pressed', 'false')
     expect(cellAt(0, 2).querySelector('[data-testid=token-p2]')).not.toBeNull()
 
     expect(instruction()).toBe('Set the scene: tap where the victim was found.')
@@ -122,6 +124,14 @@ describe('Case 0 on screen', () => {
     fireEvent.click(cellAt(0, 0))
     expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
     expect(screen.queryByLabelText(/strikes/)).toBeNull()
+  })
+
+  it('Why? says something: the casebook hint shows in the slot', () => {
+    render(<Tutorial />)
+    fireEvent.click(screen.getByRole('button', { name: /Begin/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Why?' }))
+    expect(screen.getByTestId('readout').textContent!.length).toBeGreaterThan(instruction()!.length)
+    expect(screen.getByTestId('readout')).toHaveTextContent(/Lena/)
   })
 
   it('writes no murdoku_* key and no casebook save', () => {

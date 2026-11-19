@@ -132,11 +132,23 @@ function noticed(p: Puzzle, ts: TutState): TutState {
   return suppose(p, g.ghost).contradictions.length ? { ...ts, seen: true } : ts
 }
 
+/** Greta stands on a wrong square she was only meant to suppose: bring her back to the front, so the halo and the portrait agree. */
+function reselect(p: Puzzle, ts: TutState): TutState {
+  const g = ts.game
+  const stuck = !ts.seen && placedRight(p, g.placement, ROLE.pinned) && placedRight(p, g.placement, ROLE.measured)
+    && !!g.placement[ROLE.supposed] && !placedRight(p, g.placement, ROLE.supposed) && g.selected !== ROLE.supposed
+  return stuck ? { ...ts, game: reduce(p, g, { t: 'select', id: ROLE.supposed }) } : ts
+}
+
 export function tutReduce(p: Puzzle, ts: TutState, a: TutAction): TutState {
   if (a.t === 'tutorialReset') return initTut(p)
   let g = ts.game
-  // Past the supposing beat a tap should place, not only put the ghost away.
-  if (a.t === 'cell' && g.ghost && !g.supposeOn && ts.seen) g = reduce(p, g, { t: 'dropGhost' })
+  // Once the contradiction has been seen a tap should place, not only put the ghost away, and a Suppose
+  // switch left on from the button must not turn every tap into another supposition.
+  if (a.t === 'cell' && ts.seen && !planDone(p, g.placement)) {
+    if (g.supposeOn) g = reduce(p, g, { t: 'suppose' })
+    else if (g.ghost) g = reduce(p, g, { t: 'dropGhost' })
+  }
 
   if (a.t === 'accuse') {
     // Never judged on an unfinished plan, and a wrong name is a plain "alibi", not a strike.
@@ -145,9 +157,9 @@ export function tutReduce(p: Puzzle, ts: TutState, a: TutAction): TutState {
       return { ...ts, game: { ...g, verdict: { kind: 'notThem', strikes: 0, cold: false }, announce: `${wrongAccusationLine(firstName(p, a.id))} Nothing counts here.` } }
     }
   }
-  return prime(p, noticed(p, { ...ts, game: reduce(p, g, a) }))
+  const next = prime(p, noticed(p, { ...ts, game: reduce(p, g, a) }))
+  return a.t === 'cell' ? reselect(p, next) : next
 }
 
 /** True once the plan holds every person on their true square, for the Accuse button. */
 export const accuseReady = (p: Puzzle, ts: TutState): boolean => planDone(p, ts.game.placement)
-
