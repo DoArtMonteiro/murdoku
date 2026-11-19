@@ -31,7 +31,7 @@ What the casebook adds on this branch:
 - **Alibi roll-call.** The reveal. Each other suspect is cleared by their own true account, far from the victim to near, until one is left. Motives and the case's closing line appear only once the case is solved.
 - **Case 0.** A first-run walk-through of about 90 seconds on a 4x4 plan, played on the casebook's own desk with a coach: eight beats, a soft amber halo on what to touch, a prologue and a closing card, and a way out ("Skip"). Offered from the picker; a flag records that it was done or skipped.
 - **Authored stories.** Each deep case has a title, a premise, a cast with display names, roles and motives, and a closing line (`src/casebook/stories.ts`), set in a fictional coastal town, Portinhal. A season mystery, the harbour bell that has stopped ringing, runs through the twelve. Story text is non-positional: it never names a room, a direction or a person.
-- **Small extras.** Light and dark themes, an optional sound set (synthesised in the browser, off by default), reduced-motion support, and the type set in Newsreader, Hanken Grotesk and Courier Prime.
+- **Small extras.** Light and dark themes, an optional sound set (synthesised in the browser, off by default), reduced-motion support, and type set in Newsreader (titles and statements) and Hanken Grotesk (controls).
 
 ## Content
 
@@ -57,7 +57,7 @@ Local storage only; nothing leaves the device.
   - `alibi_casebook_v1:_sound`: sound on or off.
   - `alibi_theme`: the theme chosen from the menu, written only when the player chooses.
   - `alibi_tutorial_v1`: `done` or `skipped` for Case 0.
-  - `alibi_chunk_reload_at` (session storage): guards the single reload after a failed lazy-load.
+- `alibi_chunk_reload_at` (session storage, set in `src/core/chunkErrors.ts`, so it applies to the whole app): guards the single reload after a failed lazy-load.
 - Plans saved on earlier casebook previews have no fingerprint and are discarded. That data was preview-only.
 
 ## Capabilities and Constraints

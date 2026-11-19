@@ -27,7 +27,7 @@ Nothing else is served: no audio, video, other raster images, tracking or remote
 
 - `public/assets/contact-sheet.jpg` (a sheet of eight photographic suspect portraits), `reconstruction-board.jpg`, `evidence-paper.jpg` and `graphite-desk.jpg`. The repository holds no record of who or what produced these four files, and the portraits could not be shown not to resemble real people. They were replaced by the illustrated avatars and by CSS surfaces, and deleted. Their origin remains unknown.
 - `public/favicon.svg` and `public/icons.svg`: unused files from the Vite project template, not needed by the game.
-- The `?ref=` reference prototypes (alternative boards, a city map, a story layer) are no longer part of a production build. Their source stays in `src/reference/` for development.
+- The `?ref=` reference prototypes (alternative boards, a city map, a story layer) are no longer part of a production build. Their source stays in `src/reference/` for development. The casebook build (`VITE_CASEBOOK=1`) does import some of that folder's own code (the illustrated plan board, token geometry and the deduction chain); it is project code, not third-party.
 
 ## In the repository, not in the build
 
