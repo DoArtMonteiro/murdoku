@@ -26,6 +26,12 @@ function referenceVariant(): 'nightplan' | 'plan3d' | 'illustrated' | null {
   return v === 'nightplan' || v === 'plan3d' || v === 'illustrated' ? v : null
 }
 
+// Casebook slice: `?casebook=<caseId>` (empty = case picker). Both flags are build-time
+// constants, so a production build without VITE_CASEBOOK=1 drops the route and its modules.
+const CASEBOOK_ROUTE = import.meta.env.DEV || import.meta.env.VITE_CASEBOOK === '1'
+const CasebookRoute = CASEBOOK_ROUTE ? lazy(() => import('./casebook/Route')) : null
+const casebookParam = () => (CASEBOOK_ROUTE ? new URLSearchParams(window.location.search).get('casebook') : null)
+
 function Fallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg-deep">
@@ -35,6 +41,16 @@ function Fallback() {
 }
 
 export default function App() {
+  const casebook = casebookParam()
+  if (CasebookRoute && casebook !== null) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<Fallback />}>
+          <CasebookRoute caseId={casebook} />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
   // `reducedMotion="user"` makes EVERY Framer animation below respect the OS
   // setting. The global CSS block in index.css only silences CSS animations —
   // it never touched Framer's JS-driven springs, so without this the whole app

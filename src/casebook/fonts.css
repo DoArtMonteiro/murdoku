@@ -1,0 +1,7 @@
+/* Newsreader for titles and statements, self-hosted (SIL OFL 1.1), Latin subset,
+   served from this app. Kept in the slice so the main bundle never carries it.
+   No request leaves the origin. */
+@font-face { font-family: 'Newsreader'; font-style: normal; font-weight: 400; font-display: swap; src: url('../../node_modules/@fontsource/newsreader/files/newsreader-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Newsreader'; font-style: normal; font-weight: 500; font-display: swap; src: url('../../node_modules/@fontsource/newsreader/files/newsreader-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Newsreader'; font-style: normal; font-weight: 600; font-display: swap; src: url('../../node_modules/@fontsource/newsreader/files/newsreader-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Newsreader'; font-style: italic; font-weight: 400; font-display: swap; src: url('../../node_modules/@fontsource/newsreader/files/newsreader-latin-400-italic.woff2') format('woff2'); }
