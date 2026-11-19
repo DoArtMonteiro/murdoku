@@ -4,15 +4,18 @@ import { ArrowLeft } from 'lucide-react'
 import type { Puzzle } from '../core/types'
 import { cellFloor } from '../core/types'
 import { warmAvatars } from '../components/avatarImage'
+import { fallbackLayout } from '../reference/shell/geometry'
 import { useElementSize } from '../reference/shell/useElementSize'
 import { loadBoard } from './board'
 import { browserMetrics } from './measure'
 import type { BoardModule } from './board'
 import { Bar } from './Bar'
 import { Chips } from './Chips'
+import type { ChipsFlow } from './Chips'
 import { cellKey, conflictIds, firstName, floorsOf, norm } from './cells'
 import type { Placement } from './cells'
 import { initState, reduce, toSaved } from './game'
+import { heightForCell } from './layout'
 import { nextStep } from './hint'
 import { lensCells, reserveHeightFor, satisfiedIds, statementReady, statementsOf } from './lens'
 import { Menu } from './Menu'
@@ -36,6 +39,10 @@ import './fonts.css'
 
 const AUTO_MS = 3000
 const NONE: readonly number[] = []
+/** The squares a small phone must keep: the plan is the game, so the statements give way to it, not the other way round. */
+const targetCell = (w: number) => (w < 340 ? 26 : 30)
+/** The least the statements box may shrink to: one chip and a glimpse of the next. */
+const MIN_CHIPS = 56
 
 export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const theme = useSliceTheme()
@@ -65,6 +72,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const rollcall = useMemo(() => buildRollCall(puzzle), [puzzle])
   const rollEnd = rollcall.cleared.length + 2
   const [chipsW, setChipsW] = useState(340)
+  const [flow, setFlow] = useState<ChipsFlow>({ more: false, end: true })
+  const [chipsCap, setChipsCap] = useState<number | null>(null)
   // The face for the statements loads late: measure again once it has.
   const [fontEpoch, setFontEpoch] = useState(0)
   useEffect(() => {
@@ -73,7 +82,9 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
     document.fonts?.addEventListener?.('loadingdone', bump)
     return () => document.fonts?.removeEventListener?.('loadingdone', bump)
   }, [])
-  const reserve = useMemo(() => reserveHeightFor(puzzle, chipsW, compact, browserMetrics()), [puzzle, chipsW, compact, fontEpoch]) // eslint-disable-line
+  const need = useMemo(() => reserveHeightFor(puzzle, chipsW, compact, browserMetrics()), [puzzle, chipsW, compact, fontEpoch]) // eslint-disable-line
+  // On a short phone the statements box takes what the plan leaves it, and scrolls inside that if it must.
+  const reserve = compact && chipsCap !== null ? Math.min(need, Math.max(MIN_CHIPS, chipsCap)) : need
   const floors = floorsOf(puzzle)
 
   // ---- what the board shows --------------------------------------------------
@@ -149,6 +160,27 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
     window.addEventListener('resize', read)
     return () => window.removeEventListener('resize', read)
   }, [])
+
+  // How tall the statements box can be before the plan drops below its target squares: what is left of the screen
+  // after the header, the rest of the panel and the height the plan needs. All measured, so safe-area insets and
+  // the real board layout count. It does not depend on the box's own height, so it settles in one pass.
+  const reserveNow = useRef(reserve)
+  reserveNow.current = reserve
+  const rootSize = useElementSize(rootRef)
+  useLayoutEffect(() => {
+    const root = rootRef.current, panel = panelRef.current, stage = stageRef.current
+    const head = root?.querySelector<HTMLElement>('.cb-head')
+    if (!compact || !root || !panel || !stage || !stage.parentElement || !head || !panel.querySelector('.cb-mid')) return
+    const cs = getComputedStyle(root)
+    const usable = root.clientHeight - parseFloat(cs.paddingTop || '0') - parseFloat(cs.paddingBottom || '0')
+    // everything in the panel but the statements box: the rest of the desk and the readout
+    const rest = panel.getBoundingClientRect().height - reserveNow.current
+    const inset = stage.parentElement.getBoundingClientRect().height - stage.getBoundingClientRect().height
+    const plan = heightForCell(Math.floor(stage.clientWidth), puzzle.size, targetCell(root.clientWidth), board?.boardLayout ?? fallbackLayout)
+    // a pixel of slack: the plan is sized from the stage's whole pixels, and the layout above has fractions
+    const cap = Math.floor(usable - head.getBoundingClientRect().height - rest - inset - plan) - 1
+    setChipsCap(prev => (prev === cap ? prev : cap))
+  }, [compact, away, puzzle, board, rootSize.w, rootSize.h])
 
   // The panel keeps its play-time height during the proof and the roll-call, so the board never resizes between them.
   useLayoutEffect(() => { if (!away && panelRef.current) setPanelH(panelRef.current.offsetHeight) }, [away, avail.w, avail.h, state.hint, state.ghost, state.outcome, state.selected])
@@ -241,6 +273,9 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   }, [rollDone]) // eslint-disable-line
   const closing = fillNames(puzzle, vis.closing ?? computedClosing(puzzle))
   const alibi = sel.isVictim ? null : vis.alibiOf(sel.id)
+  // The line keeps its place for the victim, who has none, so the plan does not move when the suspect changes.
+  const hasAlibis = puzzle.people.some(x => !x.isVictim && !!vis.alibiOf(x.id))
+  const nStatements = statementsOf(puzzle, sel.id).length
 
   return (
     <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
@@ -297,11 +332,12 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
               <div className="cb-who-line">
                 <span className="cb-who-title">{firstName(puzzle, sel.id)}</span>
                 <span className="cb-who-role">{[role?.role, sel.isVictim ? 'victim' : ''].filter(Boolean).join(', ')}</span>
+                {flow.more && <span className="cb-who-more">{nStatements} statements <span aria-hidden="true">{flow.end ? '↑' : '↓'}</span></span>}
                 <span className="cb-strikes" aria-label={`${state.strikes} of 3 accusations used`}>{strikeDots.map((on, i) => <i key={i} data-on={on || undefined} />)}</span>
               </div>
-              {alibi && <p className="cb-alibi">&ldquo;{alibi}&rdquo;</p>}
+              {alibi ? <p className="cb-alibi">&ldquo;{alibi}&rdquo;</p> : hasAlibis && <p className="cb-alibi" aria-hidden="true">&nbsp;</p>}
               <div className="cb-mid" style={{ '--cb-chips-h': `${reserve}px`, '--cb-readout-h': `${Math.min(88, Math.max(56, 200 - reserve))}px` } as CSSProperties}>
-                <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} />
+                <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} onFlow={setFlow} />
                 <div className="cb-readout" data-testid="readout">
                   <Readout
                     puzzle={puzzle} selected={sel} oneLiner={role?.oneLiner ?? null} premise={vis.premise} premiseOpen={premiseOpen}
@@ -311,7 +347,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
                   />
                 </div>
               </div>
-              <Rail puzzle={puzzle} placement={state.placement} selected={state.selected} conflicts={conflicts} holds={holds} contradictions={contradictions} counts={counts} onSelect={id => dispatch({ t: 'select', id })} />
+              <Rail face={compact ? 38 : 44} puzzle={puzzle} placement={state.placement} selected={state.selected} conflicts={conflicts} holds={holds} contradictions={contradictions} counts={counts} onSelect={id => dispatch({ t: 'select', id })} />
               <Bar
                 pencilOn={state.pencilOn} supposeOn={state.supposeOn} canUndo={state.history.length > 0}
                 whyDone={state.outcome === 'proved' || !nextStep(puzzle, state.placement)} accuseDisabled={state.outcome === 'cold' || state.outcome === 'proved'}

@@ -14,11 +14,16 @@ const css = readFileSync('src/casebook/casebook.css', 'utf8').replace(/\/\*[\s\S
 const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => [m[1].trim(), m[2]] as const)
 const CASES: Puzzle[] = [...leadCases(), ...deep()]
 
-describe('every statement is always visible: chips wrap, they never scroll', () => {
-  it('has no chip rule that scrolls, snaps or refuses to wrap, in any mode', () => {
+describe('every statement is always reachable: chips wrap, they never hide and never scroll sideways', () => {
+  it('has no chip rule that scrolls sideways, snaps or refuses to wrap, in any mode', () => {
     for (const [sel, body] of rules.filter(([s]) => /\.cb-chip/.test(s))) {
       expect(body, sel).not.toMatch(/nowrap|overflow-x|overflow:\s*(auto|scroll)|scroll-snap|scroll-padding/)
     }
+    // the box may scroll up and down inside itself on a short phone, and says so (the fade and the count)
+    const box = rules.filter(([s]) => s === '.cb-chips').map(([, b]) => b).join(' ')
+    expect(box).toMatch(/overflow-y:\s*auto/)
+    expect(box).toMatch(/max-height/)
+    expect(css).toMatch(/\.cb-chips\[data-more\]/)
     // and the old compact override that fixed the chip row to one line is gone
     expect(css).not.toMatch(/--cb-chips-h:\s*58px/)
   })

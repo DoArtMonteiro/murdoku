@@ -17,10 +17,12 @@ interface Props {
   /** Supposition: how many squares each person has left. */
   counts: Record<string, number> | null
   onSelect: (id: string) => void
+  /** Portrait size, px. */
+  face?: number
 }
 
 /** The portrait rail: one tap selects a suspect. A dashed ring is unplaced, a solid ring is placed; only the victim is captioned. */
-export function Rail({ puzzle, placement, selected, conflicts, holds, contradictions, counts, onSelect }: Props) {
+export function Rail({ puzzle, placement, selected, conflicts, holds, contradictions, counts, onSelect, face = 44 }: Props) {
   return (
     <ul className="cb-rail" aria-label="Suspects" data-dense={puzzle.people.length >= 6 || undefined}>
       {puzzle.people.map(p => {
@@ -47,7 +49,7 @@ export function Rail({ puzzle, placement, selected, conflicts, holds, contradict
               onClick={() => onSelect(p.id)}
             >
               <span className="cb-who-face">
-                <Portrait person={p} name={name} size={44} />
+                <Portrait person={p} name={name} size={face} />
                 {bad && <Notch className="cb-notch cb-notch-rail" />}
                 {fits && <b className="cb-holds" aria-hidden="true">✓</b>}
                 {counts && p.id in counts && <b className="cb-count" data-zero={counts[p.id] === 0 || undefined}>{counts[p.id]}</b>}

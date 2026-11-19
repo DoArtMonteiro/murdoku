@@ -3,7 +3,7 @@
 // applies anyone else's lane and never reads the solution.
 import type { Clue, Puzzle } from '../core/types'
 import { clueHolds } from '../core/engine'
-import { allCells, cellKey, firstName } from './cells'
+import { allCells, cellKey } from './cells'
 import type { Metrics } from './measure'
 import { chipText } from './phrase'
 import type { Placement } from './cells'
@@ -54,18 +54,19 @@ export function lensCells(p: Puzzle, personId: string, lit: readonly number[], p
   return out
 }
 
-/** Type and box metrics of a statement chip, px: [serif advance per character, sans advance, line, horizontal padding, vertical padding]. */
+/** Type and box metrics of a statement chip, px: [serif advance per character, line, horizontal padding, vertical padding, marker]. */
 const CHIP = {
   // measured over every pt case: the widest single-line statement runs 7.5 px per character at 16 px, 7.0 at 15 px
-  roomy: { serif: 7.6, sans: 6.2, line: 19.4, sub: 14.6, padX: 31, padY: 15, min: 44 },
-  compact: { serif: 7.1, sans: 6.2, line: 18, sub: 14.4, padX: 27, padY: 9, min: 40 },
+  roomy: { serif: 7.6, line: 19.4, padX: 31, padY: 15, min: 44, dep: 22 },
+  compact: { serif: 7.1, line: 18, padX: 27, padY: 9, min: 40, dep: 22 },
 } as const
 
 /**
- * Height the chips of the busiest suspect need, from a greedy wrap of their statements. Each chip's text wraps
- * inside the row, so a long statement counts every line it needs; a chip waiting for someone to be placed adds
- * its second line. It errs on the generous side, so a case never clips (the panel reserves exactly this, and
- * hides overflow); it is per CASE, not per suspect, so selecting another suspect never moves the board.
+ * Height the chips of the busiest suspect need to show every statement, from a greedy wrap of their statements.
+ * Each chip's text wraps inside the row, so a long statement counts every line it needs; a chip waiting for
+ * someone to be placed carries a small initial badge, which takes a little width and no height. It errs on the
+ * generous side. It is per CASE, not per suspect, so selecting another suspect never moves the board.
+ * Where the panel cannot afford this much, the chips box is capped below it and scrolls vertically (Casebook).
  */
 export function reserveHeightFor(p: Puzzle, width = 340, compact = false, metrics?: Metrics): number {
   const m = compact ? CHIP.compact : CHIP.roomy
@@ -74,14 +75,13 @@ export function reserveHeightFor(p: Puzzle, width = 340, compact = false, metric
   for (const x of p.people) {
     let used = 0, rowH = 0, total = 0
     for (const s of statementsOf(p, x.id)) {
-      const sub = s.needs ? `Place ${firstName(p, s.needs)} first` : ''
+      const dep = s.needs ? m.dep : 0
       // measured with the page's fonts when it can be, else the generous estimate; 2 px of slack per chip either way
       const textW = (metrics ? metrics.serif(s.text, compact ? 15 : 16) : s.text.length * m.serif) + 2
-      const subW = sub ? (metrics ? metrics.sans(sub, 12) : sub.length * m.sans) + 2 : 0
-      const inner = Math.max(40, width - m.padX)
+      const inner = Math.max(40, width - m.padX - dep)
       const lines = Math.max(1, Math.ceil(textW / inner))
-      const w = Math.min(width, Math.max(textW, subW) + m.padX)
-      const h = Math.max(m.min, lines * m.line + (s.needs ? m.sub : 0) + m.padY)
+      const w = Math.min(width, textW + m.padX + dep)
+      const h = Math.max(m.min, lines * m.line + m.padY)
       if (used && used + gap + w > width) { total += rowH + gap; used = 0; rowH = 0 }
       used += (used ? gap : 0) + w
       rowH = Math.max(rowH, h)

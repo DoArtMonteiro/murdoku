@@ -161,12 +161,17 @@
 .cb-strikes { display: flex; gap: 5px; align-self: center; }
 .cb-strikes i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--cb-ink); }
 .cb-strikes i[data-on] { background: var(--cb-red); border-color: var(--cb-red); }
-.cb-alibi { margin: -2px 0 0; font: italic 400 16px/1.25 var(--cb-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cb-root[data-compact] .cb-alibi { font-size: 15px; margin: -3px 0 0; }
-.cb-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; }
+.cb-alibi { margin: -2px 0 0; min-height: 20px; font: italic 400 16px/1.25 var(--cb-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-root[data-compact] .cb-alibi { font-size: 15px; margin: -3px 0 0; min-height: 19px; }
+/* Every statement is reachable. They wrap, never sideways; where a short phone cannot spare the height the box scrolls
+   up and down inside itself (the plan keeps its size), fades at the foot, and the who-line says how many there are.
+   The padding is room for a focus ring and the tutorial's glow, which the scroll box would clip. */
+.cb-chips { list-style: none; margin: -5px -6px; padding: 5px 6px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; max-height: calc(var(--cb-chips-h, 96px) + 10px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.cb-chips::-webkit-scrollbar { display: none; }
+.cb-chips[data-more]:not([data-end]) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); }
 .cb-chip {
   min-height: 44px; padding: 6px 14px; border-radius: 22px; text-align: left; background: var(--cb-sheet);
-  border: 1.5px solid var(--cb-ink); font: 400 16px/1.2 var(--cb-serif); display: flex; flex-direction: column; justify-content: center;
+  border: 1.5px solid var(--cb-ink); font: 400 16px/1.2 var(--cb-serif); display: flex; flex-direction: row; align-items: center; gap: 7px;
   transition: background-color 150ms, box-shadow 150ms, transform 120ms var(--cb-spring);
   touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
@@ -176,10 +181,14 @@
   box-shadow: 0 0 0 2px var(--cb-amber), 0 0 12px rgba(226, 163, 58, .45); font-weight: 500;
 }
 .cb-chip[data-wait] { border-style: dashed; color: var(--cb-muted); }
-.cb-chip-sub { font: 400 12px/1.2 var(--cb-sans); color: var(--cb-muted); }
+/* a statement about someone not yet placed: a dashed outline (above) and that person's initial */
+.cb-chip-dep { flex: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--cb-ink); color: var(--cb-paper); font: 700 11px/1 var(--cb-sans); }
+.cb-tip { position: fixed; z-index: 25; transform: translate(-50%, -100%); padding: 6px 11px; border-radius: 10px; background: var(--cb-ink); color: var(--cb-paper); font: 600 14px/1.2 var(--cb-sans); white-space: nowrap; pointer-events: none; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); animation: cb-fade 140ms ease-out; }
+.cb-tip[data-below] { transform: translate(-50%, 0); }
+.cb-who-more { flex: none; align-self: center; padding: 3px 8px; border: 1.5px solid var(--cb-ink); border-radius: 11px; font: 700 12px/1.1 var(--cb-sans); white-space: nowrap; }
 .cb-none { font: italic 16px var(--cb-serif); color: var(--cb-muted); align-self: center; }
 
-.cb-mid { --cb-readout-h: 88px; height: calc(var(--cb-chips-h, 96px) + var(--cb-readout-h)); display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
+.cb-mid { --cb-readout-h: 88px; height: calc(var(--cb-chips-h, 96px) + var(--cb-readout-h)); display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 .cb-chips { flex: none; }
 .cb-readout { flex: 1; min-height: 0; overflow-y: auto; font: 400 16px/1.35 var(--cb-serif); padding: 2px 0; scrollbar-width: thin; }
 .cb-readout p { margin: 0 0 4px; }
@@ -305,16 +314,19 @@
 /* ---- short phones: trade prose height for board height. The class is set from the height
    left AFTER the safe-area insets, so a notched tall phone gets it as well. ---------------- */
 .cb-root[data-compact] .cb-head { height: 46px; }
-.cb-root[data-compact] .cb-panel { gap: 4px; padding-bottom: 6px; }
-/* Every statement is always on screen: chips wrap, never scroll. Compact trims the type to 15 px and the
-   padding, and the panel reserves the exact height the busiest suspect needs (reserveHeightFor). */
-.cb-root[data-compact] .cb-mid { --cb-readout-h: 50px !important; gap: 4px; }
+.cb-root[data-compact] .cb-stage-in { inset: 4px 16px 2px; }
+.cb-root[data-compact] .cb-panel { gap: 4px; padding: 3px 16px 6px; }
+.cb-root[data-compact] .cb-bar { padding-top: 0; }
+.cb-root[data-compact] .cb-who-line { min-height: 22px; }
+/* The plan keeps its squares (Casebook measures what it needs); the statements take what is left. Compact trims the
+   type to 15 px and the padding, and the box scrolls vertically when the busiest suspect needs more than that. */
+.cb-root[data-compact] .cb-mid { --cb-readout-h: 44px !important; gap: 4px; }
 .cb-root[data-compact] .cb-chips li { min-width: 0; max-width: 100%; }
 .cb-root[data-compact] .cb-chip { min-height: 40px; padding: 3px 12px; font-size: 15px; line-height: 1.2; }
-.cb-root[data-compact] .cb-chip-sub { font-size: 12px; line-height: 1.2; }
-.cb-root[data-compact] .cb-who { min-height: 58px; }
+.cb-root[data-compact] .cb-who { min-height: 52px; padding: 3px 0 1px; }
 .cb-root[data-compact] .cb-who-state { display: none; }
-.cb-root[data-compact] .cb-act { min-height: 46px; gap: 0; font-size: 12px; }
+.cb-root[data-compact] .cb-premise[data-clamp] { -webkit-line-clamp: 1; }
+.cb-root[data-compact] .cb-act { min-height: 44px; gap: 0; font-size: 12px; }
 .cb-root[data-compact] .cb-act svg { width: 18px; height: 18px; }
 .cb-root[data-compact] .cb-readout { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent); }
 .cb-root[data-compact] .cb-chips { gap: 6px; }
