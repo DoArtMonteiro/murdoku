@@ -76,6 +76,8 @@ export interface Label {
   capH: number
   /** No free band anywhere: draw over furniture with a paper halo. */
   halo?: boolean
+  /** The plate has no free spot clear of the tokens: draw it at low opacity (the overlay sits above them). */
+  faded?: boolean
 }
 
 /** Axis-aligned box of a label in cell units: [x0, y0, x1, y1]. */

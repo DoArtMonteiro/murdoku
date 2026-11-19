@@ -3,6 +3,7 @@ import type { CSSProperties, KeyboardEvent } from 'react'
 import type { Cell, Person, Puzzle } from '../core/types'
 import { furnitureAt } from '../core/engine'
 import { fallbackLayout } from '../reference/shell/geometry'
+import { tokenSizeFor } from '../reference/tokenGeometry'
 import type { BoardModule } from './board'
 import { cellKey, floorWord, roomNameAt } from './cells'
 import type { Placement } from './cells'
@@ -201,6 +202,10 @@ function PlanImpl(props: PlanProps) {
     return m
   }, [placement, floor])
 
+  // Squares the room-name plates must keep clear of: a token, the ghost, or a ring for someone on the other floor.
+  const ghostKey = ghost && (ghost.cell.floor ?? 0) === floor ? `${ghost.cell.row}:${ghost.cell.col}` : null
+  const occupied = useMemo<ReadonlySet<string>>(() => new Set([...here.keys(), ...away.keys(), ...(ghostKey ? [ghostKey] : [])]), [here, away, ghostKey])
+
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const t = (e.target as HTMLElement).closest<HTMLElement>('[role="gridcell"]')
     if (!t) return
@@ -221,7 +226,7 @@ function PlanImpl(props: PlanProps) {
   }
 
   // A token sits fully inside its square: the rings and the initial badge spread at most 4 px past it.
-  const tokenSize = Math.max(14, u - 2 * Math.max(4, Math.round(u * 0.12)))
+  const tokenSize = tokenSizeFor(u)
   const idx = useMemo(() => Array.from({ length: n }, (_, i) => i), [n])
   const ghostPerson = ghost ? byId.get(ghost.person) : undefined
   const fw = floorWord(puzzle, floor)
@@ -242,6 +247,7 @@ function PlanImpl(props: PlanProps) {
   const frame = { width: fit.size, height: fit.size, left: -fit.cropL, top: -fit.cropT, '--u': `${u}px` } as CSSProperties
   const BoardC = board?.Board, Labels = board?.Labels
   const lbl = board ? { puzzle, floor, width: bw, height: bh, layout, theme } : null
+  const lblProps = lbl ? { ...lbl, occupied } : null
 
   return (
     <div className="cb-plan-wrap" style={{ width: fit.visW, height: fit.visH }} data-testid="plan" data-cell={u}>
@@ -299,8 +305,8 @@ function PlanImpl(props: PlanProps) {
             {props.measures.map((m, i) => <MeasureLine key={i} m={m} u={u} n={n} gap={tokenSize / 2 + 3} />)}
           </svg>
         ) : null}
-        {Labels && lbl && (
-          <div className="cb-labels" aria-hidden="true" style={{ left: ox, top: oy, width: bw, height: bh }}><Labels {...lbl} /></div>
+        {Labels && lblProps && (
+          <div className="cb-labels" aria-hidden="true" style={{ left: ox, top: oy, width: bw, height: bh }}><Labels {...lblProps} /></div>
         )}
         <span className="cb-sr">{sel ? `${sel.name} selected` : ''}</span>
       </div>

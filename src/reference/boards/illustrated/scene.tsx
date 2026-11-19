@@ -9,9 +9,13 @@ import { frameFor, GUTTER_SHADE } from './frame'
 import { renderGarden, type LotGeom } from './garden'
 import { renderHouse } from './house'
 import { renderLabels } from './labelsView'
+import { evidenceKeepClear } from './keepClear'
 import { illustratedPlan } from './plan'
+import type { Plan } from '../nightplan/plan'
 import { Reg } from './reg'
 import { styleFor } from './styles'
+
+type Box = [number, number, number, number]
 
 export interface Scene {
   reg: Reg
@@ -21,6 +25,9 @@ export interface Scene {
   vig: string
   grain: string
   labels: ReactNode
+  /** What the plates are placed from, so BoardLabels can place them again around the tokens. */
+  plan: Plan
+  keepClear: Box[]
   gutTop: string
   gutLeft: string
 }
@@ -110,5 +117,5 @@ function buildScene({ puzzle, floor, width, height, x0, y0, u }: SceneInput, uid
       <stop offset="1" stopColor="#03060a" stopOpacity={0} />
     </linearGradient>
   ))
-  return { reg, fr, garden, house, vig, grain, labels, gutTop: reg.url(ramp('gutt', true)), gutLeft: reg.url(ramp('gutl', false)) }
+  return { reg, fr, garden, house, vig, grain, labels, plan, keepClear: evidenceKeepClear(puzzle.id), gutTop: reg.url(ramp('gutt', true)), gutLeft: reg.url(ramp('gutl', false)) }
 }

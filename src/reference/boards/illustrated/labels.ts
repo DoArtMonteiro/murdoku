@@ -8,9 +8,10 @@
 // preferences, in this order: the full name over an abbreviation, clear of furniture, clear of door and window
 // gaps, against a real wall, the north wall, the top-left corner.
 //
-// Labels are painted in an overlay ABOVE the token layer (see BoardLabels in index), so a name is never hidden by a
-// token. The price is that a token standing in the strip under a plate loses the top of its portrait; the strip is
-// the smallest the type size allows (see the legibility tests for the measured worst case).
+// Labels are painted in an overlay ABOVE the token layer (see BoardLabels in index), so a plate must yield to a token:
+// given the boxes of the occupied squares, the plate moves to another strip of its room that none of them touches
+// (a shorter name if that is what fits). Only when the room has no such spot is the plate kept where it scores best
+// and marked `faded`, which the overlay paints at 20% opacity. With nothing occupied the placement is the base one.
 import { DOOR_GAP, WINDOW_GAP, edgeHalf, isWall, type Edge, type Label, type Plan, type PlanRoom } from '../nightplan/plan'
 import { furnitureFootprint } from '../../../core/types'
 
@@ -63,7 +64,8 @@ export function variants(name: string): string[] {
 interface Run { row: number; a: number; b: number }
 
 /** `keepClear`: boxes (cells) no plate may touch, such as the shell's evidence markers (see keepClear.ts). */
-export function placeLabels(plan: Plan, u: number, keepClear: readonly Box[] = []): Label[] {
+/** `occupied`: the painted boxes (cells) of squares holding a token, ghost or ring (see tokenGeometry.ts). */
+export function placeLabels(plan: Plan, u: number, keepClear: readonly Box[] = [], occupied: readonly Box[] = []): Label[] {
   const n = plan.n
   const fs = labelFontPx(u)
   // plate height: capitals (0.69 em) plus 1 px of plate above and below
@@ -149,6 +151,9 @@ export function placeLabels(plan: Plan, u: number, keepClear: readonly Box[] = [
               if (!relaxSwing && swing.some(s => overlap(plate, s))) continue
               // soft costs
               let score = 3 * vi + (text.length <= 3 ? 6 : 0)
+              // a plate over a token is the last resort: any clear spot, however short the name, beats it
+              const hidden = occupied.reduce((s, o) => s + (overlap(plate, o) ? area(inter(plate, o)) : 0), 0)
+              if (hidden > 0) score += 100 + 10 * hidden / area(plate)
               if (relaxSwing) score += 6
               score += 6 * furn.reduce((s, f) => s + (overlap(plate, f) ? area(inter(plate, f)) : 0), 0) / area(plate)
               score += 2 * openings.filter(o => overlap(plate, o)).length
@@ -160,19 +165,20 @@ export function placeLabels(plan: Plan, u: number, keepClear: readonly Box[] = [
               score += 0.15 * (r - room.r0) + 0.1 * (x0 - left)
               if (!best || score < best.score - 1e-9) {
                 const cy = (plate[1] + plate[3]) / 2
-                best = { score, label: { roomId: room.id, text, x: x0 + w / 2, y: cy + capH / 2, cy, rot: 0, fs, ls: LS, mode: 'floor', w, capH } }
+                best = { score, label: { roomId: room.id, text, x: x0 + w / 2, y: cy + capH / 2, cy, rot: 0, fs, ls: LS, mode: 'floor', w, capH, ...(hidden > 0 ? { faded: true } : {}) } }
               }
             }
           }
         }
       }
-      if (best) break
+      if (best && !best.label.faded) break
     }
     // no strip fits at all (cannot happen on a catalogue plan; keeps the call total): the room's own top-left corner
     const label = best?.label ?? (() => {
       const text = vs[vs.length - 1], w = widthOf(text)
       const cy = room.r0 + 0.12 + capH / 2
-      return { roomId: room.id, text, x: room.c0 + 0.15 + w / 2, y: cy + capH / 2, cy, rot: 0 as const, fs, ls: LS, mode: 'floor' as const, w, capH, halo: true }
+      const l = { roomId: room.id, text, x: room.c0 + 0.15 + w / 2, y: cy + capH / 2, cy, rot: 0 as const, fs, ls: LS, mode: 'floor' as const, w, capH, halo: true }
+      return occupied.some(o => overlap(labelPlateOf(l), o)) ? { ...l, faded: true } : l
     })()
     placed.push(labelPlateOf(label))
     byRoom.set(room.id, label)

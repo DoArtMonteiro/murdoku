@@ -39,6 +39,12 @@ export interface BoardProps {
   layout: BoardLayout
   /** 'light' | 'dark' page theme; boards may ignore it. */
   theme: 'light' | 'dark'
+  /**
+   * "row:col" keys of the squares of this floor that a token, ghost or other-floor ring stands in. Only an overlay
+   * that paints above the tokens (room-name plates) reads it, to keep clear; omitted means none. A board stays
+   * deterministic for a given (puzzle, floor, size, occupied set).
+   */
+  occupied?: ReadonlySet<string>
 }
 
 /**

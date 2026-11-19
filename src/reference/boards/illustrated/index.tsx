@@ -14,9 +14,12 @@
 // in both themes.
 // ============================================================================
 import { memo, useMemo } from 'react'
+import { occupiedBoxes } from '../../tokenGeometry'
 import type { BoardLayout, BoardProps } from '../../contract'
 import { Compass } from './compass'
 import { frameFor } from './frame'
+import { placeLabels } from './labels'
+import { renderLabels } from './labelsView'
 import { getScene } from './scene'
 import { styleFor } from './styles'
 
@@ -71,19 +74,27 @@ export default Board
 
 /**
  * Room-name overlay. The shell paints it in a layer ABOVE the token layer (and below dialogs, aria-hidden,
- * pointer-events none), so a name is never hidden by a portrait. Same geometry and scene cache as the board.
+ * pointer-events none), so a plate yields to the tokens: `occupied` squares are kept clear (see placeLabels).
+ * Same geometry and scene cache as the board.
  */
-export const BoardLabels = memo(function BoardLabels({ puzzle, floor, width: w0, height: h0, layout }: BoardProps) {
+export const BoardLabels = memo(function BoardLabels({ puzzle, floor, width: w0, height: h0, layout, occupied }: BoardProps) {
   const width = Math.max(0, w0), height = Math.max(0, h0)
   const u = layout.cellW
   const scene = useMemo(
     () => getScene({ puzzle, floor, width, height, x0: layout.x0, y0: layout.y0, u }),
     [puzzle, floor, width, height, layout.x0, layout.y0, u],
   )
+  // a plate yields to a token: with squares occupied, the names are placed again around them (cheap: a few rooms)
+  const occKey = occupied && occupied.size ? [...occupied].sort().join(',') : ''
+  const labels = useMemo(() => {
+    if (!occKey) return scene.labels
+    const st = styleFor(puzzle)
+    return renderLabels(scene.plan, placeLabels(scene.plan, u, scene.keepClear, occupiedBoxes(occKey.split(','), u)), st, u)
+  }, [scene, occKey, puzzle, u])
   return (
     <div aria-hidden="true" data-board-labels="illustrated" style={{ position: 'relative', width, height, pointerEvents: 'none' }}>
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ position: 'absolute', left: 0, top: 0, display: 'block' }} focusable="false">
-        <g transform={`translate(${layout.x0} ${layout.y0}) scale(${u})`}>{scene.labels}</g>
+        <g transform={`translate(${layout.x0} ${layout.y0}) scale(${u})`}>{labels}</g>
       </svg>
     </div>
   )

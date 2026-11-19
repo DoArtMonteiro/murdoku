@@ -17,7 +17,7 @@ export function renderLabels(plan: Plan, labels: Label[], st: StyleKit, u: numbe
         const base = l.cy + (0.345 * l.fs) / u
         return (
           <Fragment key={l.roomId}>
-            <g data-label={l.text} data-label-full={full.get(l.roomId)} data-label-mode={l.mode} data-label-fs={l.fs} data-label-cap={f(0.69 * l.fs)} transform={l.rot ? `rotate(${l.rot} ${f(l.x)} ${f(l.cy)})` : undefined}>
+            <g data-label={l.text} data-label-faded={l.faded || undefined} opacity={l.faded ? 0.2 : undefined} data-label-full={full.get(l.roomId)} data-label-mode={l.mode} data-label-fs={l.fs} data-label-cap={f(0.69 * l.fs)} transform={l.rot ? `rotate(${l.rot} ${f(l.x)} ${f(l.cy)})` : undefined}>
               <title>{full.get(l.roomId)}</title>
               <rect x={f(l.x - w / 2 - 0.03)} y={f(l.cy - h / 2)} width={f(w + 0.06)} height={f(h)} rx={0.015} fill="#14100d" fillOpacity={0.94} stroke={st.wall.trim} strokeOpacity={0.45} strokeWidth={px} />
               <text x={f(l.x)} y={f(base)} textAnchor="middle" fontSize={f(l.fs / u)} fontFamily={st.font} fill="#EFE3C8" textLength={f(w)} lengthAdjust="spacingAndGlyphs"
