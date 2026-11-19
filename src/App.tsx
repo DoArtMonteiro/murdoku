@@ -121,35 +121,6 @@ function AppInner() {
     )
   }
 
-  // Cold start: the 60-case catalog is generated one case per macrotask AFTER
-  // first paint, so the shell is on screen and interactive instead of the tab
-  // hanging on a blank page for the length of the build. A warm cache resolves
-  // on the first tick and never renders this.
-  if (game.catalogProgress && !game.puzzles.length) {
-    const { done, total } = game.catalogProgress
-    return (
-      <div className="min-h-screen bg-bg-base text-text-primary font-sans flex flex-col items-center justify-center gap-3 px-6">
-        <p className="font-display text-lg font-bold uppercase tracking-wide">Alibi</p>
-        <p
-          className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-muted"
-          role="status"
-          aria-live="polite"
-        >
-          Assembling the case index — {done} of {total}
-        </p>
-        <div
-          className="h-1 w-56 max-w-full"
-          style={{ background: 'color-mix(in srgb, var(--color-text-primary) 14%, transparent)' }}
-        >
-          <div
-            className="h-full transition-[width] duration-150"
-            style={{ width: `${Math.round((done / Math.max(1, total)) * 100)}%`, background: 'var(--color-accent)' }}
-          />
-        </div>
-      </div>
-    )
-  }
-
   // The solving screen wants full width; everything else sits in a phone frame.
   if (aux === 'none' && game.screen === 'game' && game.puzzle) {
     return (

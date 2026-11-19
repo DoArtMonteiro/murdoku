@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useCallback, useMemo, useState } from 'react'
 import type { Puzzle, CellMark, Screen, GameMode } from '../core/types'
 import { cellFloor } from '../core/types'
-import { getAllPuzzles, getPuzzleById, initCatalogAsync } from '../core/catalog'
+import { getAllPuzzles, getPuzzleById } from '../core/catalog'
 import { deriveEliminations, findMurderer } from '../core/engine'
 import { advanceStreak, dailyPuzzle, loadStreak, saveStreak, todayStamp } from '../core/daily'
 import type { StreakState } from '../core/daily'
@@ -588,26 +588,11 @@ export type { GameState, Action as GameAction }
 export function useGame() {
   const [state, dispatch] = useReducer(reducer, initial)
 
-  // The catalog is built AFTER first paint, one case per macrotask. Building it
-  // inside render meant a cold visitor watched a blank page for the length of a
-  // 60-case generation. `catalogProgress` lets the shell say what it is doing;
-  // a warm cache resolves on the first tick and is never seen.
-  const [puzzles, setPuzzles] = useState<Puzzle[]>([])
-  const [catalogProgress, setCatalogProgress] = useState<{ done: number; total: number } | null>(null)
-  useEffect(() => {
-    let live = true
-    initCatalogAsync((done, total) => { if (live) setCatalogProgress({ done, total }) })
-      .then(list => {
-        if (!live) return
-        setPuzzles(list)
-        setCatalogProgress(null)
-        // Building the catalog reconciles saved progress with each case's
-        // fingerprint; pick up whatever it purged.
-        dispatch({ type: 'SYNC_PROGRESS' })
-      })
-      .catch(() => { if (live) setCatalogProgress(null) })
-    return () => { live = false }
-  }, [])
+  // The catalog is baked into the bundle, so the list is there on the first render:
+  // no loading tick, no empty home screen. Reading it reconciles saved progress with
+  // each case's fingerprint, so pick up whatever that purged once, after mount.
+  const [puzzles] = useState<Puzzle[]>(() => getAllPuzzles())
+  useEffect(() => { dispatch({ type: 'SYNC_PROGRESS' }) }, [])
 
   const [streak, setStreak] = useState<StreakState>(() => loadStreak())
   // The streak is written inside the reducer's win path, so re-read it whenever
@@ -682,7 +667,8 @@ export function useGame() {
     // or Start over; nothing else (selecting a suspect, moving a token) lifts it.
     feedback: state.accusationsLeft <= 0 && state.puzzle && !state.completed ? 'cold' as const : state.feedback,
     puzzles,
-    catalogProgress,
+    // Nothing is built at runtime any more; kept for the reference shells, whose GameApi still names it.
+    catalogProgress: null,
     daily,
     streak,
     placedOf,

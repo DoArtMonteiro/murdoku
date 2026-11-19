@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { easy, hard } from './fixtures'
+import type { Cell } from '../../src/core/types'
 import { chainOf, hintFor, nextStep } from '../../src/casebook/hint'
 import { buildRecon } from '../../src/casebook/recon'
-import { sameCell } from '../../src/casebook/cells'
+import { cellKey, sameCell } from '../../src/casebook/cells'
+import { lensCells } from '../../src/casebook/lens'
+import { deep } from '../../src/casebook/deep'
 
 describe('hint', () => {
   it('points at the first chain step that is not correctly placed', () => {
@@ -49,12 +52,36 @@ describe('hint', () => {
     expect(h.text).toMatch(/row \d+, column \d+/)
   })
 
-  it('every chain step of both cases yields text at every level', () => {
-    for (const p of [hard, easy]) {
+  it('every chain step of every case, deep ones included, yields text at every level', () => {
+    for (const p of [hard, easy, ...deep()]) {
       const steps = chainOf(p).steps
       const place: Record<string, (typeof steps)[number]['cell']> = {}
       for (const s of steps) {
         for (const lv of [1, 2, 3] as const) expect(hintFor(p, place, lv)!.text.length).toBeGreaterThan(5)
+        place[s.person] = s.cell
+      }
+    }
+  })
+})
+
+describe('hint level 2 agrees with the lens', () => {
+  it('the square count it states is the number of squares the lens lights, and the true square is among them', () => {
+    for (const p of [hard, easy, ...deep()]) {
+      const place: Record<string, Cell> = {}
+      for (const s of chainOf(p).steps) {
+        const h = hintFor(p, place, 2)!
+        const m = /That allows (\d+) squares?/.exec(h.text)
+        const lens = lensCells(p, s.person, h.lit, place)
+        const tag = `${p.id} step ${s.n}`
+        if (lens) {
+          expect(m, tag).not.toBeNull()
+          expect(Number(m![1]), tag).toBe(lens.size)
+          expect(lens.has(cellKey(s.cell)), `${tag} true square lit`).toBe(true)
+        } else {
+          expect(m, `${tag} states no count when nothing can be lit`).toBeNull()
+        }
+        // deep cases remove dozens of squares: the text must stay a few lines, not a list of cells
+        expect(h.lines.join(' ').length, tag).toBeLessThan(400)
         place[s.person] = s.cell
       }
     }

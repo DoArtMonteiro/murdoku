@@ -9,6 +9,8 @@ interface Props {
   placement: Placement
   selected: string
   conflicts: ReadonlySet<string>
+  /** People whose statements all hold where they stand. */
+  holds: ReadonlySet<string>
   /** People a supposition has left with no square: red pencil. */
   contradictions: ReadonlySet<string>
   /** Supposition: how many squares each person has left. */
@@ -17,13 +19,14 @@ interface Props {
 }
 
 /** The portrait rail: one tap selects a suspect. Shows placed or unplaced, and marks the victim. */
-export function Rail({ puzzle, placement, selected, conflicts, contradictions, counts, onSelect }: Props) {
+export function Rail({ puzzle, placement, selected, conflicts, holds, contradictions, counts, onSelect }: Props) {
   return (
-    <ul className="cb-rail" aria-label="Suspects">
+    <ul className="cb-rail" aria-label="Suspects" data-dense={puzzle.people.length >= 6 || undefined}>
       {puzzle.people.map(p => {
         const cell = placement[p.id]
         const bad = conflicts.has(p.id)
         const none = contradictions.has(p.id)
+        const fits = holds.has(p.id) && !bad
         const where = cell ? `placed${floorWord(puzzle, cellFloor(cell)) ? `, ${floorWord(puzzle, cellFloor(cell))}` : ''}` : 'not placed'
         return (
           <li key={p.id}>
@@ -34,18 +37,20 @@ export function Rail({ puzzle, placement, selected, conflicts, contradictions, c
               data-placed={!!cell || undefined}
               data-bad={bad || undefined}
               data-none={none || undefined}
+              data-holds={fits || undefined}
               data-victim={p.isVictim || undefined}
               aria-pressed={p.id === selected}
-              aria-label={`${p.name}${p.isVictim ? ', the victim' : ''}, ${where}${bad ? ', shares a row or column' : ''}${none ? ', no square left' : ''}`}
+              aria-label={`${p.name}${p.isVictim ? ', the victim' : ''}, ${where}${bad ? ', shares a row or column' : ''}${fits ? ', statements hold' : ''}${none ? ', no square left' : ''}`}
               title={none ? `No square left for ${p.name}` : undefined}
               onClick={() => onSelect(p.id)}
             >
               <span className="cb-who-face">
                 <Portrait person={p} size={44} />
+                {fits && <b className="cb-holds" aria-hidden="true">✓</b>}
                 {counts && p.id in counts && <b className="cb-count" data-zero={counts[p.id] === 0 || undefined}>{counts[p.id]}</b>}
               </span>
               <span className="cb-who-name">{p.name}</span>
-              <span className="cb-who-state" aria-hidden="true">{p.isVictim ? 'victim' : cell ? 'placed' : 'to place'}</span>
+              <span className="cb-who-state" aria-hidden="true">{p.isVictim ? 'victim' : fits ? 'fits' : cell ? 'placed' : 'to place'}</span>
             </button>
           </li>
         )

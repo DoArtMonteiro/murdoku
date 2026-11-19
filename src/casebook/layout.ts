@@ -19,7 +19,7 @@ export interface PlanFit {
 }
 
 /** Cells never need to be bigger than this, even on a large screen. */
-const CELL_CAP = 64
+const CELL_CAP = 84
 
 export function fitPlan(availW: number, availH: number, n: number, fn: BoardLayoutFn): PlanFit {
   let best: PlanFit | null = null

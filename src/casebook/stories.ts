@@ -36,6 +36,32 @@ export const STORIES: Record<string, CaseStory> = {
       p4: { name: 'Marco', role: 'Harbour notary', oneLiner: "Has stamped a good share of the town's secrets.", motive: 'Held the papers that could undo three families.' },
     },
   },
+  'depth-d-189': {
+    premise:
+      "Portinhal's grand hotel holds a reception for the harbour council every winter, and everyone agrees the welcome is the coldest part. This year the guests slipped away before the toasts, and the whole town has opinions about why.",
+    murderer: 'p5',
+    cast: {
+      p0: { name: 'Yuki', role: 'Harbour pilot', oneLiner: 'Reads a squall coming a full hour before the barometer does.', motive: 'A grudge against the council over a mooring that was never renewed.' },
+      p1: { name: 'Alexander', role: 'Hotel concierge', oneLiner: "Remembers every guest's name and, more usefully, their habits.", motive: 'Months of tips that ended when the new owners arrived.' },
+      p2: { name: 'Bella', role: 'Society columnist', oneLiner: 'Trades in rumours and always pays in full.', motive: 'A story she could not print without a name to hang it on.' },
+      p3: { name: 'Dalia', role: 'Council treasurer', oneLiner: "Signs the town's cheques and reads every line first.", motive: "The only person who knew where the council's money had gone." },
+      p4: { name: 'Marco', role: 'Ferry captain', oneLiner: 'Tells the same three stories and changes the endings.', motive: 'A debt to the ferry company that was about to fall due.' },
+      p5: { name: 'Oscar', role: 'Shipping agent', oneLiner: 'Smiles first and negotiates second.', motive: 'A contract he could only keep if one set of accounts stayed buried.' },
+    },
+  },
+  'depth-b-95': {
+    premise:
+      "Portinhal's old lighthouse keeps a reputation for swallowing the unwary, and every family has a story about the fog. On the night the fog rolled in thickest, nobody could say who had gone where.",
+    murderer: 'p4',
+    cast: {
+      p0: { name: 'Marco', role: 'Salt merchant', oneLiner: 'Prices everything, including favours.', motive: 'Knew whose accounts did not balance.' },
+      p1: { name: 'Yuki', role: 'Lighthouse keeper', oneLiner: 'Keeps the log in tidy handwriting and tells nobody what is in it.', motive: 'A promotion promised twice and never given.' },
+      p2: { name: 'Bella', role: 'Fishmonger', oneLiner: 'Loud before sunrise and silent after it.', motive: 'A stall rent that rose every spring without a reason given.' },
+      p3: { name: 'Evangeline', role: 'Schoolteacher', oneLiner: "Corrects the town's grammar, and its memory.", motive: 'A scandal she had promised never to teach.' },
+      p4: { name: 'Lena', role: 'Harbour clerk', oneLiner: 'Stamps every form twice and trusts no one once.', motive: 'A forged signature that only one person had noticed.' },
+      p5: { name: 'Carol', role: 'Boat-builder', oneLiner: 'Measures twice, speaks once, and is usually correct.', motive: 'An order cancelled just as the hull was finished.' },
+    },
+  },
   'very-easy-3': {
     premise:
       "Portinhal's old theatre has staged the same farce every autumn since anyone can remember. This year the rehearsal ended before the final curtain, and nobody in the cast could say why.",

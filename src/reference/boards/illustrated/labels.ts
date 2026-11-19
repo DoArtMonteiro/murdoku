@@ -15,6 +15,7 @@ import { DOOR_GAP, WINDOW_GAP, edgeHalf, isWall, type Edge, type Label, type Pla
 export const LABEL_MIN_FS = 10
 const LS = 0.04       // tracking, em (textLength fits the glyphs exactly)
 const CHAR = 0.66     // average caps advance, em (serif / sans caps; textLength squeezes the rest)
+const PLATE_GAP = 10  // px between two plates on one wall line, so two names never read as one phrase
 const PAD = 0.05      // clearance between two label boxes, cells
 const INSET = 0.08    // clearance from a run end or a door / window gap, cells
 
@@ -108,9 +109,9 @@ export function placeLabels(plan: Plan, u: number): Label[] {
   }
 
   const placed: Label[] = []
-  // two names on one wall line keep a gap of max(6 px, half a label height) so they never read as one phrase
+  // two names on one wall line keep a gap of max(10 px, one label height) so they never read as one phrase
   // (the plate is 0.03 wider than the text on each side, so measured plate-to-plate the gap is the same)
-  const gapAlong = Math.max(6 / u, capH / 2) + 0.06
+  const gapAlong = Math.max(PLATE_GAP / u, capH) + 0.06
   const hits = (l: Label) => placed.some(p => {
     const a = box(l), b = box(p)
     const px = l.rot === 0 ? gapAlong : PAD, py = l.rot === 0 ? PAD : gapAlong

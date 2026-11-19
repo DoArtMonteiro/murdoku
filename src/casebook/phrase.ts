@@ -1,7 +1,7 @@
 // Generated wording: every sentence in the hint and the reconstruction is built
 // here from clue and chain data. Nothing positional is hand-written.
 import type { Cell, Clue, FurnitureType, Puzzle } from '../core/types'
-import { cellName, firstName } from './cells'
+import { cellName, firstName, floorWord } from './cells'
 
 const FURNITURE_LABEL: Partial<Record<FurnitureType, string>> = { tv: 'TV' }
 export const furnitureLabel = (t: FurnitureType): string => FURNITURE_LABEL[t] ?? t
@@ -26,7 +26,10 @@ export function cluePhrase(p: Puzzle, clue: Clue): string {
     case 'floor': return clue.floorNum === 0 ? 'on the ground floor' : 'upstairs'
     case 'above': return clue.targetKind === 'room' ? `directly above the ${roomLabel(p, clue.target)}` : `directly above ${who(clue.target)}`
     case 'below': return clue.targetKind === 'room' ? `directly below the ${roomLabel(p, clue.target)}` : `directly below ${who(clue.target)}`
-    case 'direction': return `${clue.steps ? `${clue.steps} ` : ''}${dirWord[clue.dir]} of ${who(clue.other)}`
+    case 'direction': {
+      const unit = clue.dir === 'N' || clue.dir === 'S' ? 'row' : 'column'
+      return `${clue.steps ? `exactly ${clue.steps} ${unit}${clue.steps === 1 ? '' : 's'} ` : 'somewhere '}${dirWord[clue.dir]} of ${who(clue.other)}`
+    }
     case 'besidePerson': return `next to ${who(clue.other)}`
     case 'sameRoomAs': return `in ${who(clue.other)}'s room`
     case 'notSameRoomAs': return `not in ${who(clue.other)}'s room`
@@ -45,3 +48,14 @@ export function laneOf(removed: Cell, holder: Cell): string {
 }
 
 export const cellList = (p: Puzzle, cells: Cell[]): string => joinList(cells.map(c => cellName(p, c)))
+
+/** "row 3, columns 1, 2 and 5, upstairs": squares grouped by row and floor so a list stays readable. */
+export function squareList(p: Puzzle, cells: Cell[]): string {
+  const groups = new Map<string, Cell[]>()
+  for (const c of cells) groups.set(`${c.floor ?? 0}:${c.row}`, [...(groups.get(`${c.floor ?? 0}:${c.row}`) ?? []), c])
+  return [...groups.values()].map(g => {
+    const fw = floorWord(p, g[0].floor ?? 0)
+    const cols = g.map(c => c.col + 1).sort((a, b) => a - b)
+    return `row ${g[0].row + 1}, column${cols.length > 1 ? 's' : ''} ${joinList(cols.map(String))}${fw ? `, ${fw}` : ''}`
+  }).join('; ')
+}

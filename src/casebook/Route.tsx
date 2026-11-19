@@ -1,4 +1,4 @@
-import { PICKER_CASES, resolveCase } from './cases'
+import { pickerCases, resolveCase } from './cases'
 import Casebook from './Casebook'
 import { useSliceTheme } from './theme'
 import './casebook.css'
@@ -20,17 +20,14 @@ function Picker({ unknown }: { unknown: string }) {
         <p className="cb-picker-lede">Everyone told the truth. Pick a case.</p>
         {unknown && <p className="cb-note">No case called "{unknown}".</p>}
         <ul className="cb-picker-list">
-          {PICKER_CASES.map(c => {
-            const p = resolveCase(c.id)
-            return p ? (
-              <li key={c.id}>
-                <a className="cb-case" href={`?casebook=${c.id}`}>
-                  <span className="cb-case-title">{p.title}</span>
-                  <span className="cb-case-note">{c.note}</span>
-                </a>
-              </li>
-            ) : null
-          })}
+          {pickerCases().map(c => (
+            <li key={c.id}>
+              <a className="cb-case" href={`?casebook=${c.id}`}>
+                <span className="cb-case-title">{c.title}</span>
+                <span className="cb-case-note">{c.note}</span>
+              </a>
+            </li>
+          ))}
         </ul>
       </main>
     </div>

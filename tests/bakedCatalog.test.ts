@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import baked from '../src/data/catalog.generated.json'
 import fingerprints from './fixtures/catalog-fingerprints.json'
-import { getAllPuzzles, looksLikePuzzle } from '../src/core/catalog'
+import { looksLikePuzzle } from '../src/core/catalog'
 import { countSolutions, findMurderer } from '../src/core/engine'
 import { puzzleFingerprint } from '../src/core/progress'
 import type { Puzzle } from '../src/core/types'
@@ -24,8 +24,15 @@ describe('baked catalogue (canonical data)', () => {
     expect(createHash('sha256').update(JSON.stringify(bakedPuzzles)).digest('hex')).toBe(BAKED_SHA256)
   })
 
-  it('is exactly what the app serves', () => {
-    expect(JSON.stringify(getAllPuzzles())).toBe(JSON.stringify(bakedPuzzles))
+  it('is exactly what a freshly loaded app serves, and reading it writes nothing', async () => {
+    // A fresh module graph: the catalogue module re-reads the JSON itself, so this is not the
+    // test comparing an array with itself.
+    vi.resetModules()
+    localStorage.clear()
+    const fresh = await import('../src/core/catalog')
+    expect(JSON.stringify(fresh.getBakedPuzzles())).toBe(JSON.stringify(bakedPuzzles))
+    expect(localStorage.length, 'getBakedPuzzles must not touch storage').toBe(0)
+    expect(JSON.stringify(fresh.getAllPuzzles())).toBe(JSON.stringify(bakedPuzzles))
   })
 
   it('keeps every fingerprint equal to the one the shipped build computed, so saves survive', () => {

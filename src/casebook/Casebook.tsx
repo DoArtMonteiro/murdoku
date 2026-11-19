@@ -1,5 +1,6 @@
+import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Volume2, VolumeX } from 'lucide-react'
 import type { Puzzle } from '../core/types'
 import { cellFloor } from '../core/types'
 import { warmAvatars } from '../components/avatarImage'
@@ -8,20 +9,22 @@ import { loadBoard } from './board'
 import type { BoardModule } from './board'
 import { Bar } from './Bar'
 import { Chips } from './Chips'
-import { cellKey, conflictIds, firstName, floorsOf, norm } from './cells'
+import { cellKey, conflictIds, floorsOf, norm } from './cells'
 import type { Placement } from './cells'
 import { initState, reduce, toSaved } from './game'
 import { nextStep } from './hint'
-import { lensCells, reserveHeightFor } from './lens'
+import { lensCells, reserveHeightFor, satisfiedIds } from './lens'
 import { Plan } from './Plan'
 import { Rail } from './Rail'
+import { Readout } from './Readout'
 import { buildRecon } from './recon'
 import { Replay } from './Replay'
 import { loadSave, writeSave } from './save'
 import { Sheet } from './Sheet'
+import { cueFor, loadSoundPref, playCue, primeAudio, saveSoundPref } from './sound'
 import { storyFor, visibleStory } from './stories'
 import { suppose } from './suppose'
-import { useReducedMotion, useSliceTheme } from './theme'
+import { useCompact, useReducedMotion, useSliceTheme } from './theme'
 import './casebook.css'
 import './fonts.css'
 
@@ -37,10 +40,13 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const [accused, setAccused] = useState<string | null>(null)
   const [replay, setReplay] = useState<{ step: number } | null>(null)
   const [auto, setAuto] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const compact = useCompact(rootRef)
   const stageRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLElement>(null)
   const [panelH, setPanelH] = useState(0)
   const avail = useElementSize(stageRef)
+  const [sound, setSound] = useState(loadSoundPref)
 
   useEffect(() => { warmAvatars(); let live = true; loadBoard().then(m => { if (live) setBoard(m) }, () => {}); return () => { live = false } }, [])
   useEffect(() => { writeSave(puzzle.id, toSaved(state)) }, [puzzle.id, state.placement, state.pencil, state.strikes, state.outcome, state.hintsUsed]) // eslint-disable-line
@@ -49,7 +55,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const solved = state.outcome === 'proved' || state.outcome === 'called' || state.outcome === 'cold'
   const vis = visibleStory(story, solved)
   const recon = useMemo(() => buildRecon(puzzle), [puzzle])
-  const reserve = useMemo(() => reserveHeightFor(puzzle), [puzzle])
+  const [chipsW, setChipsW] = useState(340)
+  const reserve = useMemo(() => reserveHeightFor(puzzle, chipsW), [puzzle, chipsW])
   const floors = floorsOf(puzzle)
 
   // ---- what the board shows --------------------------------------------------
@@ -83,6 +90,20 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const lensOther = !!lens && [...lens].some(k => k.startsWith(`${otherFloor}:`))
   const placedOther = Object.values(shown).some(c => cellFloor(c) === otherFloor)
 
+  // The statements wrap inside the panel: measure it, so the reserved height matches the real width.
+  useLayoutEffect(() => {
+    const el = panelRef.current
+    if (!el) return
+    const read = () => {
+      const cs = getComputedStyle(el)
+      const w = Math.floor(el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))
+      if (w > 100) setChipsW(prev => (prev === w ? prev : w))
+    }
+    read()
+    window.addEventListener('resize', read)
+    return () => window.removeEventListener('resize', read)
+  }, [])
+
   // The panel keeps its play-time height during the replay, so the board never resizes between the two.
   useLayoutEffect(() => { if (!replay && panelRef.current) setPanelH(panelRef.current.offsetHeight) }, [replay, avail.w, avail.h, state.hint, state.ghost, state.outcome, state.selected])
 
@@ -107,51 +128,41 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const sel = puzzle.people.find(p => p.id === state.selected)!
   const role = vis.roleOf(sel.id)
   const hint = state.hint
-  const nothingYet = Object.keys(state.placement).length === 0 && !hint && !report && !state.outcome
 
   const onCell = useCallback((cell: Parameters<typeof norm>[0]) => (replay ? advance() : dispatch({ t: 'cell', cell })), [replay, advance])
   const onLong = useCallback((cell: Parameters<typeof norm>[0]) => { if (!replay) dispatch({ t: 'long', cell }) }, [replay])
 
-  let readout: React.ReactNode
-  if (report && state.ghost) {
-    const gname = firstName(puzzle, state.ghost.person)
-    readout = (
-      <>
-        <p className="cb-r-title">Supposing {gname} here.</p>
-        {!report.ghostLegal && <p className="cb-red">That breaks {gname}'s own statements.</p>}
-        {report.contradictions.map(id => <p key={id} className="cb-red">No square left for {firstName(puzzle, id)}.</p>)}
-        {!report.contradictions.length && report.ghostLegal && <p>{report.linked.length ? 'Squares left for those tied to this one are counted on their portraits.' : 'Nobody is tied to this one. Row and column are the only effect.'}</p>}
-      </>
-    )
-  } else if (hint) {
-    readout = (
-      <>
-        <p className="cb-r-title">{hint.text}</p>
-        {hint.level >= 2 && hint.lines.map((l, i) => <p key={i} className="cb-r-line">{l}</p>)}
-      </>
-    )
-  } else if (state.outcome) {
-    readout = (
-      <>
-        <p className="cb-r-title">{state.outcome === 'proved' ? 'Proved.' : state.outcome === 'called' ? 'Called it. The plan is not proven.' : 'The case has gone cold.'}</p>
-        <button type="button" className="cb-linkbtn" onClick={startReplay}>Watch the night</button>
-      </>
-    )
-  } else if (nothingYet && vis.premise) {
-    readout = <p className="cb-premise">{vis.premise}</p>
-  } else {
-    readout = (
-      <>
-        {role && <p className="cb-premise">{role.oneLiner}</p>}
-        <p>Tap a square to place {sel.name}. Light a statement to see where it holds.</p>
-      </>
-    )
+  const moved = state.history.length > 0 || Object.keys(state.placement).length > 0 || Object.values(state.lit).some(l => l.length) || state.hintsUsed > 0
+  const [premiseOpen, setPremiseOpen] = useState(!moved)
+  useEffect(() => { if (moved) setPremiseOpen(false) }, [moved])
+  const holds = useMemo(() => (replay ? new Set<string>() : satisfiedIds(puzzle, state.placement)), [replay, puzzle, state.placement])
+
+  // Sound: a cue for what just changed. Never on first render, never while off.
+  const prev = useRef(state)
+  useEffect(() => {
+    const before = prev.current
+    prev.current = state
+    const cue = sound ? cueFor(before, state) : null
+    if (cue) playCue(cue)
+  }, [state, sound])
+  // A saved "on" has no audio context after a reload; the browser only allows one from a tap, so make it on the first.
+  useEffect(() => {
+    if (!sound) return
+    const arm = () => { primeAudio() }
+    window.addEventListener('pointerdown', arm, { once: true })
+    return () => window.removeEventListener('pointerdown', arm)
+  }, [sound])
+  const toggleSound = () => {
+    const on = !sound
+    if (on && !primeAudio()) return
+    setSound(on); saveSoundPref(on)
+    if (on) playCue('lens')
   }
 
   const strikeDots = Array.from({ length: 3 }, (_, i) => i < state.strikes)
 
   return (
-    <div className="cb-root" data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
+    <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
       <header className="cb-head">
         <a className="cb-back" href="?casebook=" aria-label="Back to the case list"><ArrowLeft size={22} aria-hidden="true" /></a>
         <h1 className="cb-title">{puzzle.title}<span className="cb-sub">{puzzle.caseNumber}</span></h1>
@@ -195,10 +206,19 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
                 <span className="cb-who-title">{sel.name}</span>
                 <span className="cb-who-role">{[role?.role, sel.isVictim ? 'victim' : ''].filter(Boolean).join(', ')}</span>
                 <span className="cb-strikes" aria-label={`${state.strikes} of 3 strikes`}>{strikeDots.map((on, i) => <i key={i} data-on={on || undefined} />)}</span>
+                <button type="button" className="cb-sound" aria-pressed={sound} aria-label="Sound" title="Sound" onClick={toggleSound}>{sound ? <Volume2 size={18} aria-hidden="true" /> : <VolumeX size={18} aria-hidden="true" />}</button>
               </div>
-              <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} reserveHeight={reserve} />
-              <div className="cb-readout" data-testid="readout">{readout}</div>
-              <Rail puzzle={puzzle} placement={state.placement} selected={state.selected} conflicts={conflicts} contradictions={contradictions} counts={counts} onSelect={id => dispatch({ t: 'select', id })} />
+              <div className="cb-mid" style={{ '--cb-chips-h': `${reserve}px`, '--cb-readout-h': `${Math.min(88, Math.max(56, 200 - reserve))}px` } as CSSProperties}>
+                <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} />
+                <div className="cb-readout" data-testid="readout">
+                  <Readout
+                    puzzle={puzzle} selected={sel} oneLiner={role?.oneLiner ?? null} premise={vis.premise} premiseOpen={premiseOpen}
+                    onTogglePremise={() => setPremiseOpen(o => !o)} ghostPerson={state.ghost?.person ?? null} report={report}
+                    hint={hint} outcome={state.outcome} onReplay={startReplay}
+                  />
+                </div>
+              </div>
+              <Rail puzzle={puzzle} placement={state.placement} selected={state.selected} conflicts={conflicts} holds={holds} contradictions={contradictions} counts={counts} onSelect={id => dispatch({ t: 'select', id })} />
               <Bar
                 pencilOn={state.pencilOn} supposeOn={state.supposeOn} canUndo={state.history.length > 0}
                 whyDone={!nextStep(puzzle, state.placement)} accuseDisabled={state.outcome === 'cold' || state.outcome === 'proved'}

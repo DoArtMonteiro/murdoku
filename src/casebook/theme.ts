@@ -2,7 +2,8 @@
 // `theme-dark` / `theme-light` class on <html> (set by the page's inline script),
 // then prefers-color-scheme. It never touches `murdoku_theme` or any murdoku_*
 // key, so it does not use the app's useTheme hook (which writes that key).
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
+import type { RefObject } from 'react'
 
 export type Theme = 'light' | 'dark'
 
@@ -35,4 +36,25 @@ export function useReducedMotion(): boolean {
     return () => mq?.removeEventListener?.('change', on)
   }, [])
   return reduced
+}
+
+/**
+ * True on a phone-width screen whose usable height (after the safe-area insets) is under 820 px.
+ * Read from the root's own box and padding, because media queries cannot see env(safe-area-inset-*).
+ */
+export function useCompact(ref: RefObject<HTMLElement | null>): boolean {
+  const [compact, setCompact] = useState(false)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const read = () => {
+      const cs = getComputedStyle(el)
+      const usable = el.clientHeight - parseFloat(cs.paddingTop || '0') - parseFloat(cs.paddingBottom || '0')
+      setCompact(window.innerWidth < 900 && usable > 0 && usable < 820)
+    }
+    read()
+    window.addEventListener('resize', read)
+    return () => window.removeEventListener('resize', read)
+  }, [ref])
+  return compact
 }

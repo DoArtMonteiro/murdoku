@@ -3,7 +3,7 @@ import { getPuzzleById } from '../../src/core/catalog'
 import { easy, hard } from './fixtures'
 import type { Puzzle } from '../../src/core/types'
 import { FURNITURE_WORDS } from '../../src/reference/story/schema'
-import { PICKER_CASES } from '../../src/casebook/cases'
+import { deep } from '../../src/casebook/deep'
 import { STORIES, storyFor, visibleStory } from '../../src/casebook/stories'
 import type { CaseStory } from '../../src/casebook/stories'
 
@@ -46,10 +46,10 @@ function slots(s: CaseStory): Array<[string, string]> {
   return out
 }
 
-const FIXTURE: Record<string, Puzzle> = { 'hard-2': hard, 'very-easy-3': easy }
+const FIXTURE: Record<string, Puzzle> = { 'hard-2': hard, 'very-easy-3': easy, ...Object.fromEntries(deep().map(p => [p.id, p])) }
 
 describe('story slots', () => {
-  for (const { id } of PICKER_CASES) {
+  for (const id of Object.keys(STORIES)) {
     describe(id, () => {
       const p = FIXTURE[id]
       const s = STORIES[id]
@@ -95,7 +95,7 @@ describe('story slots', () => {
   })
 
   it('the live catalogue still matches the authored cast (re-author the story if this fails)', () => {
-    for (const { id } of PICKER_CASES) expect(storyFor(getPuzzleById(id) as Puzzle)).not.toBeNull()
+    for (const id of ['hard-2', 'very-easy-3']) expect(storyFor(getPuzzleById(id) as Puzzle)).not.toBeNull()
   })
 
   it('discards a story whose cast no longer matches the puzzle', () => {

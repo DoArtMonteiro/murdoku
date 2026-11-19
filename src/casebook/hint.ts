@@ -7,8 +7,9 @@ import type { Cell, Puzzle } from '../core/types'
 import { deduceChain } from '../reference/story/deduce'
 import type { DeductionChain, DeductionStep } from '../reference/story/deduce'
 import { cellName, firstName, sameCell } from './cells'
+import { lensCells, statementReady, statementsOf } from './lens'
 import type { Placement } from './cells'
-import { cellList, cluePhrase, joinList, laneOf } from './phrase'
+import { cluePhrase, joinList, laneOf, squareList } from './phrase'
 
 const chains = new WeakMap<Puzzle, DeductionChain>()
 export function chainOf(p: Puzzle): DeductionChain {
@@ -52,7 +53,17 @@ export function removalLines(p: Puzzle, step: DeductionStep, chain: DeductionCha
     }
   }
   const out = [...lanes.values()].map(l => `${l}.`)
-  for (const [by, cells] of pairs) out.push(`If ${name} stood in ${cellList(p, cells)}, ${who(by)} would have nowhere left.`)
+  if (pairs.size > 2) {
+    // A deep case removes dozens of squares for several people at once: one honest summary line.
+    const total = [...pairs.values()].reduce((n, c) => n + c.length, 0)
+    const names = [...pairs.keys()].map(who)
+    out.push(`${total} squares are out: in each, ${joinList(names.slice(0, 3))}${names.length > 3 ? ' or another' : ''} would have nowhere left.`)
+  } else {
+    for (const [by, cells] of pairs) {
+      const where = cells.length <= 4 ? squareList(p, cells) : `any of ${cells.length} squares`
+      out.push(`If ${name} stood in ${where}, ${who(by)} would have nowhere left.`)
+    }
+  }
   return out
 }
 
@@ -63,12 +74,17 @@ export function hintFor(p: Puzzle, place: Placement, level: HintLevel): Hint | n
   const name = firstName(p, step.person)
   const base = { level, person: step.person, cell: step.cell, lines: [] as string[], lit: [] as number[] }
   if (level === 1) {
-    return { ...base, text: `Look at ${name}. What is already settled leaves ${name} a single square.` }
+    return { ...base, text: `Look at ${name}. Start with what ${name}'s statements say.` }
   }
   const lit = step.clues.map(ct => p.clues.indexOf(ct)).filter(i => i >= 0)
-  const own = step.ownCandidates.length
   const phrases = joinList(step.clues.map(ct => cluePhrase(p, ct.clue)).filter(Boolean))
-  const head = `${name}: ${phrases || 'no statement of their own'}. That allows ${own} square${own === 1 ? '' : 's'}.`
+  // How many squares the lit statements allow, counted exactly as the lens will light them. A statement about
+  // someone not yet placed cannot be lit, so it is named instead of counted.
+  const lens = lensCells(p, step.person, lit, place)
+  const waiting = [...new Set(statementsOf(p, step.person).filter(s => lit.includes(s.index) && !statementReady(s, place)).map(s => s.needs!))]
+  const allowed = lens ? `That allows ${lens.size} square${lens.size === 1 ? '' : 's'} for now.` : ''
+  const later = waiting.length ? ` Place ${joinList(waiting.map(w => firstName(p, w)))} to use the rest.` : ''
+  const head = `${name}: ${phrases || 'no statement of their own'}. ${allowed}${later}`.trim()
   const lines = step.via === 'trial'
     ? ['Nothing forces this one outright. It is the square that survives when the rest is played out.']
     : removalLines(p, step, chain)

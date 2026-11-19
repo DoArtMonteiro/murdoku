@@ -83,3 +83,13 @@ export function getAllPuzzles(): Puzzle[] {
 export function getPuzzleById(id: string): Puzzle | undefined {
   return getAllPuzzles().find(p => p.id === id)
 }
+
+/**
+ * The baked puzzles, read-only. Unlike getAllPuzzles() this does NOT run
+ * initCatalog(): it neither purges old caches nor reconciles saved progress, so
+ * it never writes a `murdoku_*` key. Surfaces that keep their own saves (the
+ * casebook slice) use this one.
+ */
+export function getBakedPuzzles(): readonly Puzzle[] {
+  return puzzles
+}

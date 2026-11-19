@@ -45,7 +45,7 @@ export function buildRecon(p: Puzzle): Recon {
     } else {
       const by = [...new Set(step.removed.filter(r => r.reason === 'pair').map(r => who(r.by)))]
       const lanes = removalLines(p, step, chain).filter(l => l.includes(' is '))
-      tail = `${lanes.length ? `${lanes.join(' ')} ` : ''}Anywhere else, ${joinList(by)} would have nowhere left.`
+      tail = `${lanes.length ? `${lanes.join(' ')} ` : ''}Anywhere else, ${by.length > 2 ? `${by.slice(0, 2).join(', ')} or someone else` : joinList(by)} would have nowhere left.`
     }
     return { person: step.person, cell: step.cell, line: `${lead} ${tail}` }
   })

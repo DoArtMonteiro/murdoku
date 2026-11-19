@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import baked from '../../src/data/catalog.generated.json'
 import type { Puzzle } from '../../src/core/types'
 import Casebook from '../../src/casebook/Casebook'
-import { registerCase, resolveCase } from '../../src/casebook/cases'
+import CasebookRoute from '../../src/casebook/Route'
+import { pickerCases, registerCase, resolveCase } from '../../src/casebook/cases'
+import { leadCases } from '../../src/casebook/deep'
 import { saveKey } from '../../src/casebook/save'
 
 const easy = (baked as unknown as Puzzle[]).find(p => p.id === 'very-easy-3') as Puzzle
@@ -61,5 +63,24 @@ describe('case source', () => {
     const injected = { ...easy, id: 'injected-x', title: 'Injected' } as Puzzle
     registerCase(injected)
     expect(resolveCase('injected-x')?.title).toBe('Injected')
+  })
+})
+
+describe('casebook route', () => {
+  it.each(['', 'hard-2', 'very-easy-3', 'depth-d-189', 'depth-b-95', 'no-such-case'])('loading ?casebook=%s writes no murdoku_* key', async id => {
+    localStorage.clear()
+    render(<CasebookRoute caseId={id} />)
+    // let the lazy avatar and board chunks settle
+    await new Promise(r => setTimeout(r, 50))
+    expect(Object.keys(localStorage).filter(k => k.startsWith('murdoku_'))).toEqual([])
+  })
+
+  it('the picker leads with the deep cases (generated, else the fixtures), then the two baked picks', () => {
+    render(<CasebookRoute caseId="" />)
+    const titles = [...document.querySelectorAll('.cb-case-title')].map(e => e.textContent)
+    const lead = leadCases().map(p => p.title)
+    expect(titles.slice(0, lead.length)).toEqual(lead)
+    expect(titles.slice(lead.length)).toEqual(['Ashes at Midnight', 'A Fatal Rehearsal'])
+    expect(titles).toHaveLength(pickerCases().length)
   })
 })

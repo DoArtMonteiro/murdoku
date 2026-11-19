@@ -9,15 +9,13 @@ interface Props {
   placement: Placement
   lit: readonly number[]
   onToggle: (index: number) => void
-  /** Height to reserve so selecting another suspect never moves the board. */
-  reserveHeight: number
 }
 
 /** The selected suspect's statements. Each chip is a lens toggle. */
-export function Chips({ puzzle, person, placement, lit, onToggle, reserveHeight }: Props) {
+export function Chips({ puzzle, person, placement, lit, onToggle }: Props) {
   const sts = statementsOf(puzzle, person)
   return (
-    <ul className="cb-chips" aria-label={`${firstName(puzzle, person)}'s statements`} style={{ minHeight: reserveHeight }}>
+    <ul className="cb-chips" aria-label={`${firstName(puzzle, person)}'s statements`}>
       {sts.map(st => {
         const ready = statementReady(st, placement)
         const on = lit.includes(st.index) && ready
