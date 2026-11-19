@@ -1,0 +1,23 @@
+{
+  // ISOLATED PREVIEW of the reinvention branch. Never the accepted baseline (alibi-game)
+  // and never the old murdoku Worker. Deploy only with:
+  //   VITE_CASEBOOK=1 npm run build && npx wrangler@4.164.0 deploy --config deploy/preview/wrangler.jsonc
+  // Paths below are relative to this file. Build first (`npm run build`).
+  "name": "alibi-preview",
+  "account_id": "e7051a1583673d9caec0521af5104117",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  // The script only guards the asset directories (see worker.js). It serves no page itself.
+  "main": "../cloudflare/worker.js",
+  "assets": {
+    "directory": "../../dist",
+    "binding": "ASSETS",
+    // Unknown paths get index.html, so the app also opens from any URL.
+    "not_found_handling": "single-page-application",
+    // Only the paths whose files are cached as immutable (/assets/*, see public/_headers) and the
+    // service-worker helper. A miss there must be a 404, not the app shell. Every request under these
+    // patterns invokes the Worker (about 21 on a first visit); models and sprites are left out on
+    // purpose, so a missing one gets the shell with a revalidating header, never an immutable one.
+    "run_worker_first": ["/assets/*", "/workbox-*"]
+  }
+}
