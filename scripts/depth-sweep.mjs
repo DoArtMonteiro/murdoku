@@ -1,7 +1,7 @@
 // Depth generator sweep.
 //
 // Usage (from the repo root):
-//   node scripts/depth-sweep.mjs --configs A,B --n 200 --out <dir> [--seed0 1] [--engine onPass|never] [--mode ac|anchored] [--suffix _x] [--attempts 4] [--solver fast|engine] [--minCross k] [--minNeeds k] [--minChain k] [--maxStm x]
+//   node scripts/depth-sweep.mjs --configs A,B --n 200 --out <dir> [--seed0 1] [--engine onPass|never] [--mode ac|anchored] [--suffix _x] [--attempts 4] [--solver fast|engine] [--minCross k] [--minNeeds k] [--minChain k] [--maxStm x] [--maxCard k] [--minLive k]
 //   node scripts/depth-sweep.mjs --catalog --out <dir>     # gate over the shipped 60 cases
 //
 // Writes <dir>/candidates-<config>.jsonl (one line per candidate, raw metrics, so
@@ -69,12 +69,14 @@ const minCross = opt('minCross', null)
 const minNeeds = opt('minNeeds', null)
 const minChain = opt('minChain', null)
 const maxStm = opt('maxStm', null)
+const maxCard = opt('maxCard', null)
+const minLive = opt('minLive', null)
 const recipe = { ...depth.DEFAULT_RECIPE, mode }
 
 for (const name of configs) {
   const stock = depth.DEPTH_SPECS[name]
   if (!stock) throw new Error(`unknown config ${name}`)
-  const spec = { ...stock, tier: { ...stock.tier, requireAnchored: mode === 'anchored', ...(minCross !== null ? { minCrossSteps: Number(minCross) } : {}), ...(minNeeds !== null ? { minNeedsSearch: Number(minNeeds) } : {}), ...(minChain !== null ? { minChainDepth: Number(minChain) } : {}), ...(maxStm !== null ? { maxStatementsMean: Number(maxStm) } : {}) } }
+  const spec = { ...stock, tier: { ...stock.tier, requireAnchored: mode === 'anchored', ...(minCross !== null ? { minCrossSteps: Number(minCross) } : {}), ...(minNeeds !== null ? { minNeedsSearch: Number(minNeeds) } : {}), ...(minChain !== null ? { minChainDepth: Number(minChain) } : {}), ...(maxStm !== null ? { maxStatementsMean: Number(maxStm) } : {}), ...(maxCard !== null ? { maxStatementsPerPerson: Number(maxCard) } : {}), ...(minLive !== null ? { minLiveSuspects: Number(minLive) } : {}) } }
   const candPath = resolve(out, `candidates-${name}${suffix}.jsonl`)
   const accPath = resolve(out, `accepted-${name}${suffix}.jsonl`)
   writeFileSync(candPath, '')

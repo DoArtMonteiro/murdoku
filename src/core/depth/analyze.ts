@@ -37,7 +37,10 @@ export interface DepthAnalysis {
   meanOwnCandidates: number
 
   // chain shape
+  /** Order in which pairwise consistency (the 'ac' run) pins people. It may use a suspect's unpinned options; see anchoredSteps for the forward chain. */
   steps: StepSummary[]
+  /** Forward-chaining order (every elimination leans on an already pinned suspect); empty when the case is not anchored-solvable. */
+  anchoredSteps: StepSummary[]
   /** Steps where a relational clue directly removed squares the pin needed. */
   crossDirect: number
   /** Steps that are row/column only but lean on suspects narrowed by a relational clue. */
@@ -59,7 +62,7 @@ export interface DepthAnalysis {
    * is already pinned (no reasoning about a suspect's leftover options as a set).
    */
   anchored: boolean
-  /** Steps of the anchored run that needed a relational clue. */
+  /** Steps of the anchored run that needed a relational clue (what the gate counts when `requireAnchored` is set). */
   anchoredCross: number
 
   // readability
@@ -222,6 +225,7 @@ export function analyzePuzzle(p: Puzzle, opts: AnalyzeOptions = {}): DepthAnalys
     minOwnCandidates: Math.min(...counts),
     meanOwnCandidates: counts.reduce((a, b) => a + b, 0) / Math.max(1, counts.length),
     steps: summariseSteps(ctx, res.steps),
+    anchoredSteps: anch.solved ? summariseSteps(ctx, anch.steps) : [],
     crossDirect: count('cross'),
     crossTrans: count('crossTrans'),
     laneSetSteps: count('laneSet'),

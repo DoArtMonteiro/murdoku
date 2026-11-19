@@ -32,5 +32,5 @@ console.log('rooms:', p.rooms.map(r => `${r.id}=${r.name}`).join(' '))
 for (const ct of p.clues) console.log(`  ${p.people.find(x => x.id === ct.clue.person).name}: ${ct.text}`)
 const a = c.analysis
 console.log(JSON.stringify({ ...a, steps: undefined, kindMix: a.kindMix }))
-console.log(a.steps.map(s => `${s.n}.${p.people.find(x => x.id === s.person).name}[${s.via}/r${s.round}]`).join(' '))
+console.log((a.anchoredSteps.length ? a.anchoredSteps : a.steps).map(s => `${s.n}.${p.people.find(x => x.id === s.person).name}[${s.via}/r${s.round}]`).join(' '))
 await vite.close()

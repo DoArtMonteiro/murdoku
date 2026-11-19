@@ -99,7 +99,10 @@ export function depthGate(p: Puzzle, tier: DepthTier, opts: GateOptions = {}): G
   if (!a.pure || !a.matchesSolution) fail('pure', a.pure ? 'propagation ends on squares that are not the stored solution' : 'propagation stalls: some suspect needs a trial step')
   if (a.forcedAtStart > tier.maxForcedAtStart) fail('forcedAtStart', `${a.forcedAtStart} suspects are pinned by their own clues (max ${tier.maxForcedAtStart})`)
   if (a.needsSearch < tier.minNeedsSearch) fail('needsSearch', `needsSearch ${a.needsSearch} < ${tier.minNeedsSearch}`)
-  if (a.crossDirect < tier.minCrossSteps) fail('cross', `${a.crossDirect} cross-person steps < ${tier.minCrossSteps}`)
+  // In the anchored class the cross steps that count are the forward-chain ones: a step the
+  // pairwise run labels 'cross' because of an unpinned suspect's options may not be one there.
+  const cross = tier.requireAnchored ? a.anchoredCross : a.crossDirect
+  if (cross < tier.minCrossSteps) fail('cross', `${cross} cross-person steps < ${tier.minCrossSteps}`)
   if (a.chainDepth < tier.minChainDepth) fail('chain', `longest inference chain ${a.chainDepth} < ${tier.minChainDepth}`)
   if (a.statementsMean > tier.maxStatementsMean) fail('statements', `${a.statementsMean.toFixed(2)} statements per person > ${tier.maxStatementsMean}`)
   if (a.statementsMax > tier.maxStatementsPerPerson) fail('statements-max', `one person carries ${a.statementsMax} statements (max ${tier.maxStatementsPerPerson})`)

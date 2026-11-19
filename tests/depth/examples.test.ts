@@ -71,6 +71,16 @@ describe.each(loadFixtures())('accepted depth case $name (config $config, seed $
     expect(analyzePuzzle(p).confinedSuspects).toBe(0)
   })
 
+  it('is solved by forward chaining from one entry pin: every other suspect is placed relative to someone already placed', () => {
+    const a = analyzePuzzle(p)
+    expect(a.anchored).toBe(true)
+    expect(a.forcedAtStart).toBe(1)
+    expect(a.anchoredSteps).toHaveLength(p.people.length)
+    expect(a.anchoredSteps[0].via).toBe('own')
+    expect(new Set(a.anchoredSteps.map(s => s.person)).size).toBe(p.people.length)
+    expect(a.anchoredCross).toBeGreaterThanOrEqual(p.people.length - 2)
+  })
+
   it('is solved by deduceChain with no trial step and ends on the stored solution', () => {
     const chain = deduceChain(p)
     expect(chain.pure).toBe(true)

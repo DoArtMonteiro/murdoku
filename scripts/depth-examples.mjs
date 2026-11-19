@@ -50,7 +50,7 @@ function score(row) {
   const a = row.analysis
   const p = row.puzzle
   const kinds = Object.keys(a.kindMix).filter(k => k !== 'victim').length
-  return a.crossDirect * 2 - a.statementsMean * 3 - Math.max(0, a.statementsMax - 2) * 1.5
+  return (a.anchored ? a.anchoredCross : a.crossDirect) * 2 - a.statementsMean * 3 - Math.max(0, a.statementsMax - 2) * 1.5
     + kinds * 0.6 + (a.coordinateShare === 0 ? 1 : 0) + a.liveSuspects * 0.3 + houseRealism(p) * 3
     + (a.anchored ? 2 : 0)
 }
@@ -111,7 +111,8 @@ for (const cfg of only) {
       victim: p.people.find(x => x.id === p.victimId).name,
       murderer: p.people.find(x => x.id === p.murdererId).name,
       readable, board: board(p),
-      chain: r.analysis.steps.map(st => `${st.n}. ${p.people.find(x => x.id === st.person).name} [${st.via}]`),
+      chainKind: r.analysis.anchoredSteps?.length ? 'forward chain (anchored): every step leans only on someone already placed' : 'pairwise consistency order',
+      chain: (r.analysis.anchoredSteps?.length ? r.analysis.anchoredSteps : r.analysis.steps).map(st => `${st.n}. ${p.people.find(x => x.id === st.person).name} [${st.via}]`),
       analysis: r.analysis, engineChecks: engineInfo ?? r.engine,
       puzzle: p,
     }

@@ -248,6 +248,8 @@ function shapeClues(
     const ownCount = doms.map(d => d.reduce((x, y) => x + y, 0))
     const unaryOf = (pi: number) => kept.filter(e => e.person === pi && e.mask && !frozen.has(e)).sort((x, y) => x.legal - y.legal)
 
+    // The same cross-step count the gate uses for this tier.
+    const cross = tier.requireAnchored ? a.anchoredCross : a.crossDirect
     let group: Entry[] = []
     const suspects = ctx.ids.map((_, i) => i).filter(i => ctx.ids[i] !== base.victimId)
     if (a.confinedSuspects > 0) {
@@ -263,12 +265,12 @@ function shapeClues(
       const load = (pi: number) => kept.filter(e => e.person === pi).length
       const heavy = ctx.ids.map((_, i) => i).sort((x, y) => load(y) - load(x))[0]
       group = kept.filter(e => e.person === heavy && !frozen.has(e))
-    } else if (a.chainDepth < tier.minChainDepth && a.needsSearch >= tier.minNeedsSearch && a.crossDirect >= tier.minCrossSteps) {
+    } else if (a.chainDepth < tier.minChainDepth && a.needsSearch >= tier.minNeedsSearch && cross >= tier.minCrossSteps) {
       // Too flat: lots of people hang straight off the entry pin. Cut the clues that
       // tie someone to a person with a pinned-by-own-clues square, so the rest relay.
       const entry = ctx.ids.map((_, i) => i).filter(i => ownCount[i] === 1)
       group = kept.filter(e => e.relational && !frozen.has(e) && (entry.includes(e.person) || (e.rel && entry.includes(e.rel.b))))
-    } else if (a.needsSearch < tier.minNeedsSearch || a.crossDirect < tier.minCrossSteps) {
+    } else if (a.needsSearch < tier.minNeedsSearch || cross < tier.minCrossSteps) {
       group = ctx.ids.flatMap((_, pi) => unaryOf(pi).filter(e => e.clue.kind !== 'row' && e.clue.kind !== 'col'))
         .sort((x, y) => x.legal - y.legal)
     }
