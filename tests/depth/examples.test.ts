@@ -4,16 +4,14 @@ import { countSolutions, findMurderer, isSolution, roomIdAt } from '../../src/co
 import { validatePuzzle } from '../../src/core/puzzleValidate'
 import { deduceChain } from '../../src/reference/story/deduce'
 import { DEPTH_KINDS, analyzePuzzle } from '../../src/core/depth'
-import { countSolutionsFast } from '../../src/core/depth/fastCount'
 import { judge, murdererIn, sameAssignment, storedSolution } from '../truth/literal'
 import { permutePeople, transposePuzzle } from '../truth/helpers'
 import { loadFixtures } from './fixtures'
 
 describe.each(loadFixtures())('accepted depth case $name (config $config, seed $seed)', ({ puzzle: p }) => {
-  it('is solver-unique under the engine, and the fast solver agrees', () => {
+  it('is solver-unique under the engine', () => {
     expect(countSolutions(p, 2)).toBe(1)
-    expect(countSolutionsFast(p, 2)).toBe(1)
-  }, 180_000)
+  }, 60_000)
 
   it('has no structural errors (validatePuzzle) and its stored solution satisfies every clue', () => {
     expect(validatePuzzle(p).filter(i => i.severity === 'error')).toEqual([])

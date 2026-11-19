@@ -239,6 +239,28 @@ export function countSolutions(p: Puzzle, cap = 2): number {
   // A person with no legal cell at all makes the board unsatisfiable outright.
   if (order.some(entry => entry.cells.length === 0)) return 0
 
+  // Clues that name two people are checked the moment the later of the two is
+  // placed, not only at a full placement. With strong own clues the old
+  // leaf-only check was free; a case whose people carry weak own clues and lean
+  // on relational clues made the search visit most of the (cells choose people)
+  // placements first (tens of seconds to minutes on 6 people over 8x8, two
+  // floors). Which solutions are counted is unchanged: a placement is counted
+  // iff it satisfies every clue, exactly as isSolution decides.
+  const position = new Map(order.map((entry, i) => [entry.id, i]))
+  const checks: Clue[][] = order.map(() => [])
+  for (const { clue } of p.clues) {
+    const other =
+      clue.kind === 'direction' || clue.kind === 'besidePerson' || clue.kind === 'sameRoomAs' || clue.kind === 'notSameRoomAs' ? clue.other
+        : (clue.kind === 'above' || clue.kind === 'below') && clue.targetKind === 'person' ? clue.target
+          : null
+    if (other !== null) {
+      checks[Math.max(position.get(clue.person) ?? 0, position.get(other) ?? 0)].push(clue)
+    } else if (clue.kind === 'onlyOnFurniture') {
+      // looks at everybody: re-check from its own person onward
+      for (let i = position.get(clue.person) ?? 0; i < order.length; i++) checks[i].push(clue)
+    }
+  }
+
   function recurse(i: number) {
     if (count >= cap) return
     if (i === order.length) {
@@ -248,11 +270,13 @@ export function countSolutions(p: Puzzle, cap = 2): number {
     const { id, cells } = order[i]
     for (const cell of cells) {
       if (usedRow[cell.row] || usedCol[cell.col]) continue
-      usedRow[cell.row] = usedCol[cell.col] = true
       place[id] = cell
-      recurse(i + 1)
+      if (checks[i].every(c => clueHolds(p, c, place))) {
+        usedRow[cell.row] = usedCol[cell.col] = true
+        recurse(i + 1)
+        usedRow[cell.row] = usedCol[cell.col] = false
+      }
       delete place[id]
-      usedRow[cell.row] = usedCol[cell.col] = false
       if (count >= cap) return
     }
   }

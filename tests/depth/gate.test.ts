@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getAllPuzzles } from '../../src/core/catalog'
 import { difficultyMetrics } from '../../src/core/puzzleValidate'
 import { deduceChain } from '../../src/reference/story/deduce'
+import { roomIdAt } from '../../src/core/engine'
 import { DEPTH_SPECS, analyzePuzzle, depthGate } from '../../src/core/depth'
 import type { DepthTier } from '../../src/core/depth'
 import { loadFixtures } from './fixtures'
@@ -11,7 +12,7 @@ const catalog = getAllPuzzles()
 /** The most forgiving bar: any depth at all. */
 const LOOSE: DepthTier = {
   name: 'loose', minNeedsSearch: 1, minCrossSteps: 1, minChainDepth: 0, maxForcedAtStart: 1, maxStatementsMean: 2.5,
-  maxStatementsPerPerson: 3, maxCoordinateShare: 0.25, minLiveSuspects: 3, requireAnchored: false,
+  maxStatementsPerPerson: 3, maxCoordinateShare: 0.25, maxDirectionShare: 1, minLiveSuspects: 3, requireAnchored: false,
 }
 
 describe('depth gate on a shallow shipped case', () => {
@@ -54,6 +55,26 @@ describe('depth gate on the saved depth cases', () => {
       expect(g.engine?.chainPure).toBe(true)
     }, 180_000)
   }
+})
+
+describe('the gate rejects a murderer leak and a direction-heavy mix', () => {
+  const fx = loadFixtures()[1]
+  const tier = { ...DEPTH_SPECS[fx.config].tier }
+
+  it('rejects a case where a suspect card names the victim room', () => {
+    const p = fx.puzzle
+    const victimRoom = roomIdAt(p, p.solution[p.victimId])
+    // A suspect whose own card names the victim's room: even a true clue about the murderer is the leak
+    const leaky = { ...p, clues: [...p.clues, { clue: { kind: 'room' as const, person: p.murdererId, roomId: victimRoom }, text: 'In the room.' }] }
+    const g = depthGate(leaky, tier, { engine: 'never' })
+    expect(g.failures.map(f => f.code)).toContain('leak-confined')
+  })
+
+  it('rejects a case whose clues are mostly direction clues', () => {
+    const p = fx.puzzle
+    const g = depthGate(p, { ...tier, maxDirectionShare: 0.05 }, { engine: 'never' })
+    expect(g.failures.map(f => f.code)).toContain('direction-share')
+  })
 })
 
 describe('depth analysis agrees with the code it re-implements, on all 60 shipped cases', () => {

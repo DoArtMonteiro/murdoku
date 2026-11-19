@@ -14,8 +14,8 @@
 //                   are classified separately and NOT counted.
 //   statements      mean clues per person <= 2.5 (and <= maxStatementsPerPerson on any one card) (the victim heading is not a
 //                   statement), and everybody has at least one
-//   coordinates     row + col clues <= 25% of clues (edge/corner are not
-//                   coordinates)
+//   coordinates     row + col clues <= tier.maxCoordinateShare of clues (edge/corner
+//                   are not coordinates); direction clues <= tier.maxDirectionShare
 //   murderer        murdererId === engine.findMurderer(p); kinds restricted to
 //                   the allowed list; suspects not leaked by cards alone
 //
@@ -30,7 +30,6 @@ import { countSolutions, findMurderer } from '../engine'
 import { deduceChain } from '../../reference/story/deduce'
 import { analyzePuzzle } from './analyze'
 import type { DepthAnalysis } from './analyze'
-import { countSolutionsFast } from './fastCount'
 import { DEPTH_KINDS } from './pool'
 
 export interface DepthTier {
@@ -45,6 +44,8 @@ export interface DepthTier {
   /** Readability: no single card may carry more than this many statements. */
   maxStatementsPerPerson: number
   maxCoordinateShare: number
+  /** Direction clues over all clues: they read like coordinates when they dominate. */
+  maxDirectionShare: number
   /**
    * Require the case to be solvable by forward chaining from pinned suspects
    * (see PropMode 'anchored'). Stricter than `pure`; off for the brief's literal gate.
@@ -56,7 +57,7 @@ export interface DepthTier {
 
 export type GateFailureCode =
   | 'kind' | 'unique' | 'pure' | 'propagation-mismatch' | 'forcedAtStart' | 'needsSearch' | 'cross' | 'chain'
-  | 'statements' | 'statements-max' | 'anchored' | 'person-without-clue' | 'coordinates' | 'murderer' | 'leak-confined' | 'leak-live'
+  | 'statements' | 'statements-max' | 'anchored' | 'person-without-clue' | 'coordinates' | 'direction-share' | 'murderer' | 'leak-confined' | 'leak-live'
 
 export interface GateFailure { code: GateFailureCode; detail: string }
 
@@ -79,13 +80,6 @@ export interface GateResult {
 export interface GateOptions {
   /** 'onPass' (default): engine checks only if the cheap checks pass. */
   engine?: 'always' | 'onPass' | 'never'
-  /**
-   * Which solver proves uniqueness. 'engine' (default) is engine.countSolutions,
-   * exactly as specified, but it can take minutes on a depth case (see
-   * fastCount.ts). 'fast' is the same search with relational clues checked
-   * early; tests/depth proves the two agree.
-   */
-  solver?: 'engine' | 'fast'
 }
 
 export function depthGate(p: Puzzle, tier: DepthTier, opts: GateOptions = {}): GateResult {
@@ -109,13 +103,14 @@ export function depthGate(p: Puzzle, tier: DepthTier, opts: GateOptions = {}): G
   if (tier.requireAnchored && !a.anchored) fail('anchored', 'not solvable by forward chaining from pinned suspects alone')
   if (a.statementsMin < 1) fail('person-without-clue', 'a person has no clue')
   if (a.coordinateShare > tier.maxCoordinateShare) fail('coordinates', `row/col clues are ${(a.coordinateShare * 100).toFixed(0)}% of clues (max ${tier.maxCoordinateShare * 100}%)`)
+  if (a.directionShare > tier.maxDirectionShare) fail('direction-share', `direction clues are ${(a.directionShare * 100).toFixed(0)}% of clues (max ${tier.maxDirectionShare * 100}%)`)
   if (a.confinedSuspects > 0) fail('leak-confined', `${a.confinedSuspects} suspect(s) are confined to the victim's room by their own cards`)
   if (a.liveSuspects < tier.minLiveSuspects) fail('leak-live', `only ${a.liveSuspects} suspects stay possible murderers from the cards alone (min ${tier.minLiveSuspects})`)
 
   let engine: EngineChecks | undefined
   if (mode === 'always' || (mode === 'onPass' && failures.length === 0)) {
     const t0 = performance.now()
-    const solutions = opts.solver === 'fast' ? countSolutionsFast(p, 2) : countSolutions(p, 2)
+    const solutions = countSolutions(p, 2)
     const t1 = performance.now()
     const chain = deduceChain(p)
     const t2 = performance.now()

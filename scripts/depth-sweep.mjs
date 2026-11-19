@@ -1,7 +1,7 @@
 // Depth generator sweep.
 //
 // Usage (from the repo root):
-//   node scripts/depth-sweep.mjs --configs A,B --n 200 --out <dir> [--seed0 1] [--engine onPass|never] [--mode ac|anchored] [--suffix _x] [--attempts 4] [--solver fast|engine] [--minCross k] [--minNeeds k] [--minChain k] [--maxStm x] [--maxCard k] [--minLive k]
+//   node scripts/depth-sweep.mjs --configs A,B --n 200 --out <dir> [--seed0 1] [--engine onPass|never] [--mode ac|anchored] [--dirPriority x] [--roomKeep x] [--weak x] [--suffix _x] [--attempts 4] [--minCross k] [--minNeeds k] [--minChain k] [--maxStm x] [--maxCard k] [--minLive k]
 //   node scripts/depth-sweep.mjs --catalog --out <dir>     # gate over the shipped 60 cases
 //
 // Writes <dir>/candidates-<config>.jsonl (one line per candidate, raw metrics, so
@@ -34,7 +34,7 @@ if (flag('catalog')) {
   // Two bars. 'strict' scales the sweep tiers to the cast: nobody but the entry pin placed by
   // singles (needsSearch >= people-1) and at least people-2 relational steps. 'loose' only asks
   // for any depth at all (needsSearch >= 1, one cross-person step). Everything else is the gate's default.
-  const mk = (name, needs, cross, chain = 0) => ({ name, minNeedsSearch: needs, minCrossSteps: cross, minChainDepth: chain, maxForcedAtStart: 1, maxStatementsMean: 2.5, maxStatementsPerPerson: 3, maxCoordinateShare: 0.25, minLiveSuspects: 3, requireAnchored: false })
+  const mk = (name, needs, cross, chain = 0) => ({ name, minNeedsSearch: needs, minCrossSteps: cross, minChainDepth: chain, maxForcedAtStart: 1, maxStatementsMean: 2.5, maxStatementsPerPerson: 3, maxCoordinateShare: 0.25, maxDirectionShare: 1, minLiveSuspects: 3, requireAnchored: false })
   const rows = []
   for (const p of cases) {
     const n = p.people.length
@@ -61,17 +61,16 @@ const configs = opt('configs', 'A,B,C,D,E').split(',')
 const n = Number(opt('n', '200'))
 const seed0 = Number(opt('seed0', '1'))
 const engine = opt('engine', 'onPass')
-const mode = opt('mode', 'ac')
+const mode = opt('mode', 'anchored')
 const suffix = opt('suffix', '')
 const attempts = Number(opt('attempts', '4'))
-const solver = opt('solver', 'fast')
 const minCross = opt('minCross', null)
 const minNeeds = opt('minNeeds', null)
 const minChain = opt('minChain', null)
 const maxStm = opt('maxStm', null)
 const maxCard = opt('maxCard', null)
 const minLive = opt('minLive', null)
-const recipe = { ...depth.DEFAULT_RECIPE, mode }
+const recipe = { ...depth.DEFAULT_RECIPE, mode, directionPriority: Number(opt('dirPriority', String(depth.DEFAULT_RECIPE.directionPriority))), roomRelationKeep: Number(opt('roomKeep', String(depth.DEFAULT_RECIPE.roomRelationKeep))), weakFillerPriority: Number(opt('weak', String(depth.DEFAULT_RECIPE.weakFillerPriority))) }
 
 for (const name of configs) {
   const stock = depth.DEPTH_SPECS[name]
@@ -85,7 +84,7 @@ for (const name of configs) {
   let accepted = 0
   for (let i = 0; i < n; i++) {
     const seed = seed0 + i
-    const c = depth.generateDepthCase(spec, seed, { engine, recipe, attempts, solver })
+    const c = depth.generateDepthCase(spec, seed, { engine, recipe, attempts })
     const a = c.analysis
     const row = {
       config: name, seed, accepted: !!c.puzzle, attempts: c.attempts, firstTry: c.firstTry, rejected: c.rejected, ms: round(c.ms),

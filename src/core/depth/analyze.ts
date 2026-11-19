@@ -71,6 +71,10 @@ export interface DepthAnalysis {
   statementsMin: number
   /** row + col clues over all clues. */
   coordinateShare: number
+  /** direction clues over all clues */
+  directionShare: number
+  /** sameRoomAs + notSameRoomAs + room + notRoom + furniture kinds, over all clues (the room-level kinds the casebook prefers) */
+  roomLevelShare: number
   kindMix: Record<string, number>
   relationalClues: number
 
@@ -239,6 +243,8 @@ export function analyzePuzzle(p: Puzzle, opts: AnalyzeOptions = {}): DepthAnalys
     statementsMax: Math.max(...stmts),
     statementsMin: Math.min(...stmts),
     coordinateShare: real.length ? real.filter(c => c.kind === 'row' || c.kind === 'col').length / real.length : 0,
+    directionShare: real.length ? (kindMix.direction ?? 0) / real.length : 0,
+    roomLevelShare: real.length ? real.filter(c => ['sameRoomAs', 'notSameRoomAs', 'room', 'notRoom', 'onFurniture', 'onlyOnFurniture', 'besideFurniture'].includes(c.kind)).length / real.length : 0,
     kindMix,
     relationalClues: real.filter(isRelational).length,
     liveSuspects: live,

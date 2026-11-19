@@ -23,7 +23,7 @@
 import type { Clue, ClueText, Difficulty, Person, Puzzle } from '../types'
 import { ACCENTS, clueToText } from '../generate'
 import { findMurderer, roomIdAt } from '../engine'
-import { buildLayout } from './layout'
+import { buildLayout, furnishLayout } from './layout'
 import type { Layout, LayoutSpec } from './layout'
 import { buildCtx, isRelational, unaryMask } from './model'
 import type { Ctx } from './model'
@@ -46,7 +46,7 @@ export interface DepthSpec {
   tier: DepthTier
 }
 
-/** Knobs of the clue-removal order. Defaults were chosen from the sweep, see the report. */
+/** Knobs of the clue-removal order. Defaults were chosen from the sweep, see the report. With these, direction clues are tried for removal first and room-level relational kinds are kept longest. */
 export interface Recipe {
   /** Gaussian-ish noise added to every clue's removal priority; more = more varied sets. */
   noise: number
@@ -58,9 +58,15 @@ export interface Recipe {
    * the stricter, human-friendlier class.
    */
   mode: PropMode
+  /** Added to a direction clue's removal priority; higher = direction clues are tried for removal earlier, so fewer survive. */
+  directionPriority: number
+  /** Subtracted from sameRoomAs/notSameRoomAs removal priority: higher keeps the room-level relational kinds longer. */
+  roomRelationKeep: number
+  /** Added to notRoom and edge (weak filler kinds): higher removes them earlier, so room and furniture clues win. */
+  weakFillerPriority: number
 }
 
-export const DEFAULT_RECIPE: Recipe = { noise: 1.2, relationalPenalty: 0, mode: 'ac' }
+export const DEFAULT_RECIPE: Recipe = { noise: 1.2, relationalPenalty: 0, mode: 'anchored', directionPriority: 6, roomRelationKeep: 3, weakFillerPriority: 0 }
 
 export interface DepthCandidate {
   seed: number
@@ -116,7 +122,7 @@ function seat(layout: Layout, spec: DepthSpec, rng: Rng, seed: number): Puzzle |
     rooms: layout.rooms,
     roomOf: layout.roomOf,
     ...(layout.roomOfByFloor ? { roomOfByFloor: layout.roomOfByFloor, floors: layout.floors } : {}),
-    furniture: layout.furniture,
+    furniture: [],
     people,
     clues: [],
     solution: {},
@@ -155,12 +161,13 @@ interface Entry {
 }
 
 /** Removal priority: higher = tried for removal earlier. */
-function strength(clue: Clue, legalFraction: number): number {
+function strength(clue: Clue, legalFraction: number, recipe: Recipe): number {
   switch (clue.kind) {
-    case 'row': case 'col': return 12 // coordinates go first: the gate caps them at 25%
-    case 'direction': return clue.steps ? 1.2 : 0.6
-    case 'sameRoomAs': return 1.0
-    case 'notSameRoomAs': return 0.3
+    case 'row': case 'col': return 12 // coordinates go first: the gate caps them
+    case 'direction': return (clue.steps ? 1.2 : 0.6) + recipe.directionPriority
+    case 'sameRoomAs': return 1.0 - recipe.roomRelationKeep
+    case 'notSameRoomAs': return 0.3 - recipe.roomRelationKeep
+    case 'notRoom': case 'edge': return -Math.log2(Math.max(legalFraction, 1 / 256)) + recipe.weakFillerPriority
     default: return -Math.log2(Math.max(legalFraction, 1 / 256))
   }
 }
@@ -180,7 +187,7 @@ function buildEntries(ctx: Ctx, pool: Clue[], recipe: Recipe, rng: Rng): Entry[]
       mask,
       legal,
       rel: rels[0] ?? null,
-      priority: strength(clue, legal / ctx.NC) + (relational ? recipe.relationalPenalty : 0) + noise,
+      priority: strength(clue, legal / ctx.NC, recipe) + (relational ? recipe.relationalPenalty : 0) + noise,
     }
   })
 }
@@ -261,6 +268,8 @@ function shapeClues(
     } else if (a.liveSuspects < tier.minLiveSuspects) {
       group = kept.filter(e => e.clue.kind === 'sameRoomAs' && !frozen.has(e))
       if (!group.length) group = ctx.ids.flatMap((_, pi) => unaryOf(pi))
+    } else if (a.directionShare > tier.maxDirectionShare) {
+      group = rng.shuffle(kept.filter(e => e.clue.kind === 'direction' && !frozen.has(e)))
     } else if (a.statementsMax > tier.maxStatementsPerPerson) {
       const load = (pi: number) => kept.filter(e => e.person === pi).length
       const heavy = ctx.ids.map((_, i) => i).sort((x, y) => load(y) - load(x))[0]
@@ -307,8 +316,6 @@ export interface GenerateOptions {
   recipe?: Recipe
   /** Removal orders to try on one house before giving up (default 4). */
   attempts?: number
-  /** Passed to the gate. Default 'fast': engine.countSolutions can take minutes on a depth case (fastCount.ts). */
-  solver?: 'engine' | 'fast'
   /** Passed to the gate; 'onPass' (default) verifies accepted cases with the engine. */
   engine?: 'always' | 'onPass' | 'never'
 }
@@ -319,9 +326,9 @@ export function generateDepthCase(spec: DepthSpec, seed: number, opts: GenerateO
     ({ seed, ms: performance.now() - t0, failures: [], attempts: 0, firstTry: false, ...c })
   const rng = makeRng(hashSeed(`${spec.name}:${seed}`))
   const layout = buildLayout(spec.layout, hashSeed(`layout:${spec.name}:${seed}`))
-  if (!layout) return done({ puzzle: null, rejected: ['layout'] })
   const base = seat(layout, spec, rng, seed)
   if (!base) return done({ puzzle: null, rejected: ['seat'] })
+  base.furniture = furnishLayout(layout, base.solution, hashSeed(`furniture:${spec.name}:${seed}`))
 
   const recipe = opts.recipe ?? DEFAULT_RECIPE
   const attempts = Math.max(1, opts.attempts ?? 4)
@@ -341,7 +348,7 @@ export function generateDepthCase(spec: DepthSpec, seed: number, opts: GenerateO
     last = { puzzle, gate: cheap }
     if (!cheap.pass) continue
     // Cheap checks passed: confirm with the engine (solver, deduceChain, murderer).
-    const gate = depthGate(puzzle, spec.tier, { engine: opts.engine ?? 'onPass', solver: opts.solver ?? 'fast' })
+    const gate = depthGate(puzzle, spec.tier, { engine: opts.engine ?? 'onPass' })
     if (gate.pass) return done({ puzzle, rejected: [], analysis: gate.analysis, gate, draft: puzzle, attempts: attempt, firstTry: attempt === 1 })
     last = { puzzle, gate }
     break

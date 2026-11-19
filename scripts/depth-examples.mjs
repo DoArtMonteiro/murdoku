@@ -103,7 +103,7 @@ for (const cfg of only) {
     const readable = p.clues.map(ct => `${p.people.find(x => x.id === ct.clue.person).name}: ${ct.text}`)
     // The sentences must be the ones generate.ts words: regenerate and compare.
     const reworded = p.clues.every(ct => gen.clueToText(p, ct.clue) === ct.text)
-    const gate = depth.depthGate(p, { ...depth.DEPTH_SPECS[cfg].tier, requireAnchored: suffix.includes('anchored') }, { engine: 'never' })
+    const gate = depth.depthGate(p, { ...depth.DEPTH_SPECS[cfg].tier, requireAnchored: true }, { engine: 'never' })
     const doc = {
       config: cfg, seed: r.seed, rank: k + 1, score: Math.round(s * 10) / 10,
       houseRealism: Math.round(houseRealism(p) * 100) / 100,

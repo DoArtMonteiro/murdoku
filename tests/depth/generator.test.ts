@@ -3,10 +3,9 @@ import { countSolutions, findMurderer } from '../../src/core/engine'
 import { reseed } from '../../src/core/generate'
 import { deduceChain } from '../../src/reference/story/deduce'
 import { DEFAULT_RECIPE, DEPTH_SPECS, analyzePuzzle, generateDepthCase } from '../../src/core/depth'
-import { countSolutionsFast } from '../../src/core/depth/fastCount'
 import type { Puzzle } from '../../src/core/types'
 
-const ANCHORED = { ...DEFAULT_RECIPE, mode: 'anchored' as const }
+const ANCHORED = { ...DEFAULT_RECIPE }
 
 describe('determinism', () => {
   const cases: ['A' | 'B' | 'C' | 'D' | 'E', number][] = [['A', 1], ['A', 2], ['B', 3], ['C', 4], ['E', 5], ['D', 6]]
@@ -44,37 +43,11 @@ describe('generated cases are what the gate says they are', () => {
   })
 
   for (const { name, p } of accepted) {
-    it(`${name}: engine and fast solver both find exactly one solution; the murderer is right; deduceChain is pure`, () => {
+    it(`${name}: the engine finds exactly one solution; the murderer is right; deduceChain is pure`, () => {
       expect(countSolutions(p, 2)).toBe(1)
-      expect(countSolutionsFast(p, 2)).toBe(1)
       expect(findMurderer(p)).toBe(p.murdererId)
       expect(deduceChain(p).pure).toBe(true)
       expect(analyzePuzzle(p).pure).toBe(true)
     })
   }
-})
-
-describe('countSolutionsFast is the engine solver with earlier pruning, not a different solver', () => {
-  it('returns the same count (capped at 2) on clue sets that are too small, exactly right, and over-constrained', () => {
-    const c = generateDepthCase(DEPTH_SPECS.A, 7, { recipe: ANCHORED })
-    const p = c.puzzle!
-    expect(p).toBeTruthy()
-    const real = p.clues.filter(x => x.clue.kind !== 'victim')
-    for (let n = 0; n <= real.length; n++) {
-      const sub: Puzzle = { ...p, clues: real.slice(0, n) }
-      expect(countSolutionsFast(sub, 2)).toBe(countSolutions(sub, 2))
-    }
-    for (let i = 0; i < real.length; i++) {
-      const sub: Puzzle = { ...p, clues: real.filter((_, j) => j !== i) }
-      expect(countSolutionsFast(sub, 2)).toBe(countSolutions(sub, 2))
-    }
-    // a clue that is false of the solution drives the count to 0 in both
-    const other = p.people.find(x => x.id !== real[0].clue.person)!.id
-    const wrong: Puzzle = {
-      ...p,
-      clues: [...real, { clue: { kind: 'direction', person: real[0].clue.person, other, dir: 'N', steps: 99 }, text: '' }],
-    }
-    expect(countSolutionsFast(wrong, 2)).toBe(0)
-    expect(countSolutions(wrong, 2)).toBe(0)
-  })
 })

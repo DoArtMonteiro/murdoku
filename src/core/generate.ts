@@ -331,7 +331,7 @@ function assignRoomNames(
   return result
 }
 
-function buildRooms(
+export function buildRooms(
   size: number,
   targetRooms?: number,
   floorNum = 0,
@@ -376,7 +376,7 @@ function buildRooms(
  * from roomK so that roomIdAt never collides across floors and findMurderer
  * works without modification.
  */
-function buildTwoFloorRooms(size: number, targetRooms?: number): {
+export function buildTwoFloorRooms(size: number, targetRooms?: number): {
   rooms: Room[]
   roomOf: string[][]          // floor 0 (also roomOfByFloor[0])
   roomOfByFloor: string[][][] // [floor][row][col]
@@ -507,7 +507,7 @@ function wallRotation(
   return 0 // interior cell: default
 }
 
-function placeFurniture(
+export function placeFurniture(
   rooms: Room[], roomOf: string[][], place: Record<string, Cell>,
   floorNum = 0,
   occupiedCells?: Set<string>,
