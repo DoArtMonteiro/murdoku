@@ -96,7 +96,7 @@ describe('deployment files', () => {
     expect(files.has('_headers')).toBe(true)
     expect(files.has('THIRD-PARTY-NOTICES.txt')).toBe(true)
     const notices = readFileSync(join(outDir, 'THIRD-PARTY-NOTICES.txt'), 'utf8')
-    for (const name of ['react 19', 'three 0', 'framer-motion', 'lucide-react', '@dicebear/core', 'workbox-core', '@fontsource/barlow-condensed', '@fontsource/courier-prime', '@fontsource/hanken-grotesk']) {
+    for (const name of ['react 19', 'three 0', 'framer-motion', 'lucide-react', '@dicebear/core', 'workbox-core', '@fontsource/barlow-condensed', '@fontsource/courier-prime', '@fontsource/hanken-grotesk', '@fontsource/newsreader']) {
       expect(notices, name).toContain(name)
     }
     expect(notices).toContain('SIL OPEN FONT LICENSE Version 1.1')

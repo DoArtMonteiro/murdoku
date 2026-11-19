@@ -56,7 +56,7 @@ export default function About({ onClose }: Props) {
         <ul className="mt-2 flex flex-col gap-2 font-mono text-[12px] leading-relaxed text-text-secondary">
           <li>3D furniture and plant models, and the isometric furniture sprites, by Kenney (kenney.nl), released under CC0.</li>
           <li>Suspect avatars: the Notionists style by Zoish, released under CC0 1.0, drawn with DiceBear.</li>
-          <li>Type: Barlow Condensed, Courier Prime and Hanken Grotesk, under the SIL Open Font License 1.1.</li>
+          <li>Type: Barlow Condensed, Courier Prime, Hanken Grotesk and Newsreader, under the SIL Open Font License 1.1.</li>
         </ul>
 
         <p className="mt-4 font-mono text-[12px] leading-relaxed text-text-secondary">
