@@ -320,8 +320,7 @@ export default function Casebook({ puzzle, coach }: { puzzle: Puzzle; coach?: Co
   )
 
   return (
-    <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
-      {coach && <style>{!coach.hold && !away && !sheet ? coach.haloCss : ''}</style>}
+    <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-halo={coach && !coach.hold && !away && !sheet && coach.halo ? coach.halo : undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
       <header className="cb-head">
         <a className="cb-back" href="?casebook=" aria-label="Back to the case list"><ArrowLeft size={22} aria-hidden="true" /></a>
         <h1 className="cb-title">{coach?.title ?? titleFor(puzzle)}</h1>

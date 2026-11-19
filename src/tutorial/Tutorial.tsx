@@ -15,23 +15,17 @@ import type { Target } from './play'
 import { writeTutorialFlag } from './storage'
 
 const puzzle = case0
-// Controls wear a soft amber glow around them. A square wears a pale ring inside itself (the plan clips
-// what spills out), drawn on its ::after so it sits above the lens fill. Both pulse; reduced motion keeps them still.
-const GLOW = 'animation: var(--tut-glow-anim, tut-glow 1.8s ease-in-out infinite); position: relative; z-index: 4; outline: 2.5px solid #e2a33a; outline-offset: 2px;'
-const RING = 'content: ""; opacity: 1 !important; background: transparent !important; animation: var(--tut-ring-anim, tut-ring 1.6s ease-in-out infinite); box-shadow: inset 0 0 0 3.5px #fff6dc, inset 0 0 16px 5px rgba(255, 246, 220, .75);'
-
-/** One soft amber halo per target, as scoped CSS: it survives the board and the chips re-rendering. */
-function haloCss(targets: readonly Target[]): string {
-  const cells: string[] = [], others: string[] = []
-  for (const t of targets) {
+/** What the beat wants touched, as tokens on the casebook root. tutorial.css draws the halo for each one: the
+ *  Content-Security-Policy allows no inline style element, so the halo is static CSS keyed on these tokens. */
+function haloTokens(targets: readonly Target[]): string {
+  return targets.map(t => {
     switch (t.kind) {
-      case 'cell': cells.push(`.tut-root .cb-cell[data-row="${t.cell.row}"][data-col="${t.cell.col}"]::after`); break
-      case 'chip': others.push(`.tut-root .cb-chips li:nth-child(${t.position + 1}) .cb-chip`); break
-      case 'who': others.push(`.tut-root .cb-rail li:nth-child(${t.position + 1}) .cb-who`); break
-      case 'bar': others.push('.tut-root .cb-bar .cb-accuse'); break
+      case 'cell': return `cell-${t.cell.row}-${t.cell.col}`
+      case 'chip': return `chip-${t.position}`
+      case 'who': return `who-${t.position}`
+      case 'bar': return 'bar'
     }
-  }
-  return [cells.length ? `${cells.join(',')} { ${RING} }` : '', others.length ? `${others.join(',')} { ${GLOW} }` : ''].join(' ')
+  }).join(' ')
 }
 
 export default function Tutorial() {
@@ -56,7 +50,7 @@ export default function Tutorial() {
     dispatch,
     beat: { n: beat.n, of: BEATS },
     instruction: beat.text,
-    haloCss: haloCss(beat.targets),
+    halo: haloTokens(beat.targets),
     hold: showCard || finished,
     ready: accuseReady(puzzle, ts),
     lineRef,

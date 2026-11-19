@@ -17,6 +17,39 @@
 .tut-root .cb-root[data-reduced] { --tut-glow-anim: none; --tut-ring-anim: none; }
 .tut-root .cb-root[data-reduced] :is(.cb-cell, .cb-chip, .cb-who, .cb-accuse) { transition-duration: 0ms; }
 
+/* The halo rules are static, one per token Tutorial.tsx can name (Case 0 is 4x4 with four suspects). A square wears
+   a pale ring inside itself, drawn on its ::after so it sits above the lens fill; a control wears an amber glow.
+   tests/tutorial/halo.test.ts keeps this list in step with the puzzle. */
+.tut-root .cb-root[data-halo~="cell-0-0"] .cb-cell[data-row="0"][data-col="0"]::after,
+.tut-root .cb-root[data-halo~="cell-0-1"] .cb-cell[data-row="0"][data-col="1"]::after,
+.tut-root .cb-root[data-halo~="cell-0-2"] .cb-cell[data-row="0"][data-col="2"]::after,
+.tut-root .cb-root[data-halo~="cell-0-3"] .cb-cell[data-row="0"][data-col="3"]::after,
+.tut-root .cb-root[data-halo~="cell-1-0"] .cb-cell[data-row="1"][data-col="0"]::after,
+.tut-root .cb-root[data-halo~="cell-1-1"] .cb-cell[data-row="1"][data-col="1"]::after,
+.tut-root .cb-root[data-halo~="cell-1-2"] .cb-cell[data-row="1"][data-col="2"]::after,
+.tut-root .cb-root[data-halo~="cell-1-3"] .cb-cell[data-row="1"][data-col="3"]::after,
+.tut-root .cb-root[data-halo~="cell-2-0"] .cb-cell[data-row="2"][data-col="0"]::after,
+.tut-root .cb-root[data-halo~="cell-2-1"] .cb-cell[data-row="2"][data-col="1"]::after,
+.tut-root .cb-root[data-halo~="cell-2-2"] .cb-cell[data-row="2"][data-col="2"]::after,
+.tut-root .cb-root[data-halo~="cell-2-3"] .cb-cell[data-row="2"][data-col="3"]::after,
+.tut-root .cb-root[data-halo~="cell-3-0"] .cb-cell[data-row="3"][data-col="0"]::after,
+.tut-root .cb-root[data-halo~="cell-3-1"] .cb-cell[data-row="3"][data-col="1"]::after,
+.tut-root .cb-root[data-halo~="cell-3-2"] .cb-cell[data-row="3"][data-col="2"]::after,
+.tut-root .cb-root[data-halo~="cell-3-3"] .cb-cell[data-row="3"][data-col="3"]::after {
+  content: ""; opacity: 1 !important; background: transparent !important; animation: var(--tut-ring-anim, tut-ring 1.6s ease-in-out infinite); box-shadow: inset 0 0 0 3.5px #fff6dc, inset 0 0 16px 5px rgba(255, 246, 220, .75);
+}
+.tut-root .cb-root[data-halo~="chip-0"] .cb-chips li:nth-child(1) .cb-chip,
+.tut-root .cb-root[data-halo~="chip-1"] .cb-chips li:nth-child(2) .cb-chip,
+.tut-root .cb-root[data-halo~="chip-2"] .cb-chips li:nth-child(3) .cb-chip,
+.tut-root .cb-root[data-halo~="chip-3"] .cb-chips li:nth-child(4) .cb-chip,
+.tut-root .cb-root[data-halo~="who-0"] .cb-rail li:nth-child(1) .cb-who,
+.tut-root .cb-root[data-halo~="who-1"] .cb-rail li:nth-child(2) .cb-who,
+.tut-root .cb-root[data-halo~="who-2"] .cb-rail li:nth-child(3) .cb-who,
+.tut-root .cb-root[data-halo~="who-3"] .cb-rail li:nth-child(4) .cb-who,
+.tut-root .cb-root[data-halo~="bar"] .cb-bar .cb-accuse {
+  animation: var(--tut-glow-anim, tut-glow 1.8s ease-in-out infinite); position: relative; z-index: 4; outline: 2.5px solid #e2a33a; outline-offset: 2px;
+}
+
 /* ---- header --------------------------------------------------------------- */
 .tut-skip {
   flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; max-width: 46%;

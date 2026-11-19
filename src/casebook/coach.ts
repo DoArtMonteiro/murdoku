@@ -22,8 +22,9 @@ export interface Coach {
   beat: { n: number; of: number }
   /** The instruction, in the readout slot. */
   instruction: string
-  /** Scoped CSS for the halo on whatever the beat wants touched. Applied only while the desk is live. */
-  haloCss: string
+  /** Space-separated tokens naming whatever the beat wants touched, set as `data-halo` on the casebook root while
+   *  the desk is live. The halo itself is static CSS (tutorial.css): the page's CSP allows no inline style element. */
+  halo: string
   /** A card is over the desk: nothing behind it can be touched or reached, and no halo shows. */
   hold: boolean
   /** The plan is finished: Accuse opens and Why? has nothing left to say. */

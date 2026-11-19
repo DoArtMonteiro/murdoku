@@ -13,7 +13,7 @@ const reduced = (on: boolean) =>
 const cellAt = (r: number, c: number) => document.querySelector<HTMLElement>(`[role=gridcell][data-row="${r}"][data-col="${c}"]`)!
 const instruction = () => screen.getByTestId('instruction').textContent
 const chip = (name: RegExp) => screen.getAllByRole('button').find(b => b.className.includes('cb-chip') && name.test(b.textContent ?? ''))!
-const haloStyle = () => document.querySelector('.tut-root style')?.textContent ?? ''
+const halo = () => document.querySelector('.tut-root .cb-root')?.getAttribute('data-halo') ?? ''
 
 beforeEach(() => reduced(false))
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); window.history.replaceState(null, '', '/') })
@@ -29,7 +29,7 @@ describe('Case 0 on screen', () => {
     expect(within(card).getByRole('button', { name: /Begin/ })).toBeInTheDocument()
     const skip = screen.getByRole('link', { name: 'Skip — I know how to play' })
     expect(skip).toHaveAttribute('href', '?casebook=')
-    expect(haloStyle()).toBe('')
+    expect(halo()).toBe('')
   })
 
   it('skipping stores a flag so the picker stops offering Case 0', () => {
@@ -45,7 +45,7 @@ describe('Case 0 on screen', () => {
     expect(screen.getByRole('list', { name: 'Suspects' })).toBeInTheDocument()
     expect(screen.getByRole('list', { name: "Lena's statements" })).toBeInTheDocument()
     expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
-    expect(haloStyle()).toContain('.cb-chips li:nth-child(1) .cb-chip')
+    expect(halo()).toContain('chip-0')
     // no modal covers the board while a beat is on
     expect(document.querySelector('[role=dialog]')).toBeNull()
     // read out from a live region that existed before the beat, and focus lands on the line after Begin
@@ -64,17 +64,17 @@ describe('Case 0 on screen', () => {
     fireEvent.click(cellAt(3, 0))
 
     expect(instruction()).toBe('Now this statement can be measured — tap it.')
-    expect(haloStyle()).toContain('li:nth-child(1) .cb-chip')
+    expect(halo()).toContain('chip-0')
     fireEvent.click(chip(/north of Lena/))
     // placing Tomas is two taps, and the text says so: first his other statement, then the square
     expect(instruction()).toBe('Placing Tomas takes two taps. Tap 1: light his other statement.')
     fireEvent.click(chip(/desk/))
     expect(instruction()).toBe('Tap 2: the one lit square places Tomas.')
-    expect(haloStyle()).toContain('[data-row="1"][data-col="1"]')
+    expect(halo()).toContain('cell-1-1')
     fireEvent.click(cellAt(1, 1))
 
     expect(instruction()).toBe('Not sure? Hold a square to suppose.')
-    expect(haloStyle()).toContain('[data-row="0"][data-col="3"]')
+    expect(halo()).toContain('cell-0-3')
     // the Suppose button then the square: the same as a hold, and the switch is left on
     fireEvent.click(screen.getByRole('button', { name: 'Suppose' }))
     fireEvent.click(cellAt(0, 3))
@@ -88,7 +88,7 @@ describe('Case 0 on screen', () => {
     fireEvent.click(cellAt(2, 3))
     expect(instruction()).toBe('Who was alone with the victim? Accuse.')
     expect(screen.getByRole('button', { name: 'Accuse' })).toBeEnabled()
-    expect(haloStyle()).toContain('.cb-accuse')
+    expect(halo()).toContain('bar')
 
     fireEvent.click(screen.getByRole('button', { name: 'Accuse' }))
     // a wrong name is only an alibi
@@ -124,7 +124,7 @@ describe('Case 0 on screen', () => {
     fireEvent.click(screen.getByRole('button', { name: /Begin/ }))
     fireEvent.click(screen.getByRole('button', { name: /^Tomas/ }))
     expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
-    expect(haloStyle()).toContain('.cb-rail li:nth-child(1) .cb-who')
+    expect(halo()).toContain('who-0')
     fireEvent.click(screen.getByRole('button', { name: 'Pencil' }))
     fireEvent.click(cellAt(0, 0))
     expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
