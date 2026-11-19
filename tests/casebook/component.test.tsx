@@ -133,6 +133,8 @@ describe('alibi roll-call', () => {
     expect(screen.queryByTestId('rollcall')).toBeNull()
     expect(document.querySelector('.cb-dusk')).toBeNull()
     expect(screen.getByRole('dialog')).toHaveTextContent(`${wrong.name} has an alibi.`)
+    // nothing but the line and the way back: the strike shows on the dots and is announced
+    expect(screen.getByRole('dialog').textContent).toBe(`${wrong.name} has an alibi.Back to the plan`)
   })
 })
 

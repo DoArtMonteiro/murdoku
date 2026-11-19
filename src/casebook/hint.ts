@@ -9,7 +9,7 @@ import type { DeductionChain, DeductionStep } from '../reference/story/deduce'
 import { cellName, firstName, sameCell } from './cells'
 import { lensCells, statementReady, statementsOf } from './lens'
 import type { Placement } from './cells'
-import { cluePhrase, joinList, laneOf, squareList } from './phrase'
+import { cluePhrase, joinList, joinOr, laneOf, squareList } from './phrase'
 
 const chains = new WeakMap<Puzzle, DeductionChain>()
 export function chainOf(p: Puzzle): DeductionChain {
@@ -55,7 +55,7 @@ export function removalLines(p: Puzzle, step: DeductionStep, chain: DeductionCha
   const out = [...lanes.values()].map(l => `${l}.`)
   if (pairs.size > 2) {
     // A deep case removes dozens of squares for several people at once: one short line that names them all.
-    out.push(`Anywhere else, ${joinList([...pairs.keys()].map(who))} would have nowhere left.`)
+    out.push(`Anywhere else, ${joinOr([...pairs.keys()].map(who))} would have nowhere left.`)
   } else {
     for (const [by, cells] of pairs) {
       const where = cells.length <= 4 ? squareList(p, cells) : `any of ${cells.length} squares`

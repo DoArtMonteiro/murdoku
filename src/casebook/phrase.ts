@@ -59,6 +59,11 @@ export function chipText(p: Puzzle, clue: Clue, scene = false): string {
 /** What a clue says, as a phrase that follows a name: "on a clock square", "in row 3". */
 export const cluePhrase = (p: Puzzle, clue: Clue): string => lowerFirst(chipPhrase(p, clue))
 
+export function joinOr(items: string[]): string {
+  if (items.length <= 1) return items.join('')
+  return `${items.slice(0, -1).join(', ')} or ${items[items.length - 1]}`
+}
+
 export function joinList(items: string[]): string {
   if (items.length <= 1) return items.join('')
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`

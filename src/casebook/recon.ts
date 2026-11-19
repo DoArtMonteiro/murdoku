@@ -5,8 +5,8 @@ import type { Cell, Puzzle } from '../core/types'
 import { cellFloor } from '../core/types'
 import { findMurderer, roomIdAt } from '../core/engine'
 import { firstName, floorWord } from './cells'
-import { chainOf, removalLines } from './hint'
-import { cluePhrase, joinList, laneOf } from './phrase'
+import { chainOf } from './hint'
+import { cluePhrase, joinList, joinOr, laneOf } from './phrase'
 
 export interface ReconFrame {
   person: string
@@ -44,8 +44,8 @@ export function buildRecon(p: Puzzle): Recon {
       tail = `${cap(joinList([...new Set(lanes)]))}, so ${name} takes the last square.`
     } else {
       const by = [...new Set(step.removed.filter(r => r.reason === 'pair').map(r => who(r.by)))]
-      const lanes = removalLines(p, step, chain).filter(l => l.includes(' is ')).slice(0, 2)
-      tail = `${lanes.length ? `${lanes.join(' ')} ` : ''}Anywhere else, ${joinList(by)} would have nowhere left.`
+      const lanes = [...new Set(step.removed.filter(r => r.reason === 'lane' && chain.placement[r.by]).map(r => `${laneOf(r.cell, chain.placement[r.by])} is ${who(r.by)}'s`))]
+      tail = `${lanes.length ? `${cap(joinList(lanes))}. ` : ''}Anywhere else, ${joinOr(by)} would have nowhere left.`
     }
     return { person: step.person, cell: step.cell, line: `${lead} ${tail}` }
   })

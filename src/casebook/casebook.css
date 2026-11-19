@@ -108,9 +108,9 @@
 }
 .cb-root[data-theme='dark'] .cb-token { box-shadow: 0 0 0 2px #E9E1CF, 0 2px 5px rgba(0, 0, 0, .55); }
 /* A token sits fully inside its square: its rings spread at most 3.5 px, and the square leaves 4 px or more. */
-.cb-token[data-selected] { box-shadow: 0 0 0 1.5px #fff, 0 0 0 3.5px var(--cb-ink), 0 3px 8px rgba(0, 0, 0, .5); }
-.cb-token[data-victim] { box-shadow: 0 0 0 1px var(--cb-sheet), 0 0 0 2.5px var(--cb-ink); opacity: .92; }
-.cb-token[data-now] { box-shadow: 0 0 0 2px #fff, 0 0 12px 4px rgba(255, 255, 255, .6); }
+.cb-root .cb-token[data-victim] { box-shadow: 0 0 0 1px var(--cb-sheet), 0 0 0 2.5px var(--cb-ink); opacity: .92; }
+.cb-root .cb-token[data-selected] { box-shadow: 0 0 0 1.5px #10141f, 0 0 0 3.5px #fff, 0 3px 8px rgba(0, 0, 0, .5); }
+.cb-root .cb-token[data-now] { box-shadow: 0 0 0 2px #fff, 0 0 12px 4px rgba(255, 255, 255, .6); }
 .cb-echo {
   position: absolute; z-index: 1; display: grid; place-items: center; border-radius: 50%; pointer-events: none;
   border: 1.5px dashed rgba(244, 236, 216, .75); background: rgba(14, 18, 28, .28); color: rgba(244, 236, 216, .85);
@@ -315,8 +315,18 @@
 .cb-premise[data-clamp] { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* reduced motion lists everything at once: keep the way out in reach */
-.cb-roll[data-list] .cb-roll-end .cb-roll-bar { position: sticky; bottom: 0; background: var(--cb-desk); padding: 6px 0 2px; }
 @media (max-width: 360px) {
   .cb-floors button { padding: 0 8px; font-size: 13px; }
   .cb-title { font-size: 17px; }
 }
+
+/* the way out of the roll-call stays in reach whatever the height */
+.cb-roll-end .cb-roll-bar { position: sticky; bottom: 0; background: var(--cb-desk); padding: 6px 0 2px; z-index: 1; }
+/* short phones: the ending drops the repeated sentence (the faces say "no alibi" and it is still announced) and tightens */
+.cb-root[data-compact] .cb-roll[data-done]:not([data-list]) .cb-roll-line { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; min-height: 0; }
+.cb-root[data-compact] .cb-roll { gap: 4px; }
+.cb-root[data-compact] .cb-roll-end { gap: 3px; }
+.cb-root[data-compact] .cb-roll-tier { font-size: 21px; }
+.cb-root[data-compact] .cb-roll-motive { font-size: 15.5px; }
+.cb-root[data-compact] .cb-roll-closing { font-size: 14.5px; }
+.cb-roll-end .cb-roll-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -14px; height: 14px; background: linear-gradient(to bottom, transparent, var(--cb-desk)); pointer-events: none; }

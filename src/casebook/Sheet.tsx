@@ -82,7 +82,7 @@ export function Sheet({ puzzle, verdict, accused, strikes, onAccuse, onBack, onC
         {verdict?.kind === 'notThem' && (
           <>
             <h2 id="cb-sheet-title" className="cb-verdict" data-kind="no">{wrongAccusationLine(firstName(puzzle, accused ?? ''))}</h2>
-            <p className="cb-sheet-body">{verdict.cold ? 'Three wrong names. The case has gone cold.' : `Strike ${verdict.strikes} of ${MAX_STRIKES}.`}</p>
+            {verdict.cold && <p className="cb-sheet-body">Three wrong names. The case has gone cold.</p>}
             {verdict.cold
               ? <button type="button" className="cb-primary" onClick={onRoll}>Hear the alibis</button>
               : <button type="button" className="cb-primary" onClick={onBack}>Back to the plan</button>}

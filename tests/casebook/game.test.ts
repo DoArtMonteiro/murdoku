@@ -102,6 +102,33 @@ describe('game reducer', () => {
   })
 })
 
+describe('tier after the solve', () => {
+  const full = (p: Puzzle) => initState(p, { ...emptySave(), placement: Object.fromEntries(p.people.map(x => [x.id, { ...p.solution[x.id], floor: p.solution[x.id].floor ?? 0 }])) })
+
+  it('a clean solve is "proved" and stays clean: lifting a token afterwards cannot buy a hint', () => {
+    let s = run(hard, full(hard), { t: 'accuse', id: hard.murdererId })
+    expect(s.outcome).toBe('proved')
+    expect(s.verdict).toEqual({ kind: 'proved' })
+    const lifted = run(hard, s, { t: 'cell', cell: hard.solution.p0 })
+    expect(Object.keys(lifted.placement).length).toBeLessThan(hard.people.length)
+    s = run(hard, lifted, { t: 'why' }, { t: 'why' })
+    expect(s.hintsUsed).toBe(0)
+    expect(s.hint).toBeNull()
+  })
+
+  it('a hint before the solve makes it "proved with help"', () => {
+    const s = run(hard, { ...full(hard), hintsUsed: 1 }, { t: 'accuse', id: hard.murdererId })
+    expect(s.verdict).toEqual({ kind: 'provedHelp' })
+    expect(s.outcome).toBe('proved')
+  })
+
+  it('a strike before the solve makes it "proved with help"', () => {
+    const innocent = hard.people.find(x => x.id !== hard.murdererId && x.id !== hard.victimId)!.id
+    const s = run(hard, full(hard), { t: 'accuse', id: innocent }, { t: 'accuse', id: hard.murdererId })
+    expect(s.verdict).toEqual({ kind: 'provedHelp' })
+  })
+})
+
 describe('save', () => {
   it('uses its own namespace and drops anything invalid', () => {
     expect(saveKey('hard-2')).toBe('alibi_casebook_v1:hard-2')

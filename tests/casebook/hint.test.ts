@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { easy, hard } from './fixtures'
 import type { Cell } from '../../src/core/types'
-import { chainOf, hintFor, nextStep } from '../../src/casebook/hint'
+import { chainOf, hintFor, nextStep, removalLines } from '../../src/casebook/hint'
 import { buildRecon } from '../../src/casebook/recon'
 import { cellKey, sameCell } from '../../src/casebook/cells'
 import { lensCells } from '../../src/casebook/lens'
@@ -83,6 +83,22 @@ describe('hint level 2 agrees with the lens', () => {
         // deep cases remove dozens of squares: the text must stay a few lines, not a list of cells
         expect(h.lines.join(' ').length, tag).toBeLessThan(400)
         place[s.person] = s.cell
+      }
+    }
+  })
+})
+
+describe('proof wording', () => {
+  it('names concrete people, never "someone else", and joins them with "or"', () => {
+    for (const p of [hard, easy, ...deep()]) {
+      const lines = [...buildRecon(p).frames.map(f => f.line), ...chainOf(p).steps.flatMap(s => removalLines(p, s, chainOf(p)))]
+      for (const l of lines) {
+        expect(l, l).not.toMatch(/someone else|or another|squares are out/)
+        const m = /Anywhere else, (.+?) would have nowhere left/.exec(l)
+        if (m) {
+          expect(m[1], l).not.toMatch(/ and /)
+          for (const name of m[1].split(/, | or /)) expect(p.people.some(x => x.name === name), `${l} -> ${name}`).toBe(true)
+        }
       }
     }
   })

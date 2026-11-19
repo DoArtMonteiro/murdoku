@@ -115,7 +115,10 @@ describe('story slots', () => {
 
     it('runs the harbour bell through every premise, and pt-12 resolves it', () => {
       for (const id of ids) expect(STORIES[id].premise.toLowerCase()).toMatch(/\bbell\b/)
-      expect(STORIES['pt-12'].premise).toMatch(/bound its tongue/)
+      // the resolution is a closing line, so it is never visible before the solve
+      expect(STORIES['pt-12'].premise).not.toMatch(/crack|bound|tongue|foundry/)
+      expect(STORIES['pt-12'].closing).toMatch(/bound the tongue/)
+      expect(STORIES['pt-12'].closing).toMatch(/foundry/)
       expect(STORIES['pt-12'].closing).toMatch(/new bell/)
     })
 

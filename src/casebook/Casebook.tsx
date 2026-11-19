@@ -291,7 +291,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
               <Rail puzzle={puzzle} placement={state.placement} selected={state.selected} conflicts={conflicts} holds={holds} contradictions={contradictions} counts={counts} onSelect={id => dispatch({ t: 'select', id })} />
               <Bar
                 pencilOn={state.pencilOn} supposeOn={state.supposeOn} canUndo={state.history.length > 0}
-                whyDone={!nextStep(puzzle, state.placement)} accuseDisabled={state.outcome === 'cold' || state.outcome === 'proved'}
+                whyDone={state.outcome === 'proved' || !nextStep(puzzle, state.placement)} accuseDisabled={state.outcome === 'cold' || state.outcome === 'proved'}
                 onPencil={() => dispatch({ t: 'pencil' })} onSuppose={() => dispatch({ t: 'suppose' })} onUndo={() => dispatch({ t: 'undo' })}
                 onWhy={() => dispatch({ t: 'why' })} onAccuse={() => setSheet(true)}
               />

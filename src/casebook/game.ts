@@ -194,7 +194,8 @@ export function reduce(p: Puzzle, s: GameState, a: Action): GameState {
       if (!last) return s
       return { ...s, placement: last.placement, pencil: last.pencil, history: s.history.slice(0, -1), hint: null, ghost: null, announce: 'Undone.' }
     }
-    case 'why': return why(p, s)
+    // Once proved, a lifted token must not buy a hint that would downgrade the tier after the fact.
+    case 'why': return s.outcome === 'proved' ? s : why(p, s)
     case 'floor': return { ...s, floor: a.floor }
     case 'accuse': return accuse(p, s, a.id)
     case 'dropGhost': return s.ghost ? { ...s, ghost: null, announce: 'Supposition released.' } : s

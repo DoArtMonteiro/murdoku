@@ -176,8 +176,8 @@ export const STORIES: Record<string, CaseStory> = {
   'pt-07': {
     title: 'Second Feature',
     premise:
-      "Portinhal's picture palace shows one film a week and the same newsreel every night, so when the projector stopped mid-reel the whole town took it as an insult. The bell tower's visitors' book, which I read on the way in, shows that nobody has climbed it since the first silent night.",
-    closing: 'It was never about the film, only about who chose the programme. I noted that nobody had climbed the tower since, and that I could not yet say why.',
+      "Portinhal's picture palace shows one film a week and the same newsreel every night, so when the projector stopped mid-reel the whole town took it as an insult. The bell tower's visitors' book, which I read on the way in, shows that nobody has signed it since the first silent night.",
+    closing: "It was never about the film, only about who chose the programme. I noted that no visitor had signed the tower's book since, and that I could not yet say why.",
     murderer: 'p3',
     cast: {
       p0: { name: 'Marco', role: 'Poster painter', oneLiner: 'Paints every star a little taller than life.', motive: 'Was told his posters were to be replaced by printed ones.' },
@@ -251,8 +251,8 @@ export const STORIES: Record<string, CaseStory> = {
   'pt-12': {
     title: 'The Last Peal',
     premise:
-      'I came to the last case of the season expecting one more stranger\'s grudge, and found the keeper of the harbour bell waiting with a confession of his own. He had bound its tongue himself in the week of the autumn tides, because a hairline crack meant one more peal would split it, and he had polished it every week since and written to the foundry in secret.',
-    closing: 'The town has been told, and the new bell is on its way from the foundry. The old one will ring once more at the turn of the season, cracked or not.',
+      'I came to the last case of the season expecting one more stranger\'s grudge, and found the keeper of the harbour bell waiting with a confession of his own. He would not say a word of it until the case was closed.',
+    closing: 'The keeper had taken the rope off and bound the tongue in oilcloth in the week of the autumn tides, afraid that one more peal would split a hairline crack, and he had paid to have it polished every week while he wrote to the foundry in secret; the new bell is on its way, and the old one will ring once more at the turn of the season.',
     murderer: 'p5',
     cast: {
       p0: { name: 'Yuki', role: "Keeper's apprentice", oneLiner: 'Climbs the stair twice a day and keeps count of every step.', motive: 'Had learned why the bell had stopped, and had meant to tell.' },
