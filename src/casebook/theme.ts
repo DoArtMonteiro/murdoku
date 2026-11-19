@@ -1,4 +1,5 @@
-// Theme for the slice. It follows, in order: `?theme=dark|light`, the app's own
+// Theme for the slice. It follows, in order: the player's choice from the overflow menu (`alibi_theme`,
+// written only when they choose), `?theme=dark|light`, the app's own
 // `theme-dark` / `theme-light` class on <html> (set by the page's inline script),
 // then prefers-color-scheme. It never touches `murdoku_theme` or any murdoku_*
 // key, so it does not use the app's useTheme hook (which writes that key).
@@ -7,7 +8,25 @@ import type { RefObject } from 'react'
 
 export type Theme = 'light' | 'dark'
 
+export const THEME_KEY = 'alibi_theme'
+const THEME_EVENT = 'alibi-theme'
+
+function stored(): Theme | null {
+  try {
+    const v = localStorage.getItem(THEME_KEY)
+    return v === 'dark' || v === 'light' ? v : null
+  } catch { return null }
+}
+
+/** The player's choice from the overflow menu. Written only here, and only on a toggle. */
+export function chooseTheme(t: Theme): void {
+  try { localStorage.setItem(THEME_KEY, t) } catch { /* storage unavailable: the choice lasts this session only */ }
+  window.dispatchEvent(new Event(THEME_EVENT))
+}
+
 function resolve(): Theme {
+  const mine = stored()
+  if (mine) return mine
   const asked = new URLSearchParams(window.location.search).get('theme')
   if (asked === 'dark' || asked === 'light') return asked
   const cls = document.documentElement.classList
@@ -22,7 +41,8 @@ export function useSliceTheme(): Theme {
     const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
     const on = () => setTheme(resolve())
     mq?.addEventListener?.('change', on)
-    return () => mq?.removeEventListener?.('change', on)
+    window.addEventListener(THEME_EVENT, on)
+    return () => { mq?.removeEventListener?.('change', on); window.removeEventListener(THEME_EVENT, on) }
   }, [])
   return theme
 }

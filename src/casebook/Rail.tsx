@@ -18,7 +18,7 @@ interface Props {
   onSelect: (id: string) => void
 }
 
-/** The portrait rail: one tap selects a suspect. Shows placed or unplaced, and marks the victim. */
+/** The portrait rail: one tap selects a suspect. A dashed ring is unplaced, a solid ring is placed; only the victim is captioned. */
 export function Rail({ puzzle, placement, selected, conflicts, holds, contradictions, counts, onSelect }: Props) {
   return (
     <ul className="cb-rail" aria-label="Suspects" data-dense={puzzle.people.length >= 6 || undefined}>
@@ -50,7 +50,7 @@ export function Rail({ puzzle, placement, selected, conflicts, holds, contradict
                 {counts && p.id in counts && <b className="cb-count" data-zero={counts[p.id] === 0 || undefined}>{counts[p.id]}</b>}
               </span>
               <span className="cb-who-name">{p.name}</span>
-              <span className="cb-who-state" aria-hidden="true">{p.isVictim ? 'victim' : fits ? 'fits' : cell ? 'placed' : 'to place'}</span>
+              {p.isVictim && <span className="cb-who-state" aria-hidden="true">victim</span>}
             </button>
           </li>
         )

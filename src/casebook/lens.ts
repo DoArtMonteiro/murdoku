@@ -4,6 +4,7 @@
 import type { Clue, Puzzle } from '../core/types'
 import { clueHolds } from '../core/engine'
 import { allCells, cellKey } from './cells'
+import { chipText } from './phrase'
 import type { Placement } from './cells'
 
 export interface Statement {
@@ -24,9 +25,10 @@ export function otherPerson(clue: Clue): string | undefined {
 
 export function statementsOf(p: Puzzle, personId: string): Statement[] {
   const out: Statement[] = []
+  const scene = p.victimId === personId
   p.clues.forEach((ct, index) => {
     if (ct.clue.person !== personId || ct.clue.kind === 'victim') return
-    out.push({ index, clue: ct.clue, text: ct.text, needs: otherPerson(ct.clue) })
+    out.push({ index, clue: ct.clue, text: chipText(p, ct.clue, scene), needs: otherPerson(ct.clue) })
   })
   return out
 }

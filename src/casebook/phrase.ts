@@ -9,33 +9,55 @@ export const furnitureLabel = (t: FurnitureType): string => FURNITURE_LABEL[t] ?
 const roomLabel = (p: Puzzle, id: string): string => p.rooms.find(r => r.id === id)?.name ?? 'that room'
 const dirWord = { N: 'north', S: 'south', E: 'east', W: 'west' } as const
 
-/** What a clue says, as a phrase that follows a name: "on the clock", "in row 3". */
-export function cluePhrase(p: Puzzle, clue: Clue): string {
+/** "the clock" when the house holds exactly one piece of that type (docs/CLUE_SEMANTICS.md), else "a lamp". */
+export function thing(p: Puzzle, t: FurnitureType): string {
+  return `${p.furniture.filter(f => f.type === t).length === 1 ? 'the' : 'a'} ${furnitureLabel(t)}`
+}
+
+const lowerFirst = (s: string): string => s.charAt(0).toLowerCase() + s.slice(1)
+
+/**
+ * One statement as a sentence-case chip, no full stop. Built from the clue, never from ClueText.text.
+ * Digits always. "On a clock square" means the person occupies a square the clock covers; "Beside"
+ * means next to it and not on it.
+ */
+export function chipPhrase(p: Puzzle, clue: Clue): string {
   const who = (id: string) => firstName(p, id)
   switch (clue.kind) {
-    case 'room': return `in the ${roomLabel(p, clue.roomId)}`
-    case 'notRoom': return `not in the ${roomLabel(p, clue.roomId)}`
-    case 'onFurniture': return `on the ${furnitureLabel(clue.furniture)}`
-    case 'onlyOnFurniture': return `alone on the ${furnitureLabel(clue.furniture)}`
-    case 'besideFurniture': return `beside the ${furnitureLabel(clue.furniture)}`
-    case 'besideAny': return `beside the ${clue.furniture.map(furnitureLabel).join(' or the ')}`
-    case 'row': return `in row ${clue.row + 1}`
-    case 'col': return `in column ${clue.col + 1}`
-    case 'edge': return 'against an outer wall'
-    case 'corner': return 'in a corner'
-    case 'floor': return clue.floorNum === 0 ? 'on the ground floor' : 'upstairs'
-    case 'above': return clue.targetKind === 'room' ? `directly above the ${roomLabel(p, clue.target)}` : `directly above ${who(clue.target)}`
-    case 'below': return clue.targetKind === 'room' ? `directly below the ${roomLabel(p, clue.target)}` : `directly below ${who(clue.target)}`
+    case 'room': return `In the ${roomLabel(p, clue.roomId)}`
+    case 'notRoom': return `Not in the ${roomLabel(p, clue.roomId)}`
+    case 'onFurniture': return `On ${thing(p, clue.furniture)} square`
+    case 'onlyOnFurniture': return `The only one on ${thing(p, clue.furniture)} square`
+    case 'besideFurniture': return `Beside ${thing(p, clue.furniture)}`
+    case 'besideAny': return `Beside ${clue.furniture.map(t => thing(p, t)).join(' or ')}`
+    case 'row': return `In row ${clue.row + 1}`
+    case 'col': return `In column ${clue.col + 1}`
+    case 'edge': return 'On the outer edge of the house'
+    case 'corner': return 'In a corner of the house'
+    case 'floor': return clue.floorNum === 0 ? 'On the ground floor' : clue.floorNum === 1 ? 'Upstairs' : `On floor ${clue.floorNum + 1}`
+    case 'above': return clue.targetKind === 'room' ? `Directly above the ${roomLabel(p, clue.target)}` : `Directly above ${who(clue.target)}`
+    case 'below': return clue.targetKind === 'room' ? `Directly below the ${roomLabel(p, clue.target)}` : `Directly below ${who(clue.target)}`
     case 'direction': {
       const unit = clue.dir === 'N' || clue.dir === 'S' ? 'row' : 'column'
-      return `${clue.steps ? `exactly ${clue.steps} ${unit}${clue.steps === 1 ? '' : 's'} ` : 'somewhere '}${dirWord[clue.dir]} of ${who(clue.other)}`
+      return clue.steps
+        ? `${clue.steps} ${unit}${clue.steps === 1 ? '' : 's'} ${dirWord[clue.dir]} of ${who(clue.other)}`
+        : `Anywhere ${dirWord[clue.dir]} of ${who(clue.other)}`
     }
-    case 'besidePerson': return `next to ${who(clue.other)}`
-    case 'sameRoomAs': return `in ${who(clue.other)}'s room`
-    case 'notSameRoomAs': return `not in ${who(clue.other)}'s room`
+    case 'besidePerson': return `Right beside ${who(clue.other)}`
+    case 'sameRoomAs': return `In the same room as ${who(clue.other)}`
+    case 'notSameRoomAs': return `Not in the same room as ${who(clue.other)}`
     case 'victim': return ''
   }
 }
+
+/** The victim's statements read as the scene, not as testimony: "Found: in the Study". */
+export function chipText(p: Puzzle, clue: Clue, scene = false): string {
+  const t = chipPhrase(p, clue)
+  return scene && t ? `Found: ${lowerFirst(t)}` : t
+}
+
+/** What a clue says, as a phrase that follows a name: "on a clock square", "in row 3". */
+export const cluePhrase = (p: Puzzle, clue: Clue): string => lowerFirst(chipPhrase(p, clue))
 
 export function joinList(items: string[]): string {
   if (items.length <= 1) return items.join('')

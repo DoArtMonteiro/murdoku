@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { Puzzle } from '../core/types'
 import { firstName } from './cells'
-import { MAX_STRIKES } from './verdict'
+import { wrongAccusationLine } from './rollcall'
+import { MAX_STRIKES, TIER_LABEL } from './verdict'
 import type { Verdict } from './verdict'
 import { Portrait } from './Portrait'
 
@@ -11,18 +12,16 @@ interface Props {
   /** The person named in the last accusation. */
   accused: string | null
   strikes: number
-  hintsUsed: number
-  /** Murderer's motive line, only handed over once the case is solved. */
-  motive: string | null
   onAccuse: (id: string) => void
   onBack: () => void
   onClose: () => void
   onFinish: () => void
-  onReplay: () => void
+  /** Open the alibi roll-call (the reveal). */
+  onRoll: () => void
 }
 
-/** The accusation sheet: name one suspect. A wrong name says only that it was not them. */
-export function Sheet({ puzzle, verdict, accused, strikes, hintsUsed, motive, onAccuse, onBack, onClose, onFinish, onReplay }: Props) {
+/** The accusation sheet: name one suspect. A wrong name says only that they have an alibi. */
+export function Sheet({ puzzle, verdict, accused, strikes, onAccuse, onBack, onClose, onFinish, onRoll }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const victim = firstName(puzzle, puzzle.victimId)
   const suspects = puzzle.people.filter(p => p.id !== puzzle.victimId)
@@ -65,32 +64,27 @@ export function Sheet({ puzzle, verdict, accused, strikes, hintsUsed, motive, on
             <button type="button" className="cb-ghostbtn" onClick={onClose}>Not yet</button>
           </>
         )}
-        {verdict?.kind === 'proved' && (
+        {(verdict?.kind === 'proved' || verdict?.kind === 'provedHelp') && (
           <>
-            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="proved">Proved.</h2>
+            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="proved">{TIER_LABEL[verdict.kind]}.</h2>
             <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}, and every square of the plan holds.</p>
-            {motive && <p className="cb-motive">{motive}</p>}
-            <p className="cb-sheet-sub">{hintsUsed === 0 ? 'No hints used.' : `Hints used: ${hintsUsed}.`}</p>
-            <button type="button" className="cb-primary" onClick={onReplay}>Watch the night</button>
-            <button type="button" className="cb-ghostbtn" onClick={onClose}>Close</button>
+            <button type="button" className="cb-primary" onClick={onRoll}>Hear the alibis</button>
           </>
         )}
         {verdict?.kind === 'calledIt' && (
           <>
-            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="called">Called it.</h2>
+            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="called">{TIER_LABEL.calledIt}.</h2>
             <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}. The plan is not proven yet.</p>
-            {motive && <p className="cb-motive">{motive}</p>}
-            <p className="cb-sheet-sub">{hintsUsed === 0 ? 'No hints used.' : `Hints used: ${hintsUsed}.`}</p>
             <button type="button" className="cb-primary" onClick={onFinish}>Finish the plan</button>
-            <button type="button" className="cb-ghostbtn" onClick={onReplay}>Watch the night instead</button>
+            <button type="button" className="cb-ghostbtn" onClick={onRoll}>Hear the alibis instead</button>
           </>
         )}
         {verdict?.kind === 'notThem' && (
           <>
-            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="no">It was not {firstName(puzzle, accused ?? '')}.</h2>
+            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="no">{wrongAccusationLine(firstName(puzzle, accused ?? ''))}</h2>
             <p className="cb-sheet-body">{verdict.cold ? 'Three wrong names. The case has gone cold.' : `Strike ${verdict.strikes} of ${MAX_STRIKES}.`}</p>
             {verdict.cold
-              ? <button type="button" className="cb-primary" onClick={onReplay}>Reveal the night</button>
+              ? <button type="button" className="cb-primary" onClick={onRoll}>Hear the alibis</button>
               : <button type="button" className="cb-primary" onClick={onBack}>Back to the plan</button>}
           </>
         )}

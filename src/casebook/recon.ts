@@ -37,15 +37,15 @@ export function buildRecon(p: Puzzle): Recon {
     if (step.via === 'own') {
       tail = 'That leaves one square.'
     } else if (step.via === 'trial') {
-      tail = 'Nothing forces this square outright; it is the one that holds when the rest is played out.'
+      tail = 'Nothing forces it outright. It is the square that survives.'
     } else if (step.via === 'lanes') {
       const lanes = step.removed.filter(r => r.reason === 'lane' && chain.placement[r.by])
         .map(r => `${laneOf(r.cell, chain.placement[r.by])} is ${who(r.by)}'s`)
       tail = `${cap(joinList([...new Set(lanes)]))}, so ${name} takes the last square.`
     } else {
       const by = [...new Set(step.removed.filter(r => r.reason === 'pair').map(r => who(r.by)))]
-      const lanes = removalLines(p, step, chain).filter(l => l.includes(' is '))
-      tail = `${lanes.length ? `${lanes.join(' ')} ` : ''}Anywhere else, ${by.length > 2 ? `${by.slice(0, 2).join(', ')} or someone else` : joinList(by)} would have nowhere left.`
+      const lanes = removalLines(p, step, chain).filter(l => l.includes(' is ')).slice(0, 2)
+      tail = `${lanes.length ? `${lanes.join(' ')} ` : ''}Anywhere else, ${joinList(by)} would have nowhere left.`
     }
     return { person: step.person, cell: step.cell, line: `${lead} ${tail}` }
   })

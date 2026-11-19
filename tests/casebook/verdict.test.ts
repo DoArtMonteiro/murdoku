@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { easy, hard } from './fixtures'
-import { judgeAccusation, MAX_STRIKES } from '../../src/casebook/verdict'
+import { judgeAccusation, MAX_STRIKES, provedTier, tierOf, TIER_LABEL } from '../../src/casebook/verdict'
 
 describe('judgeAccusation', () => {
   it('proves only the murderer over the exact solution', () => {
@@ -35,5 +35,31 @@ describe('judgeAccusation', () => {
     const innocent = easy.people.find(x => x.id !== easy.murdererId && x.id !== easy.victimId)!.id
     const v = judgeAccusation(easy, innocent, easy.solution, 0)
     expect(Object.keys(v).sort()).toEqual(['cold', 'kind', 'strikes'])
+  })
+})
+
+describe('verdict tiers', () => {
+  it('"Proved" needs no hint and no strike; either one makes it "Proved with help"', () => {
+    expect(judgeAccusation(hard, hard.murdererId, hard.solution, 0, 0)).toEqual({ kind: 'proved' })
+    expect(judgeAccusation(hard, hard.murdererId, hard.solution, 0, 1)).toEqual({ kind: 'provedHelp' })
+    expect(judgeAccusation(hard, hard.murdererId, hard.solution, 1, 0)).toEqual({ kind: 'provedHelp' })
+    expect(judgeAccusation(hard, hard.murdererId, hard.solution, MAX_STRIKES - 1, 7)).toEqual({ kind: 'provedHelp' })
+  })
+
+  it('"Called it" is the right name over a plan that is not proven, whatever help was spent', () => {
+    expect(judgeAccusation(hard, hard.murdererId, {}, 0, 0)).toEqual({ kind: 'calledIt' })
+    expect(judgeAccusation(hard, hard.murdererId, {}, 2, 5)).toEqual({ kind: 'calledIt' })
+  })
+
+  it('derives the tier from the saved outcome, hints and strikes; nothing extra is saved', () => {
+    expect(provedTier(0, 0)).toBe('proved')
+    expect(provedTier(2, 0)).toBe('provedHelp')
+    expect(provedTier(0, 1)).toBe('provedHelp')
+    expect(tierOf('proved', 0, 0)).toBe('proved')
+    expect(tierOf('proved', 3, 1)).toBe('provedHelp')
+    expect(tierOf('called', 0, 0)).toBe('calledIt')
+    expect(tierOf('cold', 0, 3)).toBeNull()
+    expect(tierOf(null, 0, 0)).toBeNull()
+    expect(TIER_LABEL).toEqual({ proved: 'Proved', provedHelp: 'Proved with help', calledIt: 'Called it' })
   })
 })

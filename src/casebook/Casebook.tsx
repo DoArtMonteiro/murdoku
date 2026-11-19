@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { ArrowLeft, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import type { Puzzle } from '../core/types'
 import { cellFloor } from '../core/types'
 import { warmAvatars } from '../components/avatarImage'
@@ -13,18 +13,23 @@ import { cellKey, conflictIds, floorsOf, norm } from './cells'
 import type { Placement } from './cells'
 import { initState, reduce, toSaved } from './game'
 import { nextStep } from './hint'
-import { lensCells, reserveHeightFor, satisfiedIds } from './lens'
+import { lensCells, reserveHeightFor, satisfiedIds, statementReady, statementsOf } from './lens'
+import { Menu } from './Menu'
 import { Plan } from './Plan'
+import type { Measure } from './Plan'
 import { Rail } from './Rail'
 import { Readout } from './Readout'
 import { buildRecon } from './recon'
 import { Replay } from './Replay'
+import { Alibis } from './Alibis'
+import { buildRollCall, computedClosing } from './rollcall'
 import { loadSave, writeSave } from './save'
 import { Sheet } from './Sheet'
 import { cueFor, loadSoundPref, playCue, primeAudio, saveSoundPref } from './sound'
-import { storyFor, visibleStory } from './stories'
+import { storyFor, titleFor, visibleStory } from './stories'
 import { suppose } from './suppose'
-import { useCompact, useReducedMotion, useSliceTheme } from './theme'
+import { chooseTheme, useCompact, useReducedMotion, useSliceTheme } from './theme'
+import { TIER_LABEL, tierOf } from './verdict'
 import './casebook.css'
 import './fonts.css'
 
@@ -39,6 +44,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const [sheet, setSheet] = useState(false)
   const [accused, setAccused] = useState<string | null>(null)
   const [replay, setReplay] = useState<{ step: number } | null>(null)
+  const [roll, setRoll] = useState<{ step: number } | null>(null)
   const [auto, setAuto] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const compact = useCompact(rootRef)
@@ -55,6 +61,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const solved = state.outcome === 'proved' || state.outcome === 'called' || state.outcome === 'cold'
   const vis = visibleStory(story, solved)
   const recon = useMemo(() => buildRecon(puzzle), [puzzle])
+  const rollcall = useMemo(() => buildRollCall(puzzle), [puzzle])
+  const rollEnd = rollcall.cleared.length + 2
   const [chipsW, setChipsW] = useState(340)
   const reserve = useMemo(() => reserveHeightFor(puzzle, chipsW), [puzzle, chipsW])
   const floors = floorsOf(puzzle)
@@ -62,18 +70,41 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   // ---- what the board shows --------------------------------------------------
   const frames = recon.frames
   const finale = !!replay && replay.step >= frames.length
+  const away = !!replay || !!roll
   const shown: Placement = useMemo(() => {
-    if (!replay) return state.placement
-    const out: Placement = {}
-    const upto = finale ? frames.length : replay.step + 1
-    for (const f of frames.slice(0, upto)) out[f.person] = norm(f.cell)
-    return out
-  }, [replay, finale, frames, state.placement])
-  const conflicts = useMemo(() => (replay ? new Set<string>() : conflictIds(state.placement)), [replay, state.placement])
+    if (replay) {
+      const out: Placement = {}
+      const upto = finale ? frames.length : replay.step + 1
+      for (const f of frames.slice(0, upto)) out[f.person] = norm(f.cell)
+      return out
+    }
+    if (roll) {
+      // The scene, then each person as their alibi is read, then the one left. Always the true plan.
+      const out: Placement = { [rollcall.victim.person]: norm(rollcall.victim.cell) }
+      rollcall.cleared.forEach((c, j) => { if (j <= roll.step - 1) out[c.person] = norm(c.cell) })
+      if (roll.step >= rollcall.cleared.length + 1) out[rollcall.last.person] = norm(rollcall.last.cell)
+      return out
+    }
+    return state.placement
+  }, [replay, roll, rollcall, finale, frames, state.placement])
+  const rolling = !!roll && !replay
+  const rollDim = useMemo(() => (rolling ? new Set(rollcall.cleared.filter((_, j) => j < roll.step - 1).map(c => c.person)) : undefined), [rolling, roll, rollcall])
+  const rollNow = rolling && roll.step >= 1 && roll.step <= rollcall.cleared.length ? rollcall.cleared[roll.step - 1].person : null
+  const rollRing = rolling && roll.step >= rollcall.cleared.length + 1 ? rollcall.last.person : null
+  const conflicts = useMemo(() => (away ? new Set<string>() : conflictIds(state.placement)), [away, state.placement])
   const lit = state.lit[state.selected] ?? NONE
-  const lens = useMemo(() => (replay ? null : lensCells(puzzle, state.selected, lit, state.placement)), [replay, puzzle, state.selected, lit, state.placement])
-  const crosses = useMemo(() => new Set(replay ? [] : state.pencil[state.selected] ?? []), [replay, state.pencil, state.selected])
-  const report = useMemo(() => (state.ghost && !replay ? suppose(puzzle, state.ghost) : null), [state.ghost, replay, puzzle])
+  const lens = useMemo(() => (away ? null : lensCells(puzzle, state.selected, lit, state.placement)), [away, puzzle, state.selected, lit, state.placement])
+  const crosses = useMemo(() => new Set(away ? [] : state.pencil[state.selected] ?? []), [away, state.pencil, state.selected])
+  const report = useMemo(() => (state.ghost && !away ? suppose(puzzle, state.ghost) : null), [state.ghost, away, puzzle])
+  // Lit "N rows north of X" statements, drawn as a thin measured line from X once X stands somewhere.
+  const measures = useMemo<Measure[]>(() => {
+    if (away) return []
+    return statementsOf(puzzle, state.selected).flatMap(st => {
+      const c = st.clue
+      if (!lit.includes(st.index) || !statementReady(st, state.placement) || c.kind !== 'direction' || !c.steps) return []
+      return [{ from: state.placement[c.other], dir: c.dir, steps: c.steps }]
+    })
+  }, [away, puzzle, state.selected, lit, state.placement])
   const remaining = useMemo(() => {
     if (!report || !state.ghost || state.selected === state.ghost.person) return null
     return new Set((report.remaining[state.selected] ?? []).filter(c => cellFloor(c) === state.floor).map(cellKey))
@@ -88,7 +119,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
 
   const otherFloor = state.floor === 0 ? 1 : 0
   const lensOther = !!lens && [...lens].some(k => k.startsWith(`${otherFloor}:`))
-  const placedOther = Object.values(shown).some(c => cellFloor(c) === otherFloor)
+  const placedOther = Object.values(shown).filter(c => cellFloor(c) === otherFloor).length
+  const floorName = (f: number) => (f === 0 ? 'Ground' : f === 1 ? 'Upstairs' : `Floor ${f + 1}`)
 
   // The statements wrap inside the panel: measure it, so the reserved height matches the real width.
   useLayoutEffect(() => {
@@ -104,10 +136,10 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
     return () => window.removeEventListener('resize', read)
   }, [])
 
-  // The panel keeps its play-time height during the replay, so the board never resizes between the two.
-  useLayoutEffect(() => { if (!replay && panelRef.current) setPanelH(panelRef.current.offsetHeight) }, [replay, avail.w, avail.h, state.hint, state.ghost, state.outcome, state.selected])
+  // The panel keeps its play-time height during the proof and the roll-call, so the board never resizes between them.
+  useLayoutEffect(() => { if (!away && panelRef.current) setPanelH(panelRef.current.offsetHeight) }, [away, avail.w, avail.h, state.hint, state.ghost, state.outcome, state.selected])
 
-  // ---- replay -----------------------------------------------------------------
+  // ---- the proof (the solver's order, behind "Show the proof") ------------------
   useEffect(() => {
     if (!replay) return
     const f = replay.step >= frames.length ? recon.finale.victimCell : frames[replay.step].cell
@@ -119,7 +151,33 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
     const t = window.setTimeout(advance, AUTO_MS)
     return () => window.clearTimeout(t)
   }, [replay, auto, frames.length, advance])
-  const startReplay = () => { setSheet(false); dispatch({ t: 'clearVerdict' }); setReplay({ step: 0 }) }
+  const startProof = () => { setAuto(false); setReplay({ step: 0 }) }
+
+  // ---- the alibi roll-call -------------------------------------------------------
+  // The plan follows each person to their floor.
+  useEffect(() => {
+    if (!roll || replay) return
+    const n = rollcall.cleared.length
+    const cell = roll.step === 0 ? rollcall.victim.cell : roll.step <= n ? rollcall.cleared[roll.step - 1].cell : rollcall.last.cell
+    dispatch({ t: 'floor', floor: cellFloor(cell) })
+  }, [roll, replay, rollcall])
+  // About 0.9 s per suspect; the scene and the last one are held a beat longer. Reduced motion never runs the clock.
+  useEffect(() => {
+    if (!roll || replay || reduced || roll.step >= rollEnd) return
+    const wait = roll.step === rollEnd - 1 ? 1500 : roll.step === 0 ? 1200 : 900
+    const t = window.setTimeout(() => setRoll(r => (r && r.step < rollEnd ? { step: r.step + 1 } : r)), wait)
+    return () => window.clearTimeout(t)
+  }, [roll, replay, reduced, rollEnd])
+  const advanceRoll = useCallback(() => setRoll(r => (r && r.step < rollEnd ? { step: r.step + 1 } : r)), [rollEnd])
+  const startRoll = useCallback(() => {
+    setSheet(false); dispatch({ t: 'clearVerdict' }); setReplay(null); setAuto(false)
+    setRoll({ step: reduced ? rollEnd : 0 })
+  }, [reduced, rollEnd])
+  // A right name over the right plan goes straight to the roll-call: no sheet in between.
+  useLayoutEffect(() => {
+    const k = state.verdict?.kind
+    if (k === 'proved' || k === 'provedHelp') startRoll()
+  }, [state.verdict, startRoll])
 
   // ---- accuse -----------------------------------------------------------------
   const accuse = (id: string) => { setAccused(id); dispatch({ t: 'accuse', id }) }
@@ -129,13 +187,12 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const role = vis.roleOf(sel.id)
   const hint = state.hint
 
-  const onCell = useCallback((cell: Parameters<typeof norm>[0]) => (replay ? advance() : dispatch({ t: 'cell', cell })), [replay, advance])
-  const onLong = useCallback((cell: Parameters<typeof norm>[0]) => { if (!replay) dispatch({ t: 'long', cell }) }, [replay])
+  const onCell = useCallback((cell: Parameters<typeof norm>[0]) => (replay ? advance() : roll ? advanceRoll() : dispatch({ t: 'cell', cell })), [replay, roll, advance, advanceRoll])
+  const onLong = useCallback((cell: Parameters<typeof norm>[0]) => { if (!away) dispatch({ t: 'long', cell }) }, [away])
 
-  const moved = state.history.length > 0 || Object.keys(state.placement).length > 0 || Object.values(state.lit).some(l => l.length) || state.hintsUsed > 0
-  const [premiseOpen, setPremiseOpen] = useState(!moved)
-  useEffect(() => { if (moved) setPremiseOpen(false) }, [moved])
-  const holds = useMemo(() => (replay ? new Set<string>() : satisfiedIds(puzzle, state.placement)), [replay, puzzle, state.placement])
+  const firstMove = state.history.length === 0 && Object.keys(state.placement).length === 0
+  const [premiseOpen, setPremiseOpen] = useState(false)
+  const holds = useMemo(() => (away ? new Set<string>() : satisfiedIds(puzzle, state.placement)), [away, puzzle, state.placement])
 
   // Sound: a cue for what just changed. Never on first render, never while off.
   const prev = useRef(state)
@@ -160,23 +217,32 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   }
 
   const strikeDots = Array.from({ length: 3 }, (_, i) => i < state.strikes)
+  const tier = tierOf(state.outcome, state.hintsUsed, state.strikes)
+  const tierLabel = tier ? TIER_LABEL[tier] : 'The case went cold'
+  const closing = vis.closing ?? computedClosing(puzzle)
 
   return (
     <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
       <header className="cb-head">
         <a className="cb-back" href="?casebook=" aria-label="Back to the case list"><ArrowLeft size={22} aria-hidden="true" /></a>
-        <h1 className="cb-title">{puzzle.title}<span className="cb-sub">{puzzle.caseNumber}</span></h1>
+        <h1 className="cb-title">{titleFor(puzzle)}</h1>
         {floors > 1 && (
           <div className="cb-floors" role="group" aria-label="Floor">
-            {Array.from({ length: floors }, (_, f) => (
-              <button key={f} type="button" aria-pressed={state.floor === f} onClick={() => dispatch({ t: 'floor', floor: f })}>
-                {f === 0 ? 'Ground' : f === 1 ? 'Upstairs' : `Floor ${f + 1}`}
-                {f === otherFloor && lensOther && <i className="cb-dot cb-dot-lens" aria-label="lens lit here" />}
-                {f === otherFloor && !lensOther && placedOther && <i className="cb-dot" aria-label="people placed here" />}
-              </button>
-            ))}
+            {Array.from({ length: floors }, (_, f) => {
+              const n = f === otherFloor ? placedOther : 0
+              const caption = f !== otherFloor ? '' : lensOther ? 'lit' : n ? `${n} placed` : ''
+              const aria = f !== otherFloor ? floorName(f) : lensOther ? `${floorName(f)}, the lit statement holds here` : n ? `${floorName(f)}, ${n} placed` : floorName(f)
+              return (
+                <button key={f} type="button" aria-pressed={state.floor === f} aria-label={aria} onClick={() => dispatch({ t: 'floor', floor: f })}>
+                  <span>{floorName(f)}</span>
+                  {caption && <small className="cb-floor-note" aria-hidden="true">{caption}</small>}
+                  {caption && <i className={lensOther ? 'cb-dot cb-dot-lens' : 'cb-dot'} aria-hidden="true" />}
+                </button>
+              )
+            })}
           </div>
         )}
+        <Menu sound={sound} theme={theme} onSound={toggleSound} onTheme={() => chooseTheme(theme === 'dark' ? 'light' : 'dark')} />
       </header>
 
       <main className="cb-main">
@@ -184,21 +250,26 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
           <div className="cb-stage-in" ref={stageRef}>
             <Plan
               puzzle={puzzle} floor={state.floor} theme={theme} board={board} avail={{ w: avail.w, h: avail.h }}
-              placement={shown} selected={replay ? '' : state.selected} conflicts={conflicts} lens={lens} crosses={crosses}
-              ghost={replay ? null : state.ghost} remaining={remaining} interactive onCell={onCell} onLong={onLong}
-              ringed={finale ? recon.finale.murderer : null}
+              placement={shown} selected={away ? '' : state.selected} conflicts={conflicts} lens={lens} crosses={crosses}
+              ghost={away ? null : state.ghost} remaining={remaining} interactive onCell={onCell} onLong={onLong}
+              ringed={replay ? (finale ? recon.finale.murderer : null) : rollRing}
               flying={replay && !finale ? frames[replay.step].person : null}
-              dimmed={finale ? new Set(puzzle.people.map(p => p.id).filter(id => !recon.finale.group.includes(id))) : undefined}
+              dimmed={replay ? (finale ? new Set(puzzle.people.map(p => p.id).filter(id => !recon.finale.group.includes(id))) : undefined) : rollDim}
+              dusk={rolling} now={rollNow} measures={measures}
             />
           </div>
         </section>
 
-        <section className="cb-panel" ref={panelRef} style={replay ? { minHeight: panelH } : undefined}>
+        <section className="cb-panel" ref={panelRef} style={away && panelH ? { height: panelH } : undefined} data-away={away || undefined}>
           {replay ? (
             <Replay
-              puzzle={puzzle} recon={recon} step={replay.step} auto={auto} motive={vis.motive}
-              proved={state.outcome === 'proved'} onNext={advance} onAuto={() => setAuto(a => !a)}
+              puzzle={puzzle} recon={recon} step={replay.step} auto={auto} onNext={advance} onAuto={() => setAuto(a => !a)}
               onSkip={() => setReplay({ step: frames.length })} onClose={() => { setReplay(null); setAuto(false) }}
+            />
+          ) : roll ? (
+            <Alibis
+              puzzle={puzzle} roll={rollcall} step={roll.step} list={reduced} tierLabel={tierLabel} motive={vis.motive} closing={closing}
+              onAdvance={advanceRoll} onSkip={() => setRoll({ step: rollEnd })} onProof={startProof} onClose={() => setRoll(null)}
             />
           ) : (
             <>
@@ -206,7 +277,6 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
                 <span className="cb-who-title">{sel.name}</span>
                 <span className="cb-who-role">{[role?.role, sel.isVictim ? 'victim' : ''].filter(Boolean).join(', ')}</span>
                 <span className="cb-strikes" aria-label={`${state.strikes} of 3 strikes`}>{strikeDots.map((on, i) => <i key={i} data-on={on || undefined} />)}</span>
-                <button type="button" className="cb-sound" aria-pressed={sound} aria-label="Sound" title="Sound" onClick={toggleSound}>{sound ? <Volume2 size={18} aria-hidden="true" /> : <VolumeX size={18} aria-hidden="true" />}</button>
               </div>
               <div className="cb-mid" style={{ '--cb-chips-h': `${reserve}px`, '--cb-readout-h': `${Math.min(88, Math.max(56, 200 - reserve))}px` } as CSSProperties}>
                 <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} />
@@ -214,7 +284,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
                   <Readout
                     puzzle={puzzle} selected={sel} oneLiner={role?.oneLiner ?? null} premise={vis.premise} premiseOpen={premiseOpen}
                     onTogglePremise={() => setPremiseOpen(o => !o)} ghostPerson={state.ghost?.person ?? null} report={report}
-                    hint={hint} outcome={state.outcome} onReplay={startReplay}
+                    hint={hint} outcome={state.outcome} tier={tier} firstMove={firstMove} onRoll={startRoll}
                   />
                 </div>
               </div>
@@ -232,8 +302,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
 
       {sheet && (
         <Sheet
-          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes} hintsUsed={state.hintsUsed} motive={vis.motive}
-          onAccuse={accuse} onBack={closeSheet} onClose={closeSheet} onFinish={closeSheet} onReplay={startReplay}
+          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes}
+          onAccuse={accuse} onBack={closeSheet} onClose={closeSheet} onFinish={closeSheet} onRoll={startRoll}
         />
       )}
       <div className="cb-sr" role="status" aria-live="polite">{state.announce}</div>

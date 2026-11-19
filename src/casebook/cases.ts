@@ -6,6 +6,7 @@
 import type { Puzzle } from '../core/types'
 import { getBakedPuzzles } from '../core/catalog'
 import { deep, leadCases } from './deep'
+import { titleFor } from './stories'
 
 /** Baked cases the picker keeps after the deep ones: a deep two-floor case and a shallow control. */
 const BAKED_PICKS: ReadonlyArray<{ id: string; note: string }> = [
@@ -28,10 +29,10 @@ const describe = (p: Puzzle): string =>
 
 /** Deep cases first, then the baked picks. */
 export function pickerCases(): PickerCase[] {
-  const lead = leadCases().map(p => ({ id: p.id, title: p.title, note: `Deep. ${describe(p)}`, deep: true }))
+  const lead = leadCases().map(p => ({ id: p.id, title: titleFor(p), note: `Deep. ${describe(p)}`, deep: true }))
   const baked = BAKED_PICKS.flatMap(b => {
     const p = getBakedPuzzles().find(x => x.id === b.id)
-    return p ? [{ id: p.id, title: p.title, note: b.note, deep: false }] : []
+    return p ? [{ id: p.id, title: titleFor(p), note: b.note, deep: false }] : []
   })
   return [...lead, ...baked]
 }

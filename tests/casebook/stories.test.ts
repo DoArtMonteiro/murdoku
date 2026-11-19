@@ -3,8 +3,8 @@ import { getPuzzleById } from '../../src/core/catalog'
 import { easy, hard } from './fixtures'
 import type { Puzzle } from '../../src/core/types'
 import { FURNITURE_WORDS } from '../../src/reference/story/schema'
-import { deep } from '../../src/casebook/deep'
-import { STORIES, storyFor, visibleStory } from '../../src/casebook/stories'
+import { deep, leadCases } from '../../src/casebook/deep'
+import { STORIES, storyFor, titleFor, visibleStory } from '../../src/casebook/stories'
 import type { CaseStory } from '../../src/casebook/stories'
 
 // Words that place someone in space or point at the grid.
@@ -42,11 +42,13 @@ export function leaks(p: Puzzle, text: string, banned: { cast: boolean } = { cas
 
 function slots(s: CaseStory): Array<[string, string]> {
   const out: Array<[string, string]> = [['premise', s.premise]]
+  if (s.title) out.push(['title', s.title])
+  if (s.closing) out.push(['closing', s.closing])
   for (const [id, c] of Object.entries(s.cast)) out.push([`${id}.role`, c.role], [`${id}.oneLiner`, c.oneLiner], [`${id}.motive`, c.motive])
   return out
 }
 
-const FIXTURE: Record<string, Puzzle> = { 'hard-2': hard, 'very-easy-3': easy, ...Object.fromEntries(deep().map(p => [p.id, p])) }
+const FIXTURE: Record<string, Puzzle> = { 'hard-2': hard, 'very-easy-3': easy, ...Object.fromEntries([...deep(), ...leadCases()].map(p => [p.id, p])) }
 
 describe('story slots', () => {
   for (const id of Object.keys(STORIES)) {
@@ -80,9 +82,53 @@ describe('story slots', () => {
         expect(JSON.stringify(before)).not.toContain(m.motive)
         expect(before.roleOf(p.murdererId)).toEqual({ role: m.role, oneLiner: m.oneLiner })
         expect(visibleStory(s, true).motive).toBe(m.motive)
+        if (s.closing) {
+          expect(before.closing).toBeNull()
+          expect(JSON.stringify(before)).not.toContain(s.closing)
+          expect(visibleStory(s, true).closing).toBe(s.closing)
+        }
+      })
+
+      it('gives every person a distinct role', () => {
+        const roles = Object.values(s.cast).map(c => c.role)
+        expect(new Set(roles).size).toBe(roles.length)
       })
     })
   }
+
+  describe('the season thread (pt-01 to pt-12)', () => {
+    const ids = Array.from({ length: 12 }, (_, i) => `pt-${String(i + 1).padStart(2, '0')}`)
+    const MONEY = /\b(money|debts?|ledgers?|loans?|owed|owing|cheques?|prices?|duties|weights|accounts?|fees?|paid|pay|payments?|coins?|fortune|bribes?|salary|wages?|savings|worthless|bargain|quote)\b/i
+
+    it('has a story for every lead case, each with its own unique title and a closing line', () => {
+      expect(Object.keys(STORIES).filter(k => k.startsWith('pt-')).sort()).toEqual(ids)
+      const titles = ids.map(id => STORIES[id].title)
+      expect(titles.every(t => !!t && t.length > 3)).toBe(true)
+      expect(new Set(titles).size).toBe(12)
+      for (const id of ids) expect(STORIES[id].closing!.length).toBeGreaterThan(20)
+    })
+
+    it('every case reads its title from the story; with none, the header and picker keep the generator title', () => {
+      for (const p of leadCases().filter(x => ids.includes(x.id))) expect(titleFor(p)).toBe(STORIES[p.id].title)
+      expect(titleFor(hard)).toBe(hard.title)
+    })
+
+    it('runs the harbour bell through every premise, and pt-12 resolves it', () => {
+      for (const id of ids) expect(STORIES[id].premise.toLowerCase()).toMatch(/\bbell\b/)
+      expect(STORIES['pt-12'].premise).toMatch(/bound its tongue/)
+      expect(STORIES['pt-12'].closing).toMatch(/new bell/)
+    })
+
+    it('uses money, debts and ledgers as the motive in at most 3 of 12 cases', () => {
+      const money = ids.filter(id => MONEY.test(STORIES[id].cast[STORIES[id].murderer].motive))
+      expect(money.length, money.join(',')).toBeLessThanOrEqual(3)
+    })
+
+    it('varies the motives: no two murderers share one', () => {
+      const motives = ids.map(id => STORIES[id].cast[STORIES[id].murderer].motive)
+      expect(new Set(motives).size).toBe(12)
+    })
+  })
 
   it('the validator catches seeded leaks', () => {
     const p = hard

@@ -8,7 +8,8 @@ import type { Placement } from './cells'
 import { hintFor, nextStep } from './hint'
 import type { Hint } from './hint'
 import { lensCells, statementsOf } from './lens'
-import { judgeAccusation } from './verdict'
+import { wrongAccusationLine } from './rollcall'
+import { judgeAccusation, TIER_LABEL } from './verdict'
 import type { Verdict } from './verdict'
 import type { Outcome, Saved } from './save'
 import type { Supposition } from './suppose'
@@ -164,14 +165,16 @@ function why(p: Puzzle, s: GameState): GameState {
 
 function accuse(p: Puzzle, s: GameState, id: string): GameState {
   if (s.outcome === 'cold') return s
-  const v = judgeAccusation(p, id, s.placement, s.strikes)
+  const v = judgeAccusation(p, id, s.placement, s.strikes, s.hintsUsed)
   const name = firstName(p, id)
   switch (v.kind) {
     case 'invalid': return s
-    case 'proved': return { ...s, verdict: v, outcome: 'proved', announce: `Proved. ${name} was alone with ${firstName(p, p.victimId)}, and the plan holds.` }
+    case 'proved':
+    case 'provedHelp':
+      return { ...s, verdict: v, outcome: 'proved', announce: `${TIER_LABEL[v.kind]}. ${name} was alone with ${firstName(p, p.victimId)}, and the plan holds.` }
     case 'calledIt': return { ...s, verdict: v, outcome: s.outcome === 'proved' ? 'proved' : 'called', announce: `Called it. ${name} was alone with ${firstName(p, p.victimId)}. The plan is not proven yet.` }
     case 'notThem':
-      return { ...s, verdict: v, strikes: v.strikes, outcome: v.cold ? 'cold' : s.outcome, announce: `Not ${name}. ${v.cold ? 'The case has gone cold.' : `Strike ${v.strikes} of 3.`}` }
+      return { ...s, verdict: v, strikes: v.strikes, outcome: v.cold ? 'cold' : s.outcome, announce: `${wrongAccusationLine(name)} ${v.cold ? 'The case has gone cold.' : `Strike ${v.strikes} of 3.`}` }
   }
 }
 

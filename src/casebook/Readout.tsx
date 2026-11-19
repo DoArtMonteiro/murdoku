@@ -4,6 +4,8 @@ import { firstName } from './cells'
 import type { Hint } from './hint'
 import type { Outcome } from './save'
 import type { SupposeReport } from './suppose'
+import type { Tier } from './verdict'
+import { TIER_LABEL } from './verdict'
 
 interface Props {
   puzzle: Puzzle
@@ -16,7 +18,11 @@ interface Props {
   report: SupposeReport | null
   hint: Hint | null
   outcome: Outcome
-  onReplay: () => void
+  /** What a solved case earned, from hints and strikes spent. Null for an open or cold case. */
+  tier: Tier | null
+  /** True until the first suspect is placed: only then does the readout explain how to play. */
+  firstMove: boolean
+  onRoll: () => void
 }
 
 /** The line of prose under the statements: supposition, hint, closing line, or the case file. */
@@ -46,21 +52,22 @@ export function Readout(p: Props): ReactNode {
   if (p.outcome) {
     return (
       <>
-        <p className="cb-r-title">{p.outcome === 'proved' ? 'Proved.' : p.outcome === 'called' ? 'Called it. The plan is not proven.' : 'The case has gone cold.'}</p>
-        <button type="button" className="cb-linkbtn" onClick={p.onReplay}>Watch the night</button>
+        <p className="cb-r-title">{p.tier ? `${TIER_LABEL[p.tier]}.${p.tier === 'calledIt' ? ' The plan is not proven.' : ''}` : 'The case has gone cold.'}</p>
+        <button type="button" className="cb-linkbtn" onClick={p.onRoll}>Hear the alibis</button>
       </>
     )
   }
+  // The how-to is one short line, shown only until the first suspect is placed. Until then the case file
+  // is a two-line teaser; "Case file" opens all of it.
+  const teaser = p.firstMove && !!p.premise
   return (
     <>
+      {p.firstMove && <p className="cb-howto">Tap a square to place {p.selected.name}.</p>}
       {p.premiseOpen && p.premise
         ? <p className="cb-premise">{p.premise}</p>
-        : (
-          <>
-            {p.oneLiner && <p className="cb-premise">{p.oneLiner}</p>}
-            <p>Tap a square to place {p.selected.name}. Light a statement to see where it holds.</p>
-          </>
-        )}
+        : teaser
+          ? <p className="cb-premise" data-clamp>{p.premise}</p>
+          : p.oneLiner && <p className="cb-premise">{p.oneLiner}</p>}
       {p.premise && (
         <button type="button" className="cb-linkbtn" aria-expanded={p.premiseOpen} onClick={p.onTogglePremise}>
           {p.premiseOpen ? 'Hide the case file' : 'Case file'}
