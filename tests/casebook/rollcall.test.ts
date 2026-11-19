@@ -93,7 +93,7 @@ describe('roll-call wording', () => {
       const v = firstName(p, p.victimId)
       expect(r.last.line).toBe(`${m}: in the ${p.rooms.find(x => x.id === roomOf(p, p.victimId))!.name}, with ${v} and no one else. No alibi.`)
       expect(r.victim.line.startsWith(`${v} was found in the `)).toBe(true)
-      expect(computedClosing(p)).toBe(`Everyone told the truth. Only ${m}'s account leaves them alone with ${v}.`)
+      expect(computedClosing(p)).toBe(`Everyone told the truth. Only ${m}'s account puts ${m} alone with ${v}.`)
     }
   })
 })

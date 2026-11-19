@@ -94,7 +94,8 @@ export function buildRollCall(p: Puzzle): RollCall {
 
 /** The closing line when no story is authored: derived from the same facts, and true to the premise. */
 export function computedClosing(p: Puzzle): string {
-  return `Everyone told the truth. Only ${firstName(p, p.murdererId)}'s account leaves them alone with ${firstName(p, p.victimId)}.`
+  const m = firstName(p, p.murdererId)
+  return `Everyone told the truth. Only ${m}'s account puts ${m} alone with ${firstName(p, p.victimId)}.`
 }
 
 /**
