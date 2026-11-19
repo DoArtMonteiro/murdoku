@@ -37,7 +37,7 @@ for (const suffix of suffixes) {
     console.log(`| ${cfg} | ${DESC[cfg]} | ${rows.length} | ${acc.length} (${pct(acc.length, rows.length)}) | ${pct(rows.filter(r => r.firstTry).length, rows.length)} | ${f1(mean(rows.map(r => r.ms)))} | ${f1(acc.length ? wall / acc.length : NaN)} | ${Object.entries(rej).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ') || '-'} |`)
   }
   console.log('\nAccepted cases only (histograms are value:count):\n')
-  console.log('| config | clues (mean) | statements/person mean (min..max) | max on one card | forcedAtStart | needsSearch | cross-person steps | lane-only steps | chain depth | live suspects (mean) | relational clues (mean) | coordinate share | engine-free solve ms (fast solver, mean/max) |')
+  console.log('| config | clues (mean) | statements/person mean (min..max) | max on one card | forcedAtStart | needsSearch | cross-person steps (forward chain for `anchored`, pairwise run otherwise) | lane-only steps | chain depth | live suspects (mean) | relational clues (mean) | coordinate share | engine-free solve ms (fast solver, mean/max) |')
   console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|')
   for (const cfg of CONFIGS) {
     const rows = load(cfg, suffix)
@@ -45,7 +45,7 @@ for (const suffix of suffixes) {
     const acc = rows.filter(r => r.accepted)
     if (!acc.length) { console.log(`| ${cfg} | no accepted cases |`); continue }
     const sm = acc.map(r => r.statementsMean)
-    console.log(`| ${cfg} | ${f1(mean(acc.map(r => r.clues)))} | ${f2(mean(sm))} (${f2(Math.min(...sm))}..${f2(Math.max(...sm))}) | ${hist(acc.map(r => r.statementsMax))} | ${hist(acc.map(r => r.forcedAtStart))} | ${hist(acc.map(r => r.needsSearch))} | ${hist(acc.map(r => r.crossDirect))} | ${hist(acc.map(r => r.laneSetSteps + r.laneSteps))} | ${hist(acc.map(r => r.chainDepth ?? 0))} | ${f1(mean(acc.map(r => r.liveSuspects)))} | ${f1(mean(acc.map(r => r.relationalClues)))} | ${f2(mean(acc.map(r => r.coordinateShare)))} | ${f1(mean(acc.map(r => r.solveMs ?? NaN)))}/${f1(Math.max(...acc.map(r => r.solveMs ?? 0)))} |`)
+    console.log(`| ${cfg} | ${f1(mean(acc.map(r => r.clues)))} | ${f2(mean(sm))} (${f2(Math.min(...sm))}..${f2(Math.max(...sm))}) | ${hist(acc.map(r => r.statementsMax))} | ${hist(acc.map(r => r.forcedAtStart))} | ${hist(acc.map(r => r.needsSearch))} | ${hist(acc.map(r => (suffix.includes('anchored') ? r.anchoredCross : r.crossDirect)))} | ${hist(acc.map(r => r.laneSetSteps + r.laneSteps))} | ${hist(acc.map(r => r.chainDepth ?? 0))} | ${f1(mean(acc.map(r => r.liveSuspects)))} | ${f1(mean(acc.map(r => r.relationalClues)))} | ${f2(mean(acc.map(r => r.coordinateShare)))} | ${f1(mean(acc.map(r => r.solveMs ?? NaN)))}/${f1(Math.max(...acc.map(r => r.solveMs ?? 0)))} |`)
   }
   console.log('\nClue-kind mix of accepted cases (share of all clues):\n')
   const kinds = new Set()
