@@ -4,15 +4,14 @@ import { reconcileProgress } from './progress'
 import { CATALOG_KEY_PREFIX, isPlainObject, keysWithPrefix, removeKey } from './storage'
 
 // ============================================================================
-// The catalog: 60 puzzles, generated at build time.
+// The catalog: 60 puzzles, baked into the bundle as data.
 //
-// src/data/catalog.generated.json is the output of buildCatalog()
-// (catalogBuild.ts) written by `npm run bake:catalog`. The generator never
-// ships to the browser, so a first visit no longer spends ~5 s building the
-// catalog behind a progress screen. tests/bakedCatalog.test.ts regenerates the
-// catalog and fails unless it is byte-identical to the baked file, so ids,
-// content and fingerprints (progress.ts) cannot drift from what the generator
-// produces.
+// src/data/catalog.generated.json is the canonical data for these cases. It was
+// produced once from buildCatalog() (catalogBuild.ts) by scripts/bake-catalog.mjs
+// and is not regenerated. The generator never ships to the browser, so a first
+// visit no longer spends ~5 s building the catalog behind a progress screen.
+// tests/bakedCatalog.test.ts pins the file's digest and every case fingerprint
+// (progress.ts), so saved progress cannot be detached from its puzzle by accident.
 // ============================================================================
 
 const puzzles: Puzzle[] = bakedCatalog as unknown as Puzzle[]

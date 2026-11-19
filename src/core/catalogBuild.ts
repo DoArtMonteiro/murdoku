@@ -7,12 +7,11 @@ import type { Puzzle, Difficulty } from './types'
 // The catalog builder: a stable, seeded set of puzzles. Generation is
 // deterministic per seed, so the same catalog comes out every run.
 //
-// This module is NOT part of the app bundle. The player's browser loads the
-// result of `buildCatalog()` from src/data/catalog.generated.json (see
-// catalog.ts); the generator, the validator and the authoring pipeline stay
-// here for scripts/bake-catalog.mjs and the tests that prove the baked file is
-// still what the generator produces. After any change that alters a case, run
-// `npm run bake:catalog`: tests/bakedCatalog.test.ts fails until it is refreshed.
+// This module is NOT part of the app bundle. The 60 shipped cases are the
+// canonical data in src/data/catalog.generated.json (see catalog.ts), produced
+// once by scripts/bake-catalog.mjs from this code. After that the file is the
+// source of truth: this generator may change freely for NEW cases (under new
+// ids) without altering what players load or their saved progress.
 // ============================================================================
 
 // The curve is deliberately fattest in the middle: Very Easy exists to teach
