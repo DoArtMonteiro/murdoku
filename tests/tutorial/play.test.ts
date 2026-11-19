@@ -168,7 +168,7 @@ describe('walk-through: the beats', () => {
       expect(beatFor(p, ts).targets).toEqual([{ kind: 'cell', cell: WRONG_SQUARE }])
       // the instruction owns up to what the tap did and says what to do about it
       expect(beatFor(p, ts).text).toBe(SUPPOSE_PLACED_TEXT)
-      expect(beatFor(p, ts).text).toBe('That placed Greta. Hold the same square to suppose instead.')
+      expect(beatFor(p, ts).text).toBe('That placed Greta. Hold the glowing square to suppose instead.')
       ts = run(ts, { t: 'long', cell: WRONG_SQUARE })
       expect(ts.seen).toBe(true)
       ts = run(ts, { t: 'cell', cell: p.solution.p2 })
@@ -184,6 +184,18 @@ describe('walk-through: the beats', () => {
       ts = run(ts, { t: 'long', cell: WRONG_SQUARE })
       expect(beatFor(p, ts).id).toBe('third')
       expect(beatFor(p, ts).text).toBe(BEAT_TEXT.third)
+    })
+
+    it('a tap on some other square places her too, and the text still names the square that glows, not "the same one"', () => {
+      let ts = run(toGreta(), { t: 'cell', cell: cell(2, 2) })
+      expect(ts.game.placement.p2).toBeDefined()
+      expect(beatFor(p, ts).text).toBe(SUPPOSE_PLACED_TEXT)
+      expect(SUPPOSE_PLACED_TEXT).not.toMatch(/same/)
+      // the halo is on the wrong square wherever she stands, so "hold the glowing square" is true
+      expect(beatFor(p, ts).targets).toEqual([{ kind: 'cell', cell: WRONG_SQUARE }])
+      ts = run(ts, { t: 'long', cell: WRONG_SQUARE })
+      expect(ts.seen).toBe(true)
+      expect(beatFor(p, ts).id).toBe('third')
     })
 
     it('the plain supposing text stays for a player who has not tapped', () => {

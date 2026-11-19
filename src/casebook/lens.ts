@@ -57,8 +57,8 @@ export function lensCells(p: Puzzle, personId: string, lit: readonly number[], p
 /** Type and box metrics of a statement chip, px: [serif advance per character, line, horizontal padding, vertical padding, marker]. */
 const CHIP = {
   // measured over every pt case: the widest single-line statement runs 7.5 px per character at 16 px, 7.0 at 15 px
-  roomy: { serif: 7.6, line: 19.4, padX: 31, padY: 15, min: 44, dep: 22 },
-  compact: { serif: 7.1, line: 18, padX: 27, padY: 9, min: 40, dep: 22 },
+  roomy: { serif: 7.6, line: 19.4, padX: 31, padY: 15, min: 44, dep: 20 },
+  compact: { serif: 7.1, line: 18, padX: 27, padY: 9, min: 40, dep: 20 },
 } as const
 
 /**

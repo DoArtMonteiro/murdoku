@@ -185,7 +185,7 @@ export default function Casebook({ puzzle, coach }: { puzzle: Puzzle; coach?: Co
     // a pixel of slack: the plan is sized from the stage's whole pixels, and the layout above has fractions
     const cap = Math.floor(usable - head.getBoundingClientRect().height - rest - inset - plan) - 1
     setChipsCap(prev => (prev === cap ? prev : cap))
-  }, [compact, away, puzzle, board, rootSize.w, rootSize.h])
+  }, [compact, away, puzzle, board, rootSize.w, rootSize.h, fontEpoch])
 
   // The panel keeps its play-time height during the proof and the roll-call, so the board never resizes between them.
   useLayoutEffect(() => { if (!away && panelRef.current) setPanelH(panelRef.current.offsetHeight) }, [away, avail.w, avail.h, state.hint, state.ghost, state.outcome, state.selected])

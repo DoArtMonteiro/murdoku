@@ -173,7 +173,7 @@
 .cb-chips[data-more]:not([data-end]) { --cb-fade-b: 20px; }
 .cb-chip {
   min-height: 44px; padding: 6px 14px; border-radius: 22px; text-align: left; background: var(--cb-sheet);
-  border: 1.5px solid var(--cb-ink); font: 400 16px/1.2 var(--cb-serif); display: flex; flex-direction: row; align-items: center; gap: 7px;
+  border: 1.5px solid var(--cb-ink); font: 400 16px/1.2 var(--cb-serif); display: flex; flex-direction: row; align-items: center; gap: 6px;
   transition: background-color 150ms, box-shadow 150ms, transform 120ms var(--cb-spring);
   touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
@@ -184,7 +184,7 @@
 }
 .cb-chip[data-wait] { border-style: dashed; color: var(--cb-muted); }
 /* a statement about someone not yet placed: a dashed outline (above) and that person's initial */
-.cb-chip-dep { flex: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--cb-ink); color: var(--cb-paper); font: 700 11px/1 var(--cb-sans); }
+.cb-chip-dep { flex: none; width: 16px; height: 16px; margin-left: -2px; border-radius: 50%; display: grid; place-items: center; background: var(--cb-ink); color: var(--cb-paper); font: 700 10px/1 var(--cb-sans); }
 .cb-tip { position: fixed; z-index: 25; transform: translate(-50%, -100%); padding: 6px 11px; border-radius: 10px; background: var(--cb-ink); color: var(--cb-paper); font: 600 14px/1.2 var(--cb-sans); white-space: nowrap; pointer-events: none; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); animation: cb-fade 140ms ease-out; }
 .cb-tip[data-below] { transform: translate(-50%, 0); }
 .cb-who-more { flex: none; align-self: center; padding: 3px 8px; border: 1.5px solid var(--cb-ink); border-radius: 11px; font: 700 12px/1.1 var(--cb-sans); white-space: nowrap; }
@@ -328,6 +328,10 @@
 .cb-root[data-compact] .cb-who { min-height: 52px; padding: 3px 0 1px; }
 .cb-root[data-compact] .cb-who-state { display: none; }
 .cb-root[data-compact] .cb-premise[data-clamp] { -webkit-line-clamp: 1; }
+/* the readout is two lines tall here: tighter type, and a supposition that has a warning to give gives that and not its heading */
+.cb-root[data-compact] .cb-readout { font-size: 15px; line-height: 1.25; }
+.cb-root[data-compact] .cb-readout p { margin-bottom: 1px; }
+.cb-root[data-compact] .cb-readout .cb-r-title:has(+ .cb-warn) { display: none; }
 .cb-root[data-compact] .cb-act { min-height: 44px; gap: 0; font-size: 12px; }
 .cb-root[data-compact] .cb-act svg { width: 18px; height: 18px; }
 .cb-root[data-compact] .cb-readout { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent); }

@@ -65,8 +65,8 @@ export const BEAT_TEXT: Record<BeatId, string> = {
 }
 /** The second beat is two taps, and says so: first the other statement, then the square. */
 export const SECOND_LIGHT_TEXT = 'Placing Tomas takes two taps. Tap 1: light his other statement.'
-/** The supposing beat for a player who tapped instead of holding: the tap placed her. A hold on the same square still supposes. */
-export const SUPPOSE_PLACED_TEXT = 'That placed Greta. Hold the same square to suppose instead.'
+/** The supposing beat for a player who tapped instead of holding: the tap placed her. The halo still marks the square to hold, wherever she now stands. */
+export const SUPPOSE_PLACED_TEXT = 'That placed Greta. Hold the glowing square to suppose instead.'
 
 const N: Record<BeatId, number> = { lens: 1, place: 2, measure: 3, second: 4, suppose: 5, third: 6, scene: 7, accuse: 8 }
 
