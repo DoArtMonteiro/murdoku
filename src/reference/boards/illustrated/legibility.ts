@@ -19,8 +19,10 @@ export const NIGHT = '#1E2436'
 /** Lit-floor value window in CIE L* (0 to 100). L* 38 is a luminance of 0.10 (hard-2's clearest floor measures 0.077 before this pass). */
 export const L_MIN = 38
 export const L_MAX = 68
-/** L* gap the solver keeps between two rooms that share a wall: one step of the four-step ladder across the window. */
+/** L* gap the solver always keeps between two rooms that share a wall: one step of the four-step ladder across the window. */
 export const L_STEP = 10
+/** The gap it tries first. */
+export const L_STEP_WIDE = 12
 /** What the painted floors must still show after 8-bit colours round the solver's targets (about 0.2 L* per floor). */
 export const L_STEP_MIN = 9.5
 
@@ -45,9 +47,18 @@ export function floorTones(spec: FloorSpec): [string, number][] {
   }
 }
 
-/** WCAG relative luminance of a floor once the night ambient is on it, averaged in linear light. */
+/**
+ * What the texture does to the mean value of a floor (grout, joints, shadowed seams, mottling), as the median of
+ * painted-pixel luminance over model luminance across 301 rooms of the catalogue, at 390 px (1 where it is within 5%).
+ */
+const TEXTURE: Partial<Record<MatId, number>> = {
+  quarry: 0.9, marble: 1.2, chequer: 0.8, lawn: 0.85, cobble: 0.75, azulejo: 0.7, flags: 0.85, brick: 0.75,
+  deck: 0.75, hydraulic: 0.8, mosaic: 0.8, herring: 0.95,
+}
+
+/** WCAG relative luminance of a floor once the night ambient is on it, averaged in linear light and texture-corrected. */
 export function litLuminance(spec: FloorSpec, nightFill: number): number {
-  return floorTones(spec).reduce((s, [c, w]) => s + w * luminance(mix(c, NIGHT, nightFill)), 0)
+  return (TEXTURE[spec.mat] ?? 1) * floorTones(spec).reduce((s, [c, w]) => s + w * luminance(mix(c, NIGHT, nightFill)), 0)
 }
 
 /** CIE L* (0 to 100) of a luminance. */
@@ -132,30 +143,38 @@ export function resolveFloors(plan: Plan, st: StyleKit): Map<string, RoomFloor> 
   const ids = order.map(r => r.id)
   const nat = new Map(ids.map(id => [id, litL(spec.get(id)!, st.nightFill)]))
   const clamp = (v: number) => Math.min(L_MAX, Math.max(L_MIN, v))
-  const cands = new Map(ids.map(id => {
-    const n = nat.get(id)!
-    const set = new Set<number>([+clamp(n).toFixed(3)])
-    for (let m = -3; m <= 3; m++) set.add(+clamp(n + m * L_STEP).toFixed(3))
-    for (let k = 0; k < 4; k++) set.add(+(L_MIN + (k * (L_MAX - L_MIN)) / 3).toFixed(3))
-    return [id, [...set].sort((a, b) => Math.abs(a - n) - Math.abs(b - n) || a - b)] as const
-  }))
-  let best = null as Map<string, number> | null
-  let bestCost = Infinity
-  const cur = new Map<string, number>()
-  const dfs = (i: number, cost: number) => {
-    if (cost >= bestCost) return
-    if (i === ids.length) { best = new Map(cur); bestCost = cost; return }
-    const id = ids[i]
-    for (const L of cands.get(id)!) {
-      let ok = true
-      for (const nb of adj.get(id)!) { const o = cur.get(nb); if (o !== undefined && Math.abs(o - L) < L_STEP - 1e-6) { ok = false; break } }
-      if (!ok) continue
-      cur.set(id, L)
-      dfs(i + 1, cost + (L - nat.get(id)!) ** 2)
-      cur.delete(id)
+  // the widest value gap the plan allows: 12 L* when the rooms need three steps or fewer, else L_STEP
+  // (a painted floor drifts about +-15% with lamp pools and shadow, so a wider modelled gap keeps neighbours apart on screen)
+  const solve = (step: number): Map<string, number> | null => {
+    const cands = new Map(ids.map(id => {
+      const n = nat.get(id)!
+      const set = new Set<number>([+clamp(n).toFixed(3)])
+      for (let m = -3; m <= 3; m++) set.add(+clamp(n + m * step).toFixed(3))
+      for (let v = L_MIN; v <= L_MAX + 1e-6; v += step) set.add(+v.toFixed(3))
+      for (let v = L_MAX; v >= L_MIN - 1e-6; v -= step) set.add(+v.toFixed(3))
+      return [id, [...set].sort((x, y) => Math.abs(x - n) - Math.abs(y - n) || x - y)] as const
+    }))
+    let best = null as Map<string, number> | null
+    let bestCost = Infinity
+    const cur = new Map<string, number>()
+    const dfs = (i: number, cost: number) => {
+      if (cost >= bestCost) return
+      if (i === ids.length) { best = new Map(cur); bestCost = cost; return }
+      const id = ids[i]
+      for (const L of cands.get(id)!) {
+        let ok = true
+        for (const nb of adj.get(id)!) { const o = cur.get(nb); if (o !== undefined && Math.abs(o - L) < step - 1e-6) { ok = false; break } }
+        if (!ok) continue
+        cur.set(id, L)
+        dfs(i + 1, cost + (L - nat.get(id)!) ** 2)
+        cur.delete(id)
+      }
     }
+    dfs(0, 0)
+    return best
   }
-  dfs(0, 0)
+  let best: Map<string, number> | null = null
+  for (const step of [L_STEP_WIDE, L_STEP]) { best = solve(step); if (best) break }
   const picked = best as Map<string, number> | null
   const out = new Map<string, RoomFloor>()
   for (const id of ids) {

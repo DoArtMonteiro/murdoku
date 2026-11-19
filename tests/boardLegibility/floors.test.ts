@@ -3,20 +3,23 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { createElement } from 'react'
 import Board, { boardLayout } from '../../src/reference/boards/illustrated'
 import { L_MAX, L_MIN, L_STEP_MIN, adjacency, familyOf, litLuminance, lstar, resolveFloors } from '../../src/reference/boards/illustrated/legibility'
+import { luminance } from '../../src/reference/boards/illustrated/color'
 import { illustratedPlan } from '../../src/reference/boards/illustrated/plan'
 import { styleFor } from '../../src/reference/boards/illustrated/styles'
 import { ALL_CASES, floorsOf } from './cases'
 
 // The numbers this pass is held to (see legibility.ts). Luminance is WCAG relative luminance of the lit floor
 // (night ambient on, averaged over the floor's own colours); contrast is the WCAG ratio between two lit floors.
-const MIN_LUMINANCE = 0.0975      // L* 37.5: hard-2's clearest floor measured 0.077 before the pass; nothing is darker than 0.0975 now
-const MAX_LUMINANCE = 0.45        // keeps a cream token (0.78) at 1.6:1 or better and lets the amber lens still read as a tint
+const MIN_LUMINANCE = 0.0975      // L* 37.5, on the texture-corrected model (legibility.ts); painted pixels are checked in the browser, see the report
+const MAX_LUMINANCE = 0.40        // the top step of the ladder (L* 68); the catalogue never needs it (see MIN_TOKEN_CONTRAST)
 const MIN_ADJACENT_CONTRAST = 1.38 // WCAG ratio between rooms that share a wall (about 9.5 L*)
+const BONE = '#f1e8ce'            // the cream of a token disc
+const MIN_TOKEN_CONTRAST = 2.3    // cream token on the PAINTED (resolved) floors: the catalogue's lightest floor is 0.306 (model), 2.41:1
 
 describe('floors read as distinct regions, on every floor of every case', () => {
   it('no floor is too dark, none washes out, and adjacent rooms differ by value and by material', () => {
     let rooms = 0, pairs = 0, sameFamily = 0
-    let minY = 9, maxY = 0, minContrast = 9, minDL = 99
+    let minY = 9, maxY = 0, minContrast = 9, minDL = 99, minToken = 99
     const bad: string[] = []
     for (const p of ALL_CASES) {
       const st = styleFor(p)
@@ -28,6 +31,7 @@ describe('floors read as distinct regions, on every floor of every case', () => 
           const fl = floors.get(room.id)!
           const y = litLuminance(fl.spec, st.nightFill)
           rooms++; minY = Math.min(minY, y); maxY = Math.max(maxY, y)
+          minToken = Math.min(minToken, (luminance(BONE) + 0.05) / (y + 0.05))
           if (y < MIN_LUMINANCE) bad.push(`${p.id} f${floor} ${room.name}: luminance ${y.toFixed(4)}`)
           if (y > MAX_LUMINANCE) bad.push(`${p.id} f${floor} ${room.name}: luminance ${y.toFixed(4)} washes out`)
           // the reported L is the one painted
@@ -54,6 +58,7 @@ describe('floors read as distinct regions, on every floor of every case', () => 
     expect(pairs).toBeGreaterThan(400)
     // the measured numbers the report quotes
     expect(minY).toBeGreaterThanOrEqual(MIN_LUMINANCE)
+    expect(minToken).toBeGreaterThanOrEqual(MIN_TOKEN_CONTRAST)
     expect(maxY).toBeLessThanOrEqual(MAX_LUMINANCE)
     expect(minContrast).toBeGreaterThanOrEqual(MIN_ADJACENT_CONTRAST)
     expect(minDL).toBeGreaterThanOrEqual(L_STEP_MIN)
