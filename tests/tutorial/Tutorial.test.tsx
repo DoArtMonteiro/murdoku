@@ -1,0 +1,207 @@
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import App from '../../src/App'
+import { case0 as p, case0Story, INVESTIGATOR_LINE } from '../../src/tutorial/case0'
+import Offer from '../../src/tutorial/Offer'
+import Tutorial from '../../src/tutorial/Tutorial'
+import { readTutorialFlag, TUTORIAL_KEY, writeTutorialFlag } from '../../src/tutorial/storage'
+
+const reduced = (on: boolean) =>
+  vi.stubGlobal('matchMedia', (q: string) => ({ matches: on && q.includes('reduce'), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }))
+
+const cellAt = (r: number, c: number) => document.querySelector<HTMLElement>(`[role=gridcell][data-row="${r}"][data-col="${c}"]`)!
+const instruction = () => screen.getByTestId('instruction').textContent
+const chip = (name: RegExp) => screen.getAllByRole('button').find(b => b.className.includes('cb-chip') && name.test(b.textContent ?? ''))!
+const haloStyle = () => document.querySelector('.tut-root style')?.textContent ?? ''
+
+beforeEach(() => reduced(false))
+afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); window.history.replaceState(null, '', '/') })
+
+describe('Case 0 on screen', () => {
+  it('opens on the prologue: the premise, the investigator line, a way in and a way out, and no instruction yet', () => {
+    render(<Tutorial />)
+    const card = screen.getByRole('group', { name: 'Prologue' })
+    expect(card).toHaveTextContent(case0Story.premise)
+    expect(card).toHaveTextContent(INVESTIGATOR_LINE)
+    expect(within(card).getByRole('button', { name: /Begin/ })).toBeInTheDocument()
+    const skip = screen.getByRole('link', { name: 'Skip — I know how to play' })
+    expect(skip).toHaveAttribute('href', '?casebook=')
+    expect(haloStyle()).toBe('')
+  })
+
+  it('skipping stores a flag so the picker stops offering Case 0', () => {
+    render(<Tutorial />)
+    fireEvent.click(screen.getByRole('link', { name: /Skip/ }))
+    expect(localStorage.getItem(TUTORIAL_KEY)).toBe('skipped')
+  })
+
+  it('keeps the board, the statements and the rail on screen while it teaches, and halos the first statement', () => {
+    render(<Tutorial />)
+    fireEvent.click(screen.getByRole('button', { name: /Begin/ }))
+    expect(screen.getByRole('grid')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Suspects' })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: "Lena's statements" })).toBeInTheDocument()
+    expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
+    expect(haloStyle()).toContain('.cb-chips li:nth-child(1) .cb-chip')
+    // no modal covers the board while a beat is on
+    expect(document.querySelector('[role=dialog]')).toBeNull()
+    expect(screen.getByTestId('instruction')).toHaveAttribute('aria-live', 'polite')
+  })
+
+  it('plays all eight beats from the on-screen text alone, hears the roll-call, and stores done', async () => {
+    reduced(true)
+    render(<Tutorial />)
+    fireEvent.click(screen.getByRole('button', { name: /Begin/ }))
+
+    fireEvent.click(chip(/clock/))
+    expect(instruction()).toBe('Only one square fits. Tap it to place her.')
+    expect(cellAt(3, 0).dataset.lens).toBe('lit')
+    fireEvent.click(cellAt(3, 0))
+
+    expect(instruction()).toBe('Now this statement can be measured — tap it.')
+    expect(haloStyle()).toContain('li:nth-child(1) .cb-chip')
+    fireEvent.click(chip(/north of Lena/))
+    expect(instruction()).toBe('Light his other statement too, then place him.')
+    fireEvent.click(chip(/desk/))
+    expect(instruction()).toBe('Place the second suspect: tap the one lit square.')
+    expect(haloStyle()).toContain('[data-row="1"][data-col="1"]')
+    fireEvent.click(cellAt(1, 1))
+
+    expect(instruction()).toBe('Not sure? Hold a square to suppose.')
+    expect(haloStyle()).toContain('[data-row="0"][data-col="3"]')
+    // the Suppose button then the square: the same as a hold
+    fireEvent.click(screen.getByRole('button', { name: 'Suppose' }))
+    fireEvent.click(cellAt(0, 3))
+    expect(instruction()).toBe('Place the third suspect on the other lit square.')
+    expect(screen.getByTestId('readout')).toHaveTextContent('No square left for Marco.')
+    fireEvent.click(screen.getByRole('button', { name: 'Suppose' }))
+    fireEvent.click(cellAt(0, 2))
+    expect(cellAt(0, 2).querySelector('[data-testid=token-p2]')).not.toBeNull()
+
+    expect(instruction()).toBe('Set the scene: tap where the victim was found.')
+    fireEvent.click(cellAt(2, 3))
+    expect(instruction()).toBe('Who was alone with the victim? Accuse.')
+    expect(screen.getByRole('button', { name: 'Accuse' })).toBeEnabled()
+    expect(haloStyle()).toContain('.cb-accuse')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accuse' }))
+    // a wrong name is only an alibi
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Tomas' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Tomas has an alibi.')
+    expect(screen.getByRole('dialog')).toHaveTextContent('Nothing is counted')
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the plan' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Accuse' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Lena' }))
+
+    // reduced motion: every alibi at once, ending on the one with none
+    const roll = await screen.findByTestId('rollcall')
+    expect(roll).toHaveTextContent('Tomas: in the Study')
+    expect(roll).toHaveTextContent('Lena: in the Hall, with Marco and no one else. No alibi.')
+    expect(roll).toHaveTextContent(case0Story.cast.p0.motive.charAt(0).toLowerCase())
+    expect(roll).toHaveTextContent(case0Story.closing!)
+    await waitFor(() => expect(localStorage.getItem(TUTORIAL_KEY)).toBe('done'))
+
+    fireEvent.click(within(roll).getByRole('button', { name: 'Close the case' }))
+    expect(screen.getByText('Case 0, closed.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Play a real case' })).toHaveAttribute('href', '?casebook=')
+    // replayable
+    fireEvent.click(screen.getByRole('button', { name: 'Play Case 0 again' }))
+    expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
+    expect(document.querySelectorAll('[data-testid^=token-]')).toHaveLength(0)
+    expect(localStorage.getItem(TUTORIAL_KEY)).toBe('done')
+  })
+
+  it('does something else: the instruction stays, nothing is punished, and a portrait is haloed', () => {
+    render(<Tutorial />)
+    fireEvent.click(screen.getByRole('button', { name: /Begin/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Tomas/ }))
+    expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
+    expect(haloStyle()).toContain('.cb-rail li:nth-child(1) .cb-who')
+    fireEvent.click(screen.getByRole('button', { name: 'Pencil' }))
+    fireEvent.click(cellAt(0, 0))
+    expect(instruction()).toBe('Tap a statement — the lamp shows where it can be true.')
+    expect(screen.queryByLabelText(/strikes/)).toBeNull()
+  })
+
+  it('writes no murdoku_* key and no casebook save', () => {
+    render(<Tutorial />)
+    fireEvent.click(screen.getByRole('button', { name: /Begin/ }))
+    fireEvent.click(chip(/clock/))
+    fireEvent.click(cellAt(3, 0))
+    expect(Object.keys(localStorage).filter(k => k !== 'alibi_theme')).toEqual([])
+  })
+})
+
+describe('the picker offer', () => {
+  it('shows "New here? Play Case 0 (90 s)" while no flag is stored, and links to ?tutorial', () => {
+    render(<Offer />)
+    const link = screen.getByRole('link', { name: /New here\? Play Case 0 \(90 s\)/ })
+    expect(link).toHaveAttribute('href', '?tutorial')
+  })
+
+  it('dismissing it hides it and stores a flag; a stored flag hides it from the start', () => {
+    const { unmount } = render(<Offer />)
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByRole('link')).toBeNull()
+    expect(readTutorialFlag()).toBe('dismissed')
+    unmount()
+    render(<Offer />)
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('a finished walk-through is never downgraded by a later skip or dismissal', () => {
+    writeTutorialFlag('done')
+    writeTutorialFlag('skipped')
+    writeTutorialFlag('dismissed')
+    expect(readTutorialFlag()).toBe('done')
+  })
+
+  it('survives storage that throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied') })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied') })
+    expect(readTutorialFlag()).toBeNull()
+    expect(() => writeTutorialFlag('done')).not.toThrow()
+    vi.restoreAllMocks()
+  })
+})
+
+describe('routes', () => {
+  it('?tutorial renders Case 0 through App, lazy-loaded', async () => {
+    window.history.replaceState(null, '', '/?tutorial')
+    render(<App />)
+    expect(await screen.findByRole('group', { name: 'Prologue' }, { timeout: 8000 })).toBeInTheDocument()
+    await act(async () => {})
+  })
+
+  it('?casebook= offers Case 0 beside the picker until a flag is stored', async () => {
+    window.history.replaceState(null, '', '/?casebook=')
+    render(<App />)
+    expect(await screen.findByRole('link', { name: /Play Case 0/ }, { timeout: 8000 })).toHaveAttribute('href', '?tutorial')
+    cleanup()
+    localStorage.setItem(TUTORIAL_KEY, 'done')
+    render(<App />)
+    await screen.findByText('Everyone told the truth. Pick a case.', undefined, { timeout: 8000 })
+    expect(screen.queryByRole('link', { name: /Play Case 0/ })).toBeNull()
+  })
+
+  it('?casebook=<id> does not carry the offer', async () => {
+    window.history.replaceState(null, '', '/?casebook=very-easy-3')
+    render(<App />)
+    await screen.findByRole('grid', undefined, { timeout: 8000 })
+    expect(screen.queryByRole('link', { name: /Play Case 0/ })).toBeNull()
+  })
+})
+
+// jsdom does not apply imported CSS, so the rule that hides the casebook's "Show the proof" (Case 0 has no
+// reconstruction) is pinned at the source.
+it('hides "Show the proof" on the closing card', () => {
+  expect(readFileSync('src/tutorial/tutorial.css', 'utf8')).toMatch(/\.cb-roll\s+\.cb-linkbtn\s*\{\s*display:\s*none/)
+})
+
+// Keeps the puzzle import honest: the screen must be playing the verified case.
+it('plays the one verified case', () => {
+  render(<Tutorial />)
+  expect(p.id).toBe('case-0')
+  expect(screen.getAllByRole('gridcell')).toHaveLength(16)
+})

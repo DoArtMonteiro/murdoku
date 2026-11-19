@@ -38,7 +38,7 @@
 .tut-readout { -webkit-mask-image: none !important; mask-image: none !important; }
 
 /* the closing roll-call has no proof to show in Case 0 */
-.tut-root .cb-roll-end .cb-roll-bar .cb-linkbtn { display: none; }
+.tut-root .cb-roll .cb-linkbtn { display: none; }
 
 /* ---- cards: the prologue and the closing ------------------------------------- */
 .tut-card { display: flex; flex-direction: column; gap: 10px; }
@@ -63,3 +63,4 @@
 .tut-offer a { flex: 1; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; color: inherit; text-decoration: none; font: 600 16px/1.2 var(--cb-sans); }
 .tut-offer a span { font-weight: 400; opacity: .8; }
 .tut-offer button { flex: none; width: 44px; height: 44px; border-radius: 22px; background: transparent; border: 0; color: inherit; display: grid; place-items: center; }
+html[data-tut-offer] .cb-picker-in { padding-bottom: 112px; }
