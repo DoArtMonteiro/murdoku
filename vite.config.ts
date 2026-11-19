@@ -46,6 +46,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // 400 KB of case data changes far less often than app code, and a
+          // chunk of its own keeps it out of the entry bundle's cache key.
+          if (id.includes('catalog.generated')) return 'catalog'
           if (id.includes('node_modules/framer-motion')) return 'motion'
           if (id.includes('node_modules/react')) return 'react'
         },

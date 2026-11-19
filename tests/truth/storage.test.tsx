@@ -131,34 +131,31 @@ describe('the app with a corrupted store', () => {
   })
 
   async function freshApp() {
-    // A fresh module graph (so the catalog is re-read from storage), fed a valid cache so it is instant.
+    // A fresh module graph, so the catalog is initialised against whatever storage holds.
     vi.resetModules()
-    const cache = JSON.stringify(puzzles)
     const { default: App } = await import('../../src/App')
-    return { App, cache }
+    return { App }
   }
 
   it('renders the home screen with murdoku_records = "null" and every other key garbage', async () => {
-    const { App, cache } = await freshApp()
+    const { App } = await freshApp()
     for (const key of ALL_KEYS) localStorage.setItem(key, 'null')
-    localStorage.setItem('murdoku_catalog_v26', cache)
     render(<App />)
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
     expect(await screen.findAllByText(/case/i, {}, { timeout: 10000 })).not.toHaveLength(0)
     expect(screen.queryByText(/would not open/i)).toBeNull()
   }, 30000)
 
-  it('rebuilds instead of bricking when the cached catalog is unreadable or the wrong shape', async () => {
+  it('ignores and removes a stale or corrupt browser-side catalog cache instead of bricking', async () => {
     for (const bad of ['[', 'null', '{}', '[{"id":"x"}]', '[null]', '"x"']) {
       localStorage.setItem('murdoku_catalog_v26', bad)
       vi.resetModules()
       const fresh = await import('../../src/core/catalog')
-      // a cheap probe of the same code path: the cache is rejected and removed before any rebuild would start
-      expect(() => fresh.initCatalogAsync().then(() => undefined)).not.toThrow()
-      await Promise.resolve()
-      expect(localStorage.getItem('murdoku_catalog_v26') === bad).toBe(false)
+      const list = await fresh.initCatalogAsync()
+      expect(list).toHaveLength(60)
+      expect(localStorage.getItem('murdoku_catalog_v26')).toBeNull()
     }
-  }, 30000)
+  })
 
   it('recognises a well-formed puzzle and rejects mangled ones', () => {
     for (const p of puzzles) expect(looksLikePuzzle(p), p.id).toBe(true)

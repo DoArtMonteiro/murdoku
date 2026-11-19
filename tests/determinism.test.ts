@@ -27,12 +27,19 @@ describe('catalogue determinism', () => {
     const localeCompare = vi.spyOn(String.prototype, 'localeCompare').mockImplementation(() => {
       throw new Error('locale-dependent ordering on the puzzle generation path')
     })
+    const { buildCatalog } = await import('../src/core/catalogBuild')
+    const puzzles = buildCatalog()
+    expect(puzzles).toHaveLength(60)
+    expect(localeCompare).not.toHaveBeenCalled()
+    expect(createHash('sha256').update(JSON.stringify(puzzles)).digest('hex')).toBe(CATALOGUE_SHA256)
+  })
+
+  it('ships the very same 60 cases, baked, to the browser', async () => {
     localStorage.clear()
     vi.resetModules()
     const { getAllPuzzles } = await import('../src/core/catalog')
     const puzzles = getAllPuzzles()
     expect(puzzles).toHaveLength(60)
-    expect(localeCompare).not.toHaveBeenCalled()
     expect(createHash('sha256').update(JSON.stringify(puzzles)).digest('hex')).toBe(CATALOGUE_SHA256)
   })
 })

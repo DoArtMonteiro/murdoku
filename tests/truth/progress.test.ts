@@ -159,19 +159,21 @@ describe('per-case hint/accusation state', () => {
 })
 
 describe('catalog cache keys', () => {
-  it('building the catalog removes caches written by earlier versions', async () => {
+  it('loading the catalog removes every browser-side catalog cache, current or old, and nothing else', async () => {
     localStorage.setItem(`${CATALOG_KEY_PREFIX}20`, '[]')
     localStorage.setItem(`${CATALOG_KEY_PREFIX}25`, '[]')
+    localStorage.setItem(`${CATALOG_KEY_PREFIX}26`, JSON.stringify(puzzles))
+    localStorage.setItem(RECORDS_KEY, '{"keep":{"bestSeconds":5,"hints":0}}')
     reconcileProgress(puzzles) // does not touch caches
     const { vi } = await import('vitest')
     vi.resetModules()
     const fresh = await import('../../src/core/catalog')
-    // seed a valid current cache so the fresh module adopts it without a rebuild
-    localStorage.setItem(`${CATALOG_KEY_PREFIX}26`, JSON.stringify(puzzles))
     fresh.initCatalog()
     expect(localStorage.getItem(`${CATALOG_KEY_PREFIX}20`)).toBeNull()
     expect(localStorage.getItem(`${CATALOG_KEY_PREFIX}25`)).toBeNull()
-    expect(localStorage.getItem(`${CATALOG_KEY_PREFIX}26`)).not.toBeNull()
+    // The baked catalog replaced the v26 cache; it is dead weight and goes too.
+    expect(localStorage.getItem(`${CATALOG_KEY_PREFIX}26`)).toBeNull()
+    expect(localStorage.getItem(RECORDS_KEY)).not.toBeNull()
     expect(fresh.getAllPuzzles()).toHaveLength(60)
   })
 })
