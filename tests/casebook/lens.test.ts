@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { getPuzzleById } from '../../src/core/catalog'
-import type { Puzzle } from '../../src/core/types'
+import { easy, hard } from './fixtures'
 import { cellKey } from '../../src/casebook/cells'
 import { lensCells, statementReady, statementsOf } from '../../src/casebook/lens'
-
-const hard = getPuzzleById('hard-2') as Puzzle
-const easy = getPuzzleById('very-easy-3') as Puzzle
 
 describe('lens', () => {
   it('lists statements without the victim line', () => {

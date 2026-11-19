@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { getPuzzleById } from '../../src/core/catalog'
-import type { Puzzle } from '../../src/core/types'
+import { easy, hard } from './fixtures'
 import { judgeAccusation, MAX_STRIKES } from '../../src/casebook/verdict'
-
-const hard = getPuzzleById('hard-2') as Puzzle
-const easy = getPuzzleById('very-easy-3') as Puzzle
 
 describe('judgeAccusation', () => {
   it('proves only the murderer over the exact solution', () => {

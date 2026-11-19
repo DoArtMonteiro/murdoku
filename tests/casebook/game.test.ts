@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { getPuzzleById } from '../../src/core/catalog'
+import { easy, hard } from './fixtures'
 import type { Puzzle } from '../../src/core/types'
 import { initState, reduce } from '../../src/casebook/game'
 import type { Action, GameState } from '../../src/casebook/game'
 import { emptySave, parseSave, saveKey } from '../../src/casebook/save'
 import { cellKey, conflictIds } from '../../src/casebook/cells'
 
-const hard = getPuzzleById('hard-2') as Puzzle
-const easy = getPuzzleById('very-easy-3') as Puzzle
 const run = (p: Puzzle, s: GameState, ...as: Action[]) => as.reduce((st, a) => reduce(p, st, a), s)
 const at = (row: number, col: number, floor = 0) => ({ row, col, floor })
 
@@ -59,6 +57,18 @@ describe('game reducer', () => {
     expect(s.lit.p2).toBeUndefined()
     s = run(hard, s, { t: 'select', id: 'p0' }, { t: 'cell', cell: hard.solution.p0 }, { t: 'select', id: 'p2' }, { t: 'lit', index: carol })
     expect(s.lit.p2).toEqual([carol])
+  })
+
+  it('lighting a statement whose cells are all on the other floor brings that floor into view', () => {
+    const bed = hard.clues.findIndex(c => c.clue.kind === 'onFurniture' && c.clue.person === 'p2')
+    let s = run(hard, initState(hard, emptySave()), { t: 'select', id: 'p2' })
+    expect(s.floor).toBe(0)
+    s = run(hard, s, { t: 'lit', index: bed })
+    expect(s.floor).toBe(1)
+    // Why? level 2 does the same
+    const w = run(hard, initState(hard, emptySave()), { t: 'why' }, { t: 'why' })
+    expect(w.hint!.person).toBe('p0')
+    expect(w.floor).toBe(1)
   })
 
   it('undo restores the previous placement', () => {

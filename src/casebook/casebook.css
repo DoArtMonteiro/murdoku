@@ -230,9 +230,11 @@
 @media (max-height: 740px) and (max-width: 899px) {
   .cb-head { height: 46px; }
   .cb-panel { gap: 4px; padding-bottom: 6px; }
-  .cb-readout { height: 52px; font-size: 15px; }
+  .cb-readout { height: 52px; }
   .cb-who { min-height: 60px; }
   .cb-who-state { display: none; }
   .cb-act { min-height: 46px; flex-direction: row; gap: 4px; }
   .cb-chips { gap: 6px; }
 }
+
+.cb-note { margin: 0; font: italic 400 16px var(--cb-serif); color: var(--cb-muted); }

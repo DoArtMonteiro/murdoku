@@ -4,8 +4,6 @@
 import type { Puzzle } from '../core/types'
 import { getPuzzleById } from '../core/catalog'
 
-export const DEFAULT_CASE = 'hard-2'
-
 /** The cases the picker offers: one deep two-floor case, one shallow control. */
 export const PICKER_CASES: ReadonlyArray<{ id: string; note: string }> = [
   { id: 'hard-2', note: 'Deep: two floors, chained deductions.' },

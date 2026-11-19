@@ -7,7 +7,7 @@ import { cellKey, cellName, conflictIds, firstName, norm, sameCell } from './cel
 import type { Placement } from './cells'
 import { hintFor, nextStep } from './hint'
 import type { Hint } from './hint'
-import { statementsOf } from './lens'
+import { lensCells, statementsOf } from './lens'
 import { judgeAccusation } from './verdict'
 import type { Verdict } from './verdict'
 import type { Outcome, Saved } from './save'
@@ -98,6 +98,14 @@ function place(p: Puzzle, s: GameState, id: string, cell: Cell, auto: boolean): 
   }
 }
 
+/** When the lens lights nothing on the floor in view, bring the floor that has lit cells into view. */
+function focusLens(p: Puzzle, s: GameState): GameState {
+  const cells = lensCells(p, s.selected, s.lit[s.selected] ?? [], s.placement)
+  if (!cells?.size) return s
+  const floors = [...cells].map(k => Number(k.split(':')[0]))
+  return floors.includes(s.floor) ? s : { ...s, floor: Math.min(...floors) }
+}
+
 function toggleLit(p: Puzzle, s: GameState, index: number): GameState {
   const st = statementsOf(p, s.selected).find(x => x.index === index)
   if (!st) return s
@@ -106,7 +114,8 @@ function toggleLit(p: Puzzle, s: GameState, index: number): GameState {
   }
   const cur = s.lit[s.selected] ?? []
   const on = cur.includes(index)
-  return { ...s, lit: { ...s.lit, [s.selected]: on ? cur.filter(i => i !== index) : [...cur, index] }, announce: on ? 'Statement unlit.' : 'Statement lit.' }
+  const next = { ...s, lit: { ...s.lit, [s.selected]: on ? cur.filter(i => i !== index) : [...cur, index] }, announce: on ? 'Statement unlit.' : 'Statement lit.' }
+  return on ? next : focusLens(p, next)
 }
 
 function tapCell(p: Puzzle, s: GameState, cell: Cell): GameState {
@@ -146,7 +155,7 @@ function why(p: Puzzle, s: GameState): GameState {
   const level = (s.hint && s.hint.person === step.person && s.hint.level < 3 ? s.hint.level + 1 : 1) as 1 | 2 | 3
   const h = hintFor(p, s.placement, level)!
   let next: GameState = { ...s, hint: h, hintsUsed: s.hintsUsed + 1, selected: h.person, ghost: null, announce: h.text }
-  if (level === 2) next = { ...next, lit: { ...next.lit, [h.person]: h.lit } }
+  if (level === 2) next = focusLens(p, { ...next, lit: { ...next.lit, [h.person]: h.lit } })
   if (level === 3) {
     next = { ...place(p, next, h.person, h.cell, false), hint: h, hintsUsed: next.hintsUsed, floor: cellFloor(h.cell), announce: h.text }
   }

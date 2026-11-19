@@ -140,7 +140,12 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   } else if (nothingYet && vis.premise) {
     readout = <p className="cb-premise">{vis.premise}</p>
   } else {
-    readout = <p>Tap a square to place {sel.name}. Light a statement to see where it holds.</p>
+    readout = (
+      <>
+        {role && <p className="cb-premise">{role.oneLiner}</p>}
+        <p>Tap a square to place {sel.name}. Light a statement to see where it holds.</p>
+      </>
+    )
   }
 
   const strikeDots = Array.from({ length: 3 }, (_, i) => i < state.strikes)
@@ -207,7 +212,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
 
       {sheet && (
         <Sheet
-          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes} motive={vis.motive}
+          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes} hintsUsed={state.hintsUsed} motive={vis.motive}
           onAccuse={accuse} onBack={closeSheet} onClose={closeSheet} onFinish={closeSheet} onReplay={startReplay}
         />
       )}

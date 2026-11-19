@@ -18,7 +18,7 @@ function Picker({ unknown }: { unknown: string }) {
       <main className="cb-picker-in">
         <h1 className="cb-picker-title">Alibi</h1>
         <p className="cb-picker-lede">Everyone told the truth. Pick a case.</p>
-        {unknown && <p className="cb-red">No case called "{unknown}".</p>}
+        {unknown && <p className="cb-note">No case called "{unknown}".</p>}
         <ul className="cb-picker-list">
           {PICKER_CASES.map(c => {
             const p = resolveCase(c.id)

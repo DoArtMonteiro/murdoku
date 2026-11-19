@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { getPuzzleById } from '../../src/core/catalog'
-import type { Puzzle } from '../../src/core/types'
+import { easy, hard } from './fixtures'
 import { chainOf, hintFor, nextStep } from '../../src/casebook/hint'
 import { buildRecon } from '../../src/casebook/recon'
 import { sameCell } from '../../src/casebook/cells'
-
-const hard = getPuzzleById('hard-2') as Puzzle
-const easy = getPuzzleById('very-easy-3') as Puzzle
 
 describe('hint', () => {
   it('points at the first chain step that is not correctly placed', () => {

@@ -11,6 +11,7 @@ interface Props {
   /** The person named in the last accusation. */
   accused: string | null
   strikes: number
+  hintsUsed: number
   /** Murderer's motive line, only handed over once the case is solved. */
   motive: string | null
   onAccuse: (id: string) => void
@@ -21,7 +22,7 @@ interface Props {
 }
 
 /** The accusation sheet: name one suspect. A wrong name says only that it was not them. */
-export function Sheet({ puzzle, verdict, accused, strikes, motive, onAccuse, onBack, onClose, onFinish, onReplay }: Props) {
+export function Sheet({ puzzle, verdict, accused, strikes, hintsUsed, motive, onAccuse, onBack, onClose, onFinish, onReplay }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const victim = firstName(puzzle, puzzle.victimId)
   const suspects = puzzle.people.filter(p => p.id !== puzzle.victimId)
@@ -69,6 +70,7 @@ export function Sheet({ puzzle, verdict, accused, strikes, motive, onAccuse, onB
             <h2 id="cb-sheet-title" className="cb-verdict" data-kind="proved">Proved.</h2>
             <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}, and every square of the plan holds.</p>
             {motive && <p className="cb-motive">{motive}</p>}
+            <p className="cb-sheet-sub">{hintsUsed === 0 ? 'No hints used.' : `Hints used: ${hintsUsed}.`}</p>
             <button type="button" className="cb-primary" onClick={onReplay}>Watch the night</button>
             <button type="button" className="cb-ghostbtn" onClick={onClose}>Close</button>
           </>
@@ -78,6 +80,7 @@ export function Sheet({ puzzle, verdict, accused, strikes, motive, onAccuse, onB
             <h2 id="cb-sheet-title" className="cb-verdict" data-kind="called">Called it.</h2>
             <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}. The plan is not proven yet.</p>
             {motive && <p className="cb-motive">{motive}</p>}
+            <p className="cb-sheet-sub">{hintsUsed === 0 ? 'No hints used.' : `Hints used: ${hintsUsed}.`}</p>
             <button type="button" className="cb-primary" onClick={onFinish}>Finish the plan</button>
             <button type="button" className="cb-ghostbtn" onClick={onReplay}>Watch the night instead</button>
           </>

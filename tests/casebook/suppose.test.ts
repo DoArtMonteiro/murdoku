@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { getPuzzleById } from '../../src/core/catalog'
-import type { Puzzle } from '../../src/core/types'
+import { easy, hard } from './fixtures'
 import { allCells, cellKey } from '../../src/casebook/cells'
 import { suppose } from '../../src/casebook/suppose'
-
-const hard = getPuzzleById('hard-2') as Puzzle
-const easy = getPuzzleById('very-easy-3') as Puzzle
 
 describe('suppose', () => {
   it('is sound: a ghost on its true square never removes anyone else\'s true square', () => {
