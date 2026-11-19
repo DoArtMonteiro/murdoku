@@ -215,7 +215,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
     const before = prev.current
     prev.current = state
     const cue = sound ? cueFor(before, state) : null
-    if (cue) playCue(cue)
+    // The verdict jingles wait for the end of the roll-call: a right name must not be heard before it is read out.
+    if (cue && cue !== 'proved' && cue !== 'called') playCue(cue)
   }, [state, sound])
   // A saved "on" has no audio context after a reload; the browser only allows one from a tap, so make it on the first.
   useEffect(() => {
@@ -234,8 +235,12 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const strikeDots = Array.from({ length: 3 }, (_, i) => i < state.strikes)
   const tier = tierOf(state.outcome, state.hintsUsed, state.strikes, state.revealed)
   const tierLabel = tier ? TIER_LABEL[tier] : 'The case went cold'
+  const rollDone = !!roll && roll.step >= rollEnd
+  useEffect(() => {
+    if (sound && rollDone && tier) playCue(tier === 'calledIt' ? 'called' : 'proved')
+  }, [rollDone]) // eslint-disable-line
   const closing = fillNames(puzzle, vis.closing ?? computedClosing(puzzle))
-  const alibi = vis.alibiOf(sel.id)
+  const alibi = sel.isVictim ? null : vis.alibiOf(sel.id)
 
   return (
     <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>

@@ -103,6 +103,28 @@ describe('abbreviations are real words', () => {
     expect(full / plates).toBeGreaterThan(0.9)
   })
 
+  it('on the smallest boards a compact phone draws (cells of 18 to 22 px) plates still never touch each other and rarely fall back', () => {
+    let plates = 0, fallback = 0
+    const bad: string[] = []
+    for (const p of ALL_CASES) for (const floor of floorsOf(p)) for (const u of [18, 20, 22]) {
+      const ls = placeLabels(illustratedPlan(p, floor, u), u, evidenceKeepClear(p.id))
+      const boxes = ls.map(labelPlateOf)
+      ls.forEach((l, i) => {
+        plates++
+        if (l.halo) fallback++
+        const room = p.rooms.find(r => r.id === l.roomId)!.name
+        if (!variants(room).includes(l.text)) bad.push(`${p.id} @${u}: "${l.text}" is not a variant of ${room}`)
+        for (let j = i + 1; j < ls.length; j++) {
+          const a = boxes[i], b = boxes[j]
+          if (a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]) bad.push(`${p.id} f${floor} @${u}: ${l.text}/${ls[j].text} overlap`)
+        }
+      })
+    }
+    expect(bad.slice(0, 20)).toEqual([])
+    // a plate that has to hug its wall (the centre rule cannot be met under 24 px) is not a fallback corner
+    expect(fallback / plates).toBeLessThan(0.05)
+  })
+
   it('from 30 px up the type never drops below 11 px', () => {
     for (const p of ALL_CASES.slice(0, 20)) for (const u of [30, 37, 50]) {
       for (const l of placeLabels(illustratedPlan(p, 0, u), u, evidenceKeepClear(p.id))) expect(l.fs).toBeGreaterThanOrEqual(11)

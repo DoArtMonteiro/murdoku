@@ -40,6 +40,12 @@ export type PlacedLabel = Label & { pad?: number }
 const GAP_PX = 6      // clear space between two plates, px
 const WALL_CLEAR = 0.005 // clear space between a wall face and the plate, cells
 const CENTRE_CLEAR_PX = 1.5 // a plate stays at least this far from every cell centre, px
+/**
+ * Below this cell size the strip between a wall face and the cell centre is shorter than any readable plate, so the rule
+ * above cannot be met and every room would fall back to a corner. There the plate hugs its wall and only the occupied
+ * squares (a token, its badge, a ghost) are kept clear: the casebook always passes them.
+ */
+const CENTRE_RULE_MIN_PX = 24
 
 type Box = [number, number, number, number]
 const overlap = (a: Box, b: Box) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]
@@ -165,7 +171,7 @@ export function placeLabels(plan: Plan, u: number, keepClear: readonly Box[] = [
               const plate: Box = [px0, y0, px1, y0 + capH]
               // never over a cell centre: with the plate between a wall face and the middle of the row this is a
               // vertical test, run for every cell the plate spans
-              if (plate[3] + CENTRE_CLEAR_PX / u > r + 0.5 && plate[1] - CENTRE_CLEAR_PX / u < r + 0.5) continue
+              if (u >= CENTRE_RULE_MIN_PX && plate[3] + CENTRE_CLEAR_PX / u > r + 0.5 && plate[1] - CENTRE_CLEAR_PX / u < r + 0.5) continue
               const hit = placed.some(p => overlap([plate[0] - gap, plate[1] - gap, plate[2] + gap, plate[3] + gap], p))
               if (hit || keepClear.some(k => overlap(plate, k))) continue
               if (!relaxSwing && swing.some(s => overlap(plate, s))) continue
