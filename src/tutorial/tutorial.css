@@ -1,0 +1,65 @@
+/* Case 0. Everything here is additive to casebook.css: the instruction line, the soft amber halo,
+   the prologue card and the closing card. The board, statements, portraits and bar are the casebook's own. */
+
+.tut-root { --tut-halo-glow: rgba(226, 163, 58, .7); }
+
+/* The halo is a soft pulse of lamp amber around the control the current beat wants. It never covers
+   the board and it never captures a tap. Reduced motion keeps the glow and drops the pulse. */
+@keyframes tut-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(226, 163, 58, 0), 0 0 10px 2px rgba(226, 163, 58, .5); }
+  50% { box-shadow: 0 0 0 4px rgba(226, 163, 58, .3), 0 0 22px 7px var(--tut-halo-glow); }
+}
+@keyframes tut-ring {
+  0%, 100% { box-shadow: inset 0 0 0 3.5px rgba(255, 246, 220, .85), inset 0 0 8px 2px rgba(255, 246, 220, .45); }
+  50% { box-shadow: inset 0 0 0 3.5px #fff, inset 0 0 22px 9px rgba(255, 246, 220, .95); }
+}
+.tut-root[data-reduced] { --tut-glow-anim: none; --tut-ring-anim: none; }
+.tut-root[data-reduced] :is(.cb-cell, .cb-chip, .cb-who, .cb-accuse) { transition-duration: 0ms; }
+
+/* ---- header --------------------------------------------------------------- */
+.tut-skip {
+  flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; max-width: 46%;
+  font: 600 13px/1.15 var(--cb-sans); color: var(--cb-ink); text-decoration: underline; text-underline-offset: 3px; text-align: right;
+}
+
+/* ---- panel ---------------------------------------------------------------- */
+.tut-panel { position: relative; }
+/* room around the statements so a halo is never clipped by the fixed-height block */
+.tut-root { --tut-readout-h: 100px; }
+.tut-root[data-compact] { --tut-readout-h: 76px; }
+.tut-root .cb-mid { margin: -5px; padding: 5px; height: calc(var(--cb-chips-h, 96px) + var(--tut-readout-h) + 18px); }
+.tut-game { display: flex; flex-direction: column; gap: 8px; }
+.tut-game[inert] { visibility: hidden; }
+.cb-root[data-compact] .tut-game { gap: 4px; }
+.tut-step { flex: none; align-self: center; font: 600 12px/1 var(--cb-sans); color: var(--cb-muted); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+
+.tut-line { margin: 0 0 4px; font: 600 17px/1.28 var(--cb-serif); color: var(--cb-ink); }
+.cb-root[data-compact] .tut-line { font-size: 16px; line-height: 1.22; }
+.tut-readout { -webkit-mask-image: none !important; mask-image: none !important; }
+
+/* the closing roll-call has no proof to show in Case 0 */
+.tut-root .cb-roll-end .cb-roll-bar .cb-linkbtn { display: none; }
+
+/* ---- cards: the prologue and the closing ------------------------------------- */
+.tut-card { display: flex; flex-direction: column; gap: 10px; }
+.tut-prologue { position: absolute; inset: 0; padding: 12px 16px 10px; background: var(--cb-desk); overflow-y: auto; justify-content: center; }
+.tut-done { flex: 1; justify-content: center; padding-top: 6px; }
+.tut-card-kicker { margin: 0; font: 600 12px/1 var(--cb-sans); letter-spacing: .14em; text-transform: uppercase; color: var(--cb-muted); }
+.tut-card-body { margin: 0; font: 400 16px/1.38 var(--cb-serif); }
+.tut-card-voice { margin: 0; font: italic 400 16px/1.38 var(--cb-serif); border-left: 3px solid var(--cb-ink); padding-left: 12px; }
+.tut-card-title { margin: 0; font: 600 26px/1.1 var(--cb-serif); color: var(--cb-red); }
+.tut-card-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
+.tut-card-bar .cb-primary { flex: 1 1 auto; }
+.tut-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.cb-root[data-compact] .tut-prologue { gap: 6px; padding-top: 8px; }
+.cb-root[data-compact] .tut-card-body, .cb-root[data-compact] .tut-card-voice { font-size: 15px; line-height: 1.32; }
+
+/* ---- the offer on the case picker ---------------------------------------------- */
+.tut-offer {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30;
+  width: min(calc(100% - 24px), 496px); display: flex; align-items: center; gap: 4px;
+  background: var(--cb-ink); color: var(--cb-paper); border-radius: 28px; box-shadow: 0 10px 28px rgba(0, 0, 0, .35); padding: 4px 4px 4px 6px;
+}
+.tut-offer a { flex: 1; min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; color: inherit; text-decoration: none; font: 600 16px/1.2 var(--cb-sans); }
+.tut-offer a span { font-weight: 400; opacity: .8; }
+.tut-offer button { flex: none; width: 44px; height: 44px; border-radius: 22px; background: transparent; border: 0; color: inherit; display: grid; place-items: center; }

@@ -31,6 +31,11 @@ function referenceVariant(): 'nightplan' | 'plan3d' | 'illustrated' | null {
 const CASEBOOK_ROUTE = import.meta.env.DEV || import.meta.env.VITE_CASEBOOK === '1'
 const CasebookRoute = CASEBOOK_ROUTE ? lazy(() => import('./casebook/Route')) : null
 const casebookParam = () => (CASEBOOK_ROUTE ? new URLSearchParams(window.location.search).get('casebook') : null)
+// Case 0, the first-run walk-through: `?tutorial`, gated exactly like the casebook. Its picker offer
+// ("New here? Play Case 0") mounts beside the picker, so src/casebook stays untouched.
+const TutorialRoute = CASEBOOK_ROUTE ? lazy(() => import('./tutorial/Route')) : null
+const TutorialOffer = CASEBOOK_ROUTE ? lazy(() => import('./tutorial/Offer')) : null
+const tutorialRequested = () => CASEBOOK_ROUTE && new URLSearchParams(window.location.search).has('tutorial')
 
 function Fallback() {
   return (
@@ -41,6 +46,15 @@ function Fallback() {
 }
 
 export default function App() {
+  if (TutorialRoute && tutorialRequested()) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<Fallback />}>
+          <TutorialRoute />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
   const casebook = casebookParam()
   if (CasebookRoute && casebook !== null) {
     return (
@@ -48,6 +62,11 @@ export default function App() {
         <Suspense fallback={<Fallback />}>
           <CasebookRoute caseId={casebook} />
         </Suspense>
+        {TutorialOffer && casebook === '' && (
+          <Suspense fallback={null}>
+            <TutorialOffer />
+          </Suspense>
+        )}
       </ErrorBoundary>
     )
   }
