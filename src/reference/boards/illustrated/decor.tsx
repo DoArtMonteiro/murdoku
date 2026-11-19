@@ -142,7 +142,8 @@ export function planDecor(plan: Plan, geo: Geo, st: StyleKit, blocked: Set<Furni
         // keep decor off labels
         const along = e.pos + 0.5
         const clash = labelBoxes.some(b => {
-          const [x0, y0, x1, y1] = e.axis === 'h' ? [along - 0.45, e.line - half, along + 0.45, e.line + half] : [e.line - half, along - 0.45, e.line + half, along + 0.45]
+          // a plate sits inside the room, so the whole decor depth (0.23 cell from the wall line) is keep-clear
+          const [x0, y0, x1, y1] = e.axis === 'h' ? [along - 0.45, e.line - 0.23, along + 0.45, e.line + 0.23] : [e.line - 0.23, along - 0.45, e.line + 0.23, along + 0.45]
           return b[0] < x1 && b[2] > x0 && b[1] < y1 && b[3] > y0
         })
         if (clash) continue

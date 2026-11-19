@@ -11,7 +11,7 @@ export const modernist: StyleKit = {
     living: { mat: 'slabs', a: '#8b8478' },
     dining: { mat: 'slabs', a: '#8b8478' },
     kitchen: { mat: 'slabs', a: '#5f625f' },
-    bath: { mat: 'plaster', a: '#6a6d6b' },
+    bath: { mat: 'plaster', a: '#5d7787' }, // pool-blue: the kit's one cool floor, so grey rooms are never neighbours of grey rooms
     bed: { mat: 'planks', a: '#8a6d48' },
     study: { mat: 'slabs', a: '#6f6f6a' },
     pantry: { mat: 'slabs', a: '#5f625f' },

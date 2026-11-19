@@ -38,3 +38,14 @@ export function frameFor(width: number, height: number, n: number): Frame {
   const { lot, gut, m, S } = dims(u)
   return { u, lot, gut, m, S, sx: Math.floor((width - S) / 2), sy: Math.floor((height - S) / 2) }
 }
+
+export interface CompassGeom { cx: number; cy: number; r: number }
+
+/**
+ * Centre and radius, px, in board coordinates. The corner square is the part of the margin the plan window always
+ * shows: 0.2u + 24 px left of the grid and 0.2u + 22 px above it (see fitPlan and the numeral boxes in the shell).
+ */
+export function compassGeom(gx: number, gy: number, u: number): CompassGeom {
+  const w = 0.2 * u + 24, h = 0.2 * u + 22
+  return { cx: +(gx - w / 2).toFixed(2), cy: +(gy - h / 2).toFixed(2), r: +(Math.min(w, h) / 2 - 4).toFixed(2) }
+}

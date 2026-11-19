@@ -15,6 +15,7 @@
 // ============================================================================
 import { memo, useMemo } from 'react'
 import type { BoardLayout, BoardProps } from '../../contract'
+import { Compass } from './compass'
 import { frameFor } from './frame'
 import { getScene } from './scene'
 import { styleFor } from './styles'
@@ -58,6 +59,8 @@ function BoardImpl({ puzzle, floor, width: w0, height: h0, layout }: BoardProps)
           <rect x={gx - fr.gut} y={gy - fr.gut} width={gutLen + fr.gut + wallPx} height={fr.gut - wallPx} fill={scene.gutTop} />
           <rect x={gx - fr.gut} y={gy} width={fr.gut - wallPx} height={gutLen + wallPx} fill={scene.gutLeft} />
         </g>
+        {/* north is up: a compass in the corner the two numeral strips leave free */}
+        <Compass gx={gx} gy={gy} u={u} font={st.font} />
       </svg>
     </div>
   )

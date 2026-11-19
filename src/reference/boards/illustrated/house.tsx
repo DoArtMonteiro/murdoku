@@ -15,7 +15,9 @@ import { isOutdoor, roleOf } from './rooms'
 import type { Reg } from './reg'
 import type { StyleKit } from './styles/types'
 import { edgeHalf, pt, wallPath, type Label, type Plan, type PlanRoom } from '../nightplan/plan'
+import { evidenceKeepClear } from './keepClear'
 import { placeLabels } from './labels'
+import { resolveFloors } from './legibility'
 
 const f = (v: number) => +v.toFixed(3)
 const keyed = (list: ReactNode[]) => list.map((n, i) => <Fragment key={i}>{n}</Fragment>)
@@ -173,16 +175,18 @@ export function renderHouse({ plan, puzzle, st, reg, u, mobile }: HouseCtx): Hou
   const n = plan.n
   const geo = buildGeo(plan)
   const blocked = clueTypesOf(puzzle)
-  const labelList = placeLabels(plan, u)
+  const labelList = placeLabels(plan, u, evidenceKeepClear(puzzle.id))
   const decor = planDecor(plan, geo, st, blocked, labelList)
   const rugs = planRugs(plan, geo, st, blocked)
+  // the floor each room is painted with: the kit's role floor, made legible against its neighbours (see legibility.ts)
+  const roomFloors = resolveFloors(plan, st)
 
   // ---- floors ---------------------------------------------------------------
   const floors: ReactNode[] = []
   const inlays: ReactNode[] = []
   for (const room of plan.rooms) {
     const role = roleOf(room.name)
-    const spec = st.floors[role]
+    const spec = roomFloors.get(room.id)!.spec
     const d = roomPath(room)
     const cid = reg.once(`room-${room.id}`, i => <clipPath key={i} id={i}><path d={d} /></clipPath>)
     floors.push(
@@ -272,7 +276,7 @@ export function renderHouse({ plan, puzzle, st, reg, u, mobile }: HouseCtx): Hou
   // authored per floor: every pool lifts its floor by the same +0.15 L* in a cell centre
   const floorUnder = (g: Glow) => {
     const rm = plan.rooms.find(r => r.id === (g.room ?? roomIdAt(g.x, g.y)))
-    const base = rm ? mix(floorBase(st.floors[roleOf(rm.name)]), '#1E2436', st.nightFill) : '#202020'
+    const base = rm ? mix(floorBase(roomFloors.get(rm.id)!.spec), '#1E2436', st.nightFill) : '#202020'
     return base
   }
   const lights = glows.filter(g => g.color !== '#9FB4D8').map(g => ({ ...g, a: Math.min(0.85, lightAlpha(floorUnder(g), g.color, 0.17)) }))

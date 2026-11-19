@@ -7,6 +7,7 @@ import { buildReconstruction, chainSatisfiesClues, crucialIsFirstPin } from '../
 import { BANNED_ASYMMETRY, clueMatches, conceptsOf, leaks, placementIssues, suspectMetrics, suspectProse, validateStory, MARKER_R } from '../../src/reference/story/validate'
 import type { CaseStory } from '../../src/reference/story/schema'
 import { buildPlan } from '../../src/reference/boards/nightplan/plan'
+import { evidenceKeepClear } from '../../src/reference/boards/illustrated/keepClear'
 import { labelBoxOf, placeLabels } from '../../src/reference/boards/illustrated/labels'
 
 const puzzle = getAllPuzzles().find(p => p.id === 'very-easy-1') as Puzzle
@@ -118,7 +119,7 @@ describe('validator catches leaks (negative controls)', () => {
 
 describe('evidence placement', () => {
   /** Room plaque boxes exactly as the illustrated board lays them out, at several cell sizes (desktop to phone). */
-  const labelSets = [42, 50, 62, 86].map(u => placeLabels(buildPlan(puzzle, 0, u), u).map(l => labelBoxOf(l)))
+  const labelSets = [42, 50, 62, 86].map(u => placeLabels(buildPlan(puzzle, 0, u), u, evidenceKeepClear(puzzle.id)).map(l => labelBoxOf(l)))
   it('clears every cell centre zone, eligible token box, door opening and every room label at every board size', () => {
     for (const e of story.evidence) {
       expect(placementIssues(puzzle, story, e), e.id).toEqual([])

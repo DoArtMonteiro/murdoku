@@ -11,7 +11,8 @@ import type { BoardModule, GameApi } from '../../src/reference/shell/types'
 import { frameFor, lotCells } from '../../src/reference/boards/illustrated/frame'
 import { STYLE_IDS, STYLES, styleFor, styleIdFor } from '../../src/reference/boards/illustrated/styles'
 import { buildGeo, clueTypesOf, planDecor, DECOR_AS_TYPE } from '../../src/reference/boards/illustrated/decor'
-import { labelBoxOf, placeLabels } from '../../src/reference/boards/illustrated/labels'
+import { evidenceKeepClear } from '../../src/reference/boards/illustrated/keepClear'
+import { labelPlateOf, placeLabels } from '../../src/reference/boards/illustrated/labels'
 import { floorBase } from '../../src/reference/boards/illustrated/materials'
 import { contrast, luminance, mix } from '../../src/reference/boards/illustrated/color'
 import { roleOf } from '../../src/reference/boards/illustrated/rooms'
@@ -172,74 +173,34 @@ describe('wall decor placement', () => {
 })
 
 describe('labels, doors and the numeral gutter', () => {
-  it('room names (u = 32, 35, 41, 44, 51, 115; all 60 cases): >= 10 px font, >= 7 px capitals, one anchor wall, no overlaps, centres never covered, <= 25% of any token box', () => {
-    // Labels are painted ABOVE the token layer (BoardLabels overlay). A token may therefore sit under the edge of a
-    // plate, but a label is never hidden: the plate is at most (0.69 em + 2 px) tall and centred on a wall line, so it
-    // never reaches a cell centre (the central 50%) and covers only a sliver of any token box (portraits stay identifiable).
-    // (This replaces the earlier zero-intersection rule, which forced 5 px capitals on 8x8 phones.)
-    const anchors = new Map<string, string>()
-    let rooms = 0, moved = 0, worstCover = 0
+  it('room names (u = 32, 35, 41, 44, 51, 115; all 60 cases): >= 11 px, horizontal, inside their own room, clear of every cell centre and of each other', () => {
+    // Names now sit INSIDE their room (a corner or edge strip against a wall). The full numeric sweep, with the exact
+    // definitions, is tests/boardLegibility/labels.test.ts; this keeps the catalogue check next to the board tests.
+    let rooms = 0
     for (const p of puzzles) for (const floor of floorsOf(p)) for (const u of [32, 35, 41, 44, 51, 115]) {
       const plan = illustratedPlan(p, floor, u)
-      const labels = placeLabels(plan, u)
+      const labels = placeLabels(plan, u, evidenceKeepClear(p.id))
       expect(labels.length).toBe(plan.rooms.length)
-      const tok = u < 60 ? 0.84 : 0.78
-      const lo = (1 - tok) / 2, hi = 1 - lo
-      const boxes = labels.map(l => labelBoxOf(l))
+      const plates = labels.map(l => labelPlateOf(l))
       labels.forEach((l, i) => {
-        expect(l.fs, `${p.id} ${l.text} @${u}`).toBeGreaterThanOrEqual(10)
-        expect(0.69 * l.fs, `${p.id} ${l.text} @${u} cap height px`).toBeGreaterThanOrEqual(7)
-        expect(l.mode, `${p.id} ${l.text} @${u} fell back to the floor`).not.toBe('floor')
-        const [x0, y0, x1, y1] = boxes[i]
-        // clear of the numeral gutter (numerals end 0.2 cell above the grid)
-        expect(y0, `${p.id} ${l.text} @${u} reaches the numerals`).toBeGreaterThanOrEqual(-0.2)
+        expect(l.fs, `${p.id} ${l.text} @${u}`).toBeGreaterThanOrEqual(11)
+        expect(l.rot, `${p.id} ${l.text} @${u} rotated`).toBe(0)
+        const [x0, y0, x1, y1] = plates[i]
+        for (let r = Math.floor(y0); r <= Math.floor(y1 - 1e-9); r++) for (let c = Math.floor(x0); c <= Math.floor(x1 - 1e-9); c++) {
+          expect(plan.roomAt[r]?.[c], `${p.id} f${floor} @${u}: ${l.text} leaves its room at ${r},${c}`).toBe(l.roomId)
+        }
         for (let r = 0; r < plan.n; r++) for (let c = 0; c < plan.n; c++) {
-          // never over a cell centre (central 50%)
-          const centre = x1 > c + 0.25 && x0 < c + 0.75 && y1 > r + 0.25 && y0 < r + 0.75
+          const centre = x1 > c + 0.5 && x0 < c + 0.5 && y1 > r + 0.5 && y0 < r + 0.5
           expect(centre, `${p.id} f${floor} @${u}: ${l.text} covers the centre of ${r},${c}`).toBe(false)
-          // share of the token box under the plate
-          const ox = Math.max(0, Math.min(x1, c + hi) - Math.max(x0, c + lo)), oy = Math.max(0, Math.min(y1, r + hi) - Math.max(y0, r + lo))
-          const cover = (ox * oy) / (tok * tok)
-          worstCover = Math.max(worstCover, cover)
-          expect(cover, `${p.id} f${floor} @${u}: ${l.text} covers ${(cover * 100).toFixed(0)}% of the token at ${r},${c}`).toBeLessThanOrEqual(0.25)
         }
-        const wall = `${l.rot}:${l.mode}:${l.rot === 0 ? Math.round(l.cy * 2) / 2 : Math.round(l.x * 2) / 2}`
-        const key = `${p.id}:${floor}:${l.roomId}`
-        const prev = anchors.get(key)
         rooms++
-        if (prev === undefined) anchors.set(key, wall)
-        else if (prev !== wall) moved++
       })
-      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
-        const a = boxes[i], b = boxes[j]
+      for (let i = 0; i < plates.length; i++) for (let j = i + 1; j < plates.length; j++) {
+        const a = plates[i], b = plates[j]
         expect(a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1], `${p.id} f${floor} @${u}: ${labels[i].text}/${labels[j].text}`).toBe(false)
-        // names on one wall line keep >= max(6 px, half a label height) between them
-        const li = labels[i], lj = labels[j]
-        if (li.rot === lj.rot) {
-          const along = li.rot === 0 ? [a[0], a[2], b[0], b[2], Math.abs(li.cy - lj.cy)] : [a[1], a[3], b[1], b[3], Math.abs(li.x - lj.x)]
-          if (along[4] < li.capH) {
-            const gap = Math.max(along[0] - along[3], along[2] - along[1]) * u
-            expect(gap - 0.06 * u, `${p.id} f${floor} @${u}: ${li.text}/${lj.text} plate gap ${(gap).toFixed(1)} px`).toBeGreaterThanOrEqual(Math.max(6, 0.5 * li.capH * u) - 0.01)
-          }
-        }
       }
     }
     expect(rooms).toBeGreaterThan(500)
-    expect(worstCover).toBeLessThanOrEqual(0.25)
-    // an abbreviation may shorten on the same wall; a change of wall between sizes must be rare
-    expect(moved / rooms).toBeLessThan(0.08)
-  })
-  it('names prefer the north wall, at the same rate at 41 and 115', () => {
-    const share = (u: number) => {
-      let north = 0, all = 0
-      for (const p of puzzles) {
-        const plan = illustratedPlan(p, 0, u)
-        for (const l of placeLabels(plan, u)) { all++; if (l.rot === 0 && l.mode === 'wall' && plan.edges.some(e => e.axis === 'h' && e.line === Math.round(l.cy) && e.p && plan.roomAt[e.p[0]][e.p[1]] === l.roomId)) north++ }
-      }
-      return north / all
-    }
-    expect(Math.abs(share(41) - share(115))).toBeLessThan(0.03)
-    expect(share(41)).toBeGreaterThan(0.5)
   })
   it('doors keep their swing clear of furniture; every room has a door', () => {
     for (const p of puzzles) for (const floor of floorsOf(p)) {
