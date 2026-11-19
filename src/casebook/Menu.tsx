@@ -38,6 +38,10 @@ export function Menu({ sound, theme, onSound, onTheme }: Props) {
             {theme === 'dark' ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
             <span>Theme</span><em>{theme === 'dark' ? 'Dark' : 'Light'}</em>
           </button>
+          <p className="cb-menu-credit">
+            Based on the Murdoku puzzle format created by Manuel Garand. Alibi is not affiliated with or endorsed by him.{' '}
+            <a href="/THIRD-PARTY-NOTICES.txt" target="_blank" rel="noopener">Notices</a>
+          </p>
         </div>
       )}
     </div>
