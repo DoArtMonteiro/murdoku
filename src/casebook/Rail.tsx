@@ -1,7 +1,8 @@
 import type { Puzzle } from '../core/types'
 import { cellFloor } from '../core/types'
-import { floorWord } from './cells'
+import { firstName, floorWord } from './cells'
 import type { Placement } from './cells'
+import { Notch } from './Notch'
 import { Portrait } from './Portrait'
 
 interface Props {
@@ -24,6 +25,7 @@ export function Rail({ puzzle, placement, selected, conflicts, holds, contradict
     <ul className="cb-rail" aria-label="Suspects" data-dense={puzzle.people.length >= 6 || undefined}>
       {puzzle.people.map(p => {
         const cell = placement[p.id]
+        const name = firstName(puzzle, p.id)
         const bad = conflicts.has(p.id)
         const none = contradictions.has(p.id)
         const fits = holds.has(p.id) && !bad
@@ -40,16 +42,17 @@ export function Rail({ puzzle, placement, selected, conflicts, holds, contradict
               data-holds={fits || undefined}
               data-victim={p.isVictim || undefined}
               aria-pressed={p.id === selected}
-              aria-label={`${p.name}${p.isVictim ? ', the victim' : ''}, ${where}${bad ? ', shares a row or column' : ''}${fits ? ', statements hold' : ''}${none ? ', no square left' : ''}`}
-              title={none ? `No square left for ${p.name}` : undefined}
+              aria-label={`${name}${p.isVictim ? ', the victim' : ''}, ${where}${bad ? ', shares a row or column' : ''}${fits ? ', statements hold' : ''}${none ? ', no square left' : ''}`}
+              title={none ? `No square left for ${name}` : undefined}
               onClick={() => onSelect(p.id)}
             >
               <span className="cb-who-face">
-                <Portrait person={p} size={44} />
+                <Portrait person={p} name={name} size={44} />
+                {bad && <Notch className="cb-notch cb-notch-rail" />}
                 {fits && <b className="cb-holds" aria-hidden="true">✓</b>}
                 {counts && p.id in counts && <b className="cb-count" data-zero={counts[p.id] === 0 || undefined}>{counts[p.id]}</b>}
               </span>
-              <span className="cb-who-name">{p.name}</span>
+              <span className="cb-who-name">{name}</span>
               {p.isVictim && <span className="cb-who-state" aria-hidden="true">victim</span>}
             </button>
           </li>

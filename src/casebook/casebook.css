@@ -1,6 +1,7 @@
 /* Alibi casebook. A plan table at night: the painted plan is the only richly
    coloured object; everything around it is paper and ink.
-   Lamp amber is for the lens only. Red pencil is for accusation and conflicts only. */
+   Lamp amber is for the lens only. Red pencil is for the accusation and the murderer only: a shared lane,
+   or a supposition with nowhere left to go, is marked in ink. */
 
 :root {
   --cb-paper: #EFE7D6;
@@ -36,7 +37,7 @@
 .cb-root :is(button, a, [tabindex]):focus-visible { outline: 3px solid var(--cb-ink); outline-offset: 2px; box-shadow: 0 0 0 5px var(--cb-paper); }
 .cb-cell:focus-visible { outline: 3px solid #fff; outline-offset: -3px; box-shadow: inset 0 0 0 5px var(--cb-ink); z-index: 3; }
 .cb-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.cb-red { color: var(--cb-red); font-weight: 600; margin: 0; }
+.cb-warn { font-weight: 700; margin: 0; padding-left: 8px; border-left: 3px solid var(--cb-ink); }
 
 /* ---- header ------------------------------------------------------------ */
 .cb-head { flex: none; display: flex; align-items: center; gap: 8px; height: 52px; padding: 0 12px 0 4px; border-bottom: 1px solid var(--cb-line); }
@@ -122,8 +123,15 @@
   position: absolute; right: -2px; bottom: -2px; width: max(10px, calc(var(--tk, 30px) * .4)); height: max(10px, calc(var(--tk, 30px) * .4)); border-radius: 50%; display: grid; place-items: center;
   background: var(--cb-ink); color: var(--cb-paper); font: 700 max(7px, calc(var(--tk, 30px) * .26)) / 1 var(--cb-sans);
 }
-.cb-clash { position: absolute; inset: -3px; width: calc(100% + 6px); height: calc(100% + 6px); pointer-events: none; overflow: visible; }
-.cb-clash path { fill: none; stroke: var(--cb-red); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 130; stroke-dashoffset: 0; animation: cb-draw 220ms ease-out; filter: drop-shadow(0 0 1.5px #fff); }
+/* a lane shared by two people: a small crossed ink disc with a paper rim, on both tokens (and on the rail) */
+.cb-notch { position: absolute; left: -2px; top: -2px; width: max(11px, calc(var(--tk, 30px) * .36)); height: max(11px, calc(var(--tk, 30px) * .36)); pointer-events: none; overflow: visible; z-index: 2; }
+.cb-notch circle { fill: #1B2230; stroke: #F4ECD8; stroke-width: 1.1; paint-order: stroke; }
+.cb-notch path { fill: none; stroke: #F4ECD8; stroke-width: 1.5; stroke-linecap: round; }
+.cb-notch-rail { left: -5px; top: -3px; width: 17px; height: 17px; }
+.cb-notch-rail circle { stroke-width: 1; }
+/* the row or column badge of a lane held twice: struck through with a dashed ink line */
+.cb-num[data-clash] { background: #efe3c8; color: #1b2230; box-shadow: 0 0 0 1px rgba(18, 24, 38, .6); }
+.cb-num[data-clash]::after { content: ''; position: absolute; left: 2px; right: 2px; top: 50%; border-top: 2px dashed #1b2230; transform: translateY(-1px) rotate(-18deg); }
 .cb-token[data-ringed] { animation: cb-pop 260ms var(--cb-spring); }
 /* the red pencil circle: one hand-drawn loop that overshoots where it started, drawn in as it appears */
 .cb-circle { position: absolute; inset: -3px; width: calc(100% + 6px); height: calc(100% + 6px); pointer-events: none; overflow: visible; }
@@ -153,6 +161,8 @@
 .cb-strikes { display: flex; gap: 5px; align-self: center; }
 .cb-strikes i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--cb-ink); }
 .cb-strikes i[data-on] { background: var(--cb-red); border-color: var(--cb-red); }
+.cb-alibi { margin: -2px 0 0; font: italic 400 16px/1.25 var(--cb-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-root[data-compact] .cb-alibi { font-size: 15px; margin: -3px 0 0; }
 .cb-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; }
 .cb-chip {
   min-height: 44px; padding: 6px 14px; border-radius: 22px; text-align: left; background: var(--cb-sheet);
@@ -187,13 +197,13 @@
 .cb-who:not([data-placed]) .cb-portrait { outline: 2px dashed var(--cb-muted); outline-offset: 1px; }
 .cb-who[data-placed] .cb-portrait { outline: 2px solid var(--cb-ink); outline-offset: 1px; }
 .cb-who[data-victim] .cb-portrait { filter: grayscale(1); }
-.cb-who[data-bad] .cb-portrait, .cb-who[data-none] .cb-portrait { outline: 3px solid var(--cb-red); outline-offset: 1px; }
-.cb-who[data-none] .cb-who-name { color: var(--cb-red); font-weight: 700; text-decoration: underline wavy; }
+.cb-who[data-none] .cb-portrait { outline: 3px double var(--cb-ink); outline-offset: 1px; }
+.cb-who[data-none] .cb-who-name { font-weight: 700; text-decoration: underline wavy; }
 .cb-who-name { font-size: 13px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cb-who-state { font-size: 12px; color: var(--cb-muted); }
 .cb-who[data-victim] .cb-who-state { font-style: italic; }
 .cb-count { position: absolute; right: -6px; top: -6px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; display: grid; place-items: center; background: var(--cb-ink); color: var(--cb-paper); font-size: 12px; }
-.cb-count[data-zero] { background: var(--cb-red); color: #fff; }
+.cb-count[data-zero] { background: var(--cb-paper); color: var(--cb-ink); box-shadow: inset 0 0 0 2px var(--cb-ink); }
 .cb-portrait { display: block; border-radius: 50%; overflow: hidden; background: #D9CFB6; }
 .cb-portrait img, .cb-portrait span { border-radius: 0 !important; width: 100%; height: 100%; }
 
@@ -234,6 +244,10 @@
 /* ---- the alibi roll-call ------------------------------------------------------------ */
 .cb-panel[data-away] { overflow-y: auto; }
 .cb-roll { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; padding-top: 2px; }
+/* the line being read, then the ending: one region that scrolls above its buttons, so nothing runs under them */
+.cb-roll-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 8px; display: flex; flex-direction: column; gap: 6px; scrollbar-width: thin; overscroll-behavior: contain; }
+.cb-roll-body[data-more] { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); }
+.cb-roll-body > * { flex: none; }
 .cb-roll-faces { list-style: none; margin: 0; padding: 0; display: flex; justify-content: space-between; gap: 4px; }
 .cb-roll-faces li { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; transition: opacity 300ms, filter 300ms; }
 .cb-roll-face { position: relative; display: block; border-radius: 50%; }
@@ -248,18 +262,18 @@
 .cb-roll-faces li[data-state='last'] .cb-roll-state { color: var(--cb-red); font-weight: 600; }
 .cb-roll-line { margin: 0; font: 500 19px/1.3 var(--cb-serif); min-height: 50px; animation: cb-fade 220ms ease-out; }
 .cb-roll:not([data-done]):not([data-list]) .cb-roll-line { margin: auto 0; font-size: 22px; }
+.cb-roll:not([data-done]):not([data-list]) .cb-roll-body { justify-content: center; }
 .cb-roll-line[data-last] { color: var(--cb-ink); font-weight: 600; }
 .cb-roll-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font: 400 16px/1.3 var(--cb-serif); }
 .cb-roll-list li[data-last] { color: var(--cb-red); font-weight: 600; }
-.cb-roll-end { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+.cb-roll-end { display: flex; flex-direction: column; gap: 6px; }
 .cb-roll-tier { margin: 0; font: 600 24px/1.1 var(--cb-serif); color: var(--cb-red); }
 .cb-roll-motive { margin: 0; font: italic 400 17px/1.35 var(--cb-serif); }
 .cb-roll-motive b { font-style: normal; font-weight: 600; }
 .cb-roll-closing { margin: 0; font: 400 16px/1.35 var(--cb-serif); color: var(--cb-muted); }
-.cb-roll-bar { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+.cb-roll-bar { display: flex; align-items: center; gap: 8px; flex: none; }
 .cb-roll-bar .cb-primary { flex: 1; }
-.cb-roll-end .cb-roll-bar { margin-top: 4px; }
-.cb-roll-end .cb-linkbtn { margin: 0; }
+.cb-roll-bar[data-end] .cb-linkbtn { margin: 0; }
 
 /* ---- picker --------------------------------------------------------------------- */
 .cb-picker { overflow-y: auto; }
@@ -292,13 +306,15 @@
    left AFTER the safe-area insets, so a notched tall phone gets it as well. ---------------- */
 .cb-root[data-compact] .cb-head { height: 46px; }
 .cb-root[data-compact] .cb-panel { gap: 4px; padding-bottom: 6px; }
-  /* statements become one row you can swipe: the board keeps the height */
-.cb-root[data-compact] .cb-mid { --cb-chips-h: 58px !important; --cb-readout-h: 60px !important; }
-.cb-root[data-compact] .cb-chips { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: 16px; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
-.cb-root[data-compact] .cb-chips li { flex: none; max-width: 86%; scroll-snap-align: start; }
-.cb-root[data-compact] .cb-who { min-height: 60px; }
+/* Every statement is always on screen: chips wrap, never scroll. Compact trims the type to 15 px and the
+   padding, and the panel reserves the exact height the busiest suspect needs (reserveHeightFor). */
+.cb-root[data-compact] .cb-mid { --cb-readout-h: 50px !important; gap: 4px; }
+.cb-root[data-compact] .cb-chips li { min-width: 0; max-width: 100%; }
+.cb-root[data-compact] .cb-chip { min-height: 40px; padding: 3px 12px; font-size: 15px; line-height: 1.2; }
+.cb-root[data-compact] .cb-chip-sub { font-size: 12px; line-height: 1.2; }
+.cb-root[data-compact] .cb-who { min-height: 58px; }
 .cb-root[data-compact] .cb-who-state { display: none; }
-.cb-root[data-compact] .cb-act { min-height: 48px; gap: 0; font-size: 12px; }
+.cb-root[data-compact] .cb-act { min-height: 46px; gap: 0; font-size: 12px; }
 .cb-root[data-compact] .cb-act svg { width: 18px; height: 18px; }
 .cb-root[data-compact] .cb-readout { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent); }
 .cb-root[data-compact] .cb-chips { gap: 6px; }
@@ -320,13 +336,20 @@
   .cb-title { font-size: 17px; }
 }
 
-/* the way out of the roll-call stays in reach whatever the height */
-.cb-roll-end .cb-roll-bar { position: sticky; bottom: 0; background: var(--cb-desk); padding: 6px 0 2px; z-index: 1; }
-/* short phones: the ending drops the repeated sentence (the faces say "no alibi" and it is still announced) and tightens */
-.cb-root[data-compact] .cb-roll[data-done]:not([data-list]) .cb-roll-line { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; min-height: 0; }
+/* short phones: the ending tightens; the "No alibi" line stays, and the rest scrolls above the buttons */
 .cb-root[data-compact] .cb-roll { gap: 4px; }
 .cb-root[data-compact] .cb-roll-end { gap: 3px; }
+.cb-root[data-compact] .cb-roll[data-done] .cb-roll-line { font-size: 17px; min-height: 0; }
 .cb-root[data-compact] .cb-roll-tier { font-size: 21px; }
 .cb-root[data-compact] .cb-roll-motive { font-size: 15.5px; }
 .cb-root[data-compact] .cb-roll-closing { font-size: 14.5px; }
-.cb-roll-end .cb-roll-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -14px; height: 14px; background: linear-gradient(to bottom, transparent, var(--cb-desk)); pointer-events: none; }
+
+
+/* the lit squares are on the other floor: one line in the readout, and the way there */
+.cb-lenscue { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font: 600 16px/1.3 var(--cb-serif); padding-left: 8px; border-left: 3px solid var(--cb-amber); }
+.cb-lenscue .cb-linkbtn { margin: -10px 0; font-family: var(--cb-sans); font-size: 15px; font-weight: 600; }
+
+/* the accusations used, on the wrong-name sheet: the three marks and the count on one line */
+.cb-sheet-count { margin: 0; display: flex; align-items: center; gap: 12px; font: 400 17px/1.4 var(--cb-serif); color: var(--cb-ink); }
+.cb-sheet-count .cb-strikes { gap: 6px; }
+.cb-sheet-count .cb-strikes i { width: 12px; height: 12px; }

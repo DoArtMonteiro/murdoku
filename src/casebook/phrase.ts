@@ -50,10 +50,15 @@ export function chipPhrase(p: Puzzle, clue: Clue): string {
   }
 }
 
-/** The victim's statements read as the scene, not as testimony: "Found: in the Study". */
+/**
+ * The victim's statements read as the scene, not as testimony: "Found: in the Study". A negation has no
+ * "found" in it, so it reads as a fact about the room instead: "Never in the Pantry".
+ */
 export function chipText(p: Puzzle, clue: Clue, scene = false): string {
   const t = chipPhrase(p, clue)
-  return scene && t ? `Found: ${lowerFirst(t)}` : t
+  if (!scene || !t) return t
+  if (clue.kind === 'notRoom' || clue.kind === 'notSameRoomAs') return `Never ${lowerFirst(t.replace(/^Not /, ''))}`
+  return `Found: ${lowerFirst(t)}`
 }
 
 /** What a clue says, as a phrase that follows a name: "on a clock square", "in row 3". */

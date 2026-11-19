@@ -6,10 +6,11 @@ import { cellFloor } from '../core/types'
 import { warmAvatars } from '../components/avatarImage'
 import { useElementSize } from '../reference/shell/useElementSize'
 import { loadBoard } from './board'
+import { browserMetrics } from './measure'
 import type { BoardModule } from './board'
 import { Bar } from './Bar'
 import { Chips } from './Chips'
-import { cellKey, conflictIds, floorsOf, norm } from './cells'
+import { cellKey, conflictIds, firstName, floorsOf, norm } from './cells'
 import type { Placement } from './cells'
 import { initState, reduce, toSaved } from './game'
 import { nextStep } from './hint'
@@ -26,7 +27,7 @@ import { buildRollCall, computedClosing } from './rollcall'
 import { loadSave, writeSave } from './save'
 import { Sheet } from './Sheet'
 import { cueFor, loadSoundPref, playCue, primeAudio, saveSoundPref } from './sound'
-import { storyFor, titleFor, visibleStory } from './stories'
+import { fillNames, storyFor, titleFor, visibleStory } from './stories'
 import { suppose } from './suppose'
 import { chooseTheme, useCompact, useReducedMotion, useSliceTheme } from './theme'
 import { TIER_LABEL, tierOf } from './verdict'
@@ -64,7 +65,15 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const rollcall = useMemo(() => buildRollCall(puzzle), [puzzle])
   const rollEnd = rollcall.cleared.length + 2
   const [chipsW, setChipsW] = useState(340)
-  const reserve = useMemo(() => reserveHeightFor(puzzle, chipsW), [puzzle, chipsW])
+  // The face for the statements loads late: measure again once it has.
+  const [fontEpoch, setFontEpoch] = useState(0)
+  useEffect(() => {
+    const bump = () => setFontEpoch(n => n + 1)
+    document.fonts?.ready.then(bump, () => {})
+    document.fonts?.addEventListener?.('loadingdone', bump)
+    return () => document.fonts?.removeEventListener?.('loadingdone', bump)
+  }, [])
+  const reserve = useMemo(() => reserveHeightFor(puzzle, chipsW, compact, browserMetrics()), [puzzle, chipsW, compact, fontEpoch]) // eslint-disable-line
   const floors = floorsOf(puzzle)
 
   // ---- what the board shows --------------------------------------------------
@@ -119,6 +128,11 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
 
   const otherFloor = state.floor === 0 ? 1 : 0
   const lensOther = !!lens && [...lens].some(k => k.startsWith(`${otherFloor}:`))
+  // Lit squares that exist only on a floor out of view: the board would look dark. Say where they are.
+  const litFloor = useMemo(() => {
+    if (!lens?.size || [...lens].some(k => k.startsWith(`${state.floor}:`))) return null
+    return Math.min(...[...lens].map(k => Number(k.split(':')[0])))
+  }, [lens, state.floor])
   const placedOther = Object.values(shown).filter(c => cellFloor(c) === otherFloor).length
   const floorName = (f: number) => (f === 0 ? 'Ground' : f === 1 ? 'Upstairs' : `Floor ${f + 1}`)
 
@@ -173,10 +187,11 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
     setSheet(false); dispatch({ t: 'reveal' }); dispatch({ t: 'clearVerdict' }); setReplay(null); setAuto(false)
     setRoll({ step: reduced ? rollEnd : 0 })
   }, [reduced, rollEnd])
-  // A right name over the right plan goes straight to the roll-call: no sheet in between.
+  // A right name goes straight into the roll-call, whatever the plan: the sheet never names the murderer or the
+  // verdict. Both land at the end of the roll-call.
   useLayoutEffect(() => {
     const k = state.verdict?.kind
-    if (k === 'proved' || k === 'provedHelp') startRoll()
+    if (k === 'proved' || k === 'provedHelp' || k === 'calledIt') startRoll()
   }, [state.verdict, startRoll])
 
   // ---- accuse -----------------------------------------------------------------
@@ -219,7 +234,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const strikeDots = Array.from({ length: 3 }, (_, i) => i < state.strikes)
   const tier = tierOf(state.outcome, state.hintsUsed, state.strikes, state.revealed)
   const tierLabel = tier ? TIER_LABEL[tier] : 'The case went cold'
-  const closing = vis.closing ?? computedClosing(puzzle)
+  const closing = fillNames(puzzle, vis.closing ?? computedClosing(puzzle))
+  const alibi = vis.alibiOf(sel.id)
 
   return (
     <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
@@ -274,10 +290,11 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
           ) : (
             <>
               <div className="cb-who-line">
-                <span className="cb-who-title">{sel.name}</span>
+                <span className="cb-who-title">{firstName(puzzle, sel.id)}</span>
                 <span className="cb-who-role">{[role?.role, sel.isVictim ? 'victim' : ''].filter(Boolean).join(', ')}</span>
-                <span className="cb-strikes" aria-label={`${state.strikes} of 3 strikes`}>{strikeDots.map((on, i) => <i key={i} data-on={on || undefined} />)}</span>
+                <span className="cb-strikes" aria-label={`${state.strikes} of 3 accusations used`}>{strikeDots.map((on, i) => <i key={i} data-on={on || undefined} />)}</span>
               </div>
+              {alibi && <p className="cb-alibi">&ldquo;{alibi}&rdquo;</p>}
               <div className="cb-mid" style={{ '--cb-chips-h': `${reserve}px`, '--cb-readout-h': `${Math.min(88, Math.max(56, 200 - reserve))}px` } as CSSProperties}>
                 <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} />
                 <div className="cb-readout" data-testid="readout">
@@ -285,6 +302,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
                     puzzle={puzzle} selected={sel} oneLiner={role?.oneLiner ?? null} premise={vis.premise} premiseOpen={premiseOpen}
                     onTogglePremise={() => setPremiseOpen(o => !o)} ghostPerson={state.ghost?.person ?? null} report={report}
                     hint={hint} outcome={state.outcome} tier={tier} firstMove={firstMove} onRoll={startRoll}
+                    lensCue={litFloor === null ? null : { floor: floorName(litFloor), onShow: () => dispatch({ t: 'floor', floor: litFloor }) }}
                   />
                 </div>
               </div>
@@ -302,8 +320,8 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
 
       {sheet && (
         <Sheet
-          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes} revealed={state.revealed}
-          onAccuse={accuse} onBack={closeSheet} onClose={closeSheet} onFinish={closeSheet} onRoll={startRoll}
+          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes}
+          onAccuse={accuse} onBack={closeSheet} onClose={closeSheet} onRoll={startRoll}
         />
       )}
       <div className="cb-sr" role="status" aria-live="polite">{state.announce}</div>

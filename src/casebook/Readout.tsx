@@ -23,18 +23,34 @@ interface Props {
   /** True until the first suspect is placed: only then does the readout explain how to play. */
   firstMove: boolean
   onRoll: () => void
+  /** The lit squares are all on the other floor: say so, and offer to go there. */
+  lensCue?: { floor: string; onShow: () => void } | null
 }
 
-/** The line of prose under the statements: supposition, hint, closing line, or the case file. */
+/** The line of prose under the statements: the lens cue first when it applies, then supposition, hint, closing line, or the case file. */
 export function Readout(p: Props): ReactNode {
+  return (
+    <>
+      {p.lensCue && (
+        <p className="cb-lenscue" data-testid="lens-cue">
+          <span>Lit squares are {p.lensCue.floor}.</span>
+          <button type="button" className="cb-linkbtn" onClick={p.lensCue.onShow}>Show {p.lensCue.floor.toLowerCase()} <span aria-hidden="true">→</span></button>
+        </p>
+      )}
+      {readoutBody(p)}
+    </>
+  )
+}
+
+function readoutBody(p: Props): ReactNode {
   const { puzzle } = p
   if (p.report && p.ghostPerson) {
     const g = firstName(puzzle, p.ghostPerson)
     return (
       <>
         <p className="cb-r-title">Supposing {g} here.</p>
-        {!p.report.ghostLegal && <p className="cb-red">That breaks {g}&apos;s own statements.</p>}
-        {p.report.contradictions.map(id => <p key={id} className="cb-red">No square left for {firstName(puzzle, id)}.</p>)}
+        {!p.report.ghostLegal && <p className="cb-warn">That breaks {g}&apos;s own statements.</p>}
+        {p.report.contradictions.map(id => <p key={id} className="cb-warn">No square left for {firstName(puzzle, id)}.</p>)}
         {!p.report.contradictions.length && p.report.ghostLegal && (
           <p>{p.report.linked.length ? 'Squares left for those tied to this one are counted on their portraits.' : 'Nobody is tied to this one. Row and column are the only effect.'}</p>
         )}
@@ -62,7 +78,7 @@ export function Readout(p: Props): ReactNode {
   const teaser = p.firstMove && !!p.premise
   return (
     <>
-      {p.firstMove && <p className="cb-howto">Tap a square to place {p.selected.name}.</p>}
+      {p.firstMove && <p className="cb-howto">Tap a square to place {firstName(puzzle, p.selected.id)}.</p>}
       {p.premiseOpen && p.premise
         ? <p className="cb-premise">{p.premise}</p>
         : teaser

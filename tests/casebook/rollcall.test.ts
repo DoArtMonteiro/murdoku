@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { firstName } from '../../src/casebook/cells'
 import { easy, hard } from './fixtures'
 import type { Puzzle } from '../../src/core/types'
 import { cellFloor } from '../../src/core/types'
@@ -56,7 +57,7 @@ describe('roll-call wording', () => {
       const r = buildRollCall(p)
       const vRoom = roomOf(p, p.victimId)
       for (const c of r.cleared) {
-        const name = p.people.find(x => x.id === c.person)!.name
+        const name = firstName(p, c.person)
         const room = p.rooms.find(x => x.id === roomOf(p, c.person))!
         const sameFloor = cellFloor(c.cell) === cellFloor(p.solution[p.victimId])
         const adjacent = sameFloor && touches(p, roomOf(p, c.person), vRoom)
@@ -88,8 +89,8 @@ describe('roll-call wording', () => {
   it('the one left has no alibi, is in the victim\'s room with the victim, and the closing is computed from the facts', () => {
     for (const p of ALL) {
       const r = buildRollCall(p)
-      const m = p.people.find(x => x.id === p.murdererId)!.name
-      const v = p.people.find(x => x.id === p.victimId)!.name
+      const m = firstName(p, p.murdererId)
+      const v = firstName(p, p.victimId)
       expect(r.last.line).toBe(`${m}: in the ${p.rooms.find(x => x.id === roomOf(p, p.victimId))!.name}, with ${v} and no one else. No alibi.`)
       expect(r.victim.line.startsWith(`${v} was found in the `)).toBe(true)
       expect(computedClosing(p)).toBe(`Everyone told the truth. Only ${m}'s account leaves them alone with ${v}.`)

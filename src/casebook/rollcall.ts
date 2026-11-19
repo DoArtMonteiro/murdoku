@@ -76,7 +76,7 @@ export function buildRollCall(p: Puzzle): RollCall {
     .map((x, order) => {
       const cell = p.solution[x.id]
       const distance = distanceFrom(p, victimCell, cell)
-      return { order, entry: { person: x.id, cell, distance, line: alibiLine(p, x.name, victimCell, cell, distance) } }
+      return { order, entry: { person: x.id, cell, distance, line: alibiLine(p, firstName(p, x.id), victimCell, cell, distance) } }
     })
     .sort((a, b) => RANK[a.entry.distance] - RANK[b.entry.distance] || a.order - b.order)
     .map(x => x.entry)

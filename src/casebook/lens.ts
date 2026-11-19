@@ -3,7 +3,8 @@
 // applies anyone else's lane and never reads the solution.
 import type { Clue, Puzzle } from '../core/types'
 import { clueHolds } from '../core/engine'
-import { allCells, cellKey } from './cells'
+import { allCells, cellKey, firstName } from './cells'
+import type { Metrics } from './measure'
 import { chipText } from './phrase'
 import type { Placement } from './cells'
 
@@ -53,26 +54,41 @@ export function lensCells(p: Puzzle, personId: string, lit: readonly number[], p
   return out
 }
 
+/** Type and box metrics of a statement chip, px: [serif advance per character, sans advance, line, horizontal padding, vertical padding]. */
+const CHIP = {
+  // measured over every pt case: the widest single-line statement runs 7.5 px per character at 16 px, 7.0 at 15 px
+  roomy: { serif: 7.6, sans: 6.2, line: 19.4, sub: 14.6, padX: 31, padY: 15, min: 44 },
+  compact: { serif: 7.1, sans: 6.2, line: 18, sub: 14.4, padX: 27, padY: 9, min: 40 },
+} as const
+
 /**
- * Height the chips of the busiest suspect need, from a greedy wrap of their statements
- * (about 8 px per serif character at 16 px, 32 px of padding, 8 px gaps). It errs on the
- * generous side, so a case never clips; it is per CASE, not per suspect, so selecting
- * another suspect never moves the board.
+ * Height the chips of the busiest suspect need, from a greedy wrap of their statements. Each chip's text wraps
+ * inside the row, so a long statement counts every line it needs; a chip waiting for someone to be placed adds
+ * its second line. It errs on the generous side, so a case never clips (the panel reserves exactly this, and
+ * hides overflow); it is per CASE, not per suspect, so selecting another suspect never moves the board.
  */
-export function reserveHeightFor(p: Puzzle, width = 340): number {
+export function reserveHeightFor(p: Puzzle, width = 340, compact = false, metrics?: Metrics): number {
+  const m = compact ? CHIP.compact : CHIP.roomy
+  const gap = compact ? 6 : 8
   let worst = 0
   for (const x of p.people) {
     let used = 0, rowH = 0, total = 0
     for (const s of statementsOf(p, x.id)) {
-      const w = Math.min(width, Math.ceil(s.text.length * 8) + 32)
-      const h = s.needs ? 58 : 46
-      if (used && used + 8 + w > width) { total += rowH + 8; used = 0; rowH = 0 }
-      used += (used ? 8 : 0) + w
+      const sub = s.needs ? `Place ${firstName(p, s.needs)} first` : ''
+      // measured with the page's fonts when it can be, else the generous estimate; 2 px of slack per chip either way
+      const textW = (metrics ? metrics.serif(s.text, compact ? 15 : 16) : s.text.length * m.serif) + 2
+      const subW = sub ? (metrics ? metrics.sans(sub, 12) : sub.length * m.sans) + 2 : 0
+      const inner = Math.max(40, width - m.padX)
+      const lines = Math.max(1, Math.ceil(textW / inner))
+      const w = Math.min(width, Math.max(textW, subW) + m.padX)
+      const h = Math.max(m.min, lines * m.line + (s.needs ? m.sub : 0) + m.padY)
+      if (used && used + gap + w > width) { total += rowH + gap; used = 0; rowH = 0 }
+      used += (used ? gap : 0) + w
       rowH = Math.max(rowH, h)
     }
     worst = Math.max(worst, total + rowH)
   }
-  return Math.max(46, worst)
+  return Math.ceil(Math.max(46, worst))
 }
 
 /**

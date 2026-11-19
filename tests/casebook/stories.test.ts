@@ -4,7 +4,7 @@ import { easy, hard } from './fixtures'
 import type { Puzzle } from '../../src/core/types'
 import { FURNITURE_WORDS } from '../../src/reference/story/schema'
 import { deep, leadCases } from '../../src/casebook/deep'
-import { STORIES, storyFor, titleFor, visibleStory } from '../../src/casebook/stories'
+import { STORIES, displayName, storyFor, titleFor, visibleStory } from '../../src/casebook/stories'
 import type { CaseStory } from '../../src/casebook/stories'
 
 // Words that place someone in space or point at the grid.
@@ -36,7 +36,7 @@ export function leaks(p: Puzzle, text: string, banned: { cast: boolean } = { cas
     for (const w of words(r.name)) if (w !== 'the' && hasWord(w)) bad.push(w)
   }
   for (const list of Object.values(FURNITURE_WORDS)) for (const w of list) if (hasWord(w)) bad.push(w)
-  if (banned.cast) for (const x of p.people) if (hasWord(x.name.toLowerCase())) bad.push(x.name)
+  if (banned.cast) for (const x of p.people) for (const n of [x.name, displayName(p, x.id)]) if (hasWord(n.toLowerCase())) bad.push(n)
   return [...new Set(bad)]
 }
 
@@ -44,7 +44,10 @@ function slots(s: CaseStory): Array<[string, string]> {
   const out: Array<[string, string]> = [['premise', s.premise]]
   if (s.title) out.push(['title', s.title])
   if (s.closing) out.push(['closing', s.closing])
-  for (const [id, c] of Object.entries(s.cast)) out.push([`${id}.role`, c.role], [`${id}.oneLiner`, c.oneLiner], [`${id}.motive`, c.motive])
+  for (const [id, c] of Object.entries(s.cast)) {
+    out.push([`${id}.role`, c.role], [`${id}.oneLiner`, c.oneLiner], [`${id}.motive`, c.motive])
+    if (c.alibi) out.push([`${id}.alibi`, c.alibi])
+  }
   return out
 }
 
@@ -87,6 +90,18 @@ describe('story slots', () => {
           expect(JSON.stringify(before)).not.toContain(s.closing)
           expect(visibleStory(s, true).closing).toBe(s.closing)
         }
+      })
+
+      it('gives every person a one-line alibi in their own voice, the same shape for all, and visible from the start', () => {
+        const withAlibi = Object.values(s.cast).filter(c => c.alibi)
+        if (!withAlibi.length) return
+        expect(withAlibi).toHaveLength(Object.keys(s.cast).length)
+        for (const [pid, c] of Object.entries(s.cast)) {
+          expect(c.alibi!.length, c.alibi).toBeLessThanOrEqual(46)
+          expect(c.alibi!, pid).toMatch(/\b(I|my|me|we)\b/i)
+        }
+        expect(new Set(withAlibi.map(c => c.alibi)).size).toBe(withAlibi.length)
+        expect(visibleStory(s, false).alibiOf(p.murdererId)).toBe(s.cast[p.murdererId].alibi)
       })
 
       it('gives every person a distinct role', () => {

@@ -1,5 +1,6 @@
 import type { Puzzle } from '../core/types'
 import type { Recon } from './recon'
+import { firstName } from './cells'
 import { Portrait } from './Portrait'
 
 interface Props {
@@ -23,7 +24,7 @@ export function Replay({ puzzle, recon, step, auto, onNext, onAuto, onSkip, onCl
   return (
     <section className="cb-replay" aria-label="Reconstruction" data-finale={finale || undefined}>
       <div className="cb-replay-head">
-        <Portrait person={who} size={40} />
+        <Portrait person={who} name={firstName(puzzle, who.id)} size={40} />
         <p className="cb-replay-count">{finale ? 'The proof, in the end' : `Step ${step + 1} of ${total}`}</p>
       </div>
       <p className="cb-replay-line" aria-live="polite">{finale ? recon.finale.line : frame.line}</p>

@@ -5,9 +5,10 @@ import { furnitureAt } from '../core/engine'
 import { fallbackLayout } from '../reference/shell/geometry'
 import { tokenSizeFor } from '../reference/tokenGeometry'
 import type { BoardModule } from './board'
-import { cellKey, floorWord, roomNameAt } from './cells'
+import { cellKey, firstName, floorWord, roomNameAt } from './cells'
 import type { Placement } from './cells'
 import { fitPlan } from './layout'
+import { Notch } from './Notch'
 import { Portrait } from './Portrait'
 
 export interface PlanProps {
@@ -54,10 +55,10 @@ interface CellProps {
   lane: boolean
   ring: boolean
   cross: boolean
-  token: { person: Person; size: number; selected: boolean; bad: boolean; ringed: boolean; flying: boolean; dim: boolean; now: boolean } | null
+  token: { person: Person; name: string; size: number; selected: boolean; bad: boolean; ringed: boolean; flying: boolean; dim: boolean; now: boolean } | null
   /** Someone placed on the OTHER floor at this row and column: a faint ring, so a lane taken upstairs shows downstairs. */
-  echo: { person: Person; size: number } | null
-  ghost: { person: Person; size: number } | null
+  echo: { person: Person; name: string; size: number } | null
+  ghost: { person: Person; name: string; size: number } | null
   interactive: boolean
   onTap: (r: number, c: number) => void
   onLong: (r: number, c: number) => void
@@ -105,11 +106,11 @@ const GridCell = memo(function GridCell(p: CellProps) {
       {p.ring && <i className="cb-ring" aria-hidden="true" />}
       {p.cross && <i className="cb-cross" aria-hidden="true">{'✕'}</i>}
       {p.echo && !p.token && (
-        <span className="cb-echo" aria-hidden="true" style={{ width: p.echo.size, height: p.echo.size }}>{p.echo.person.name.charAt(0)}</span>
+        <span className="cb-echo" aria-hidden="true" style={{ width: p.echo.size, height: p.echo.size }}>{p.echo.name.charAt(0)}</span>
       )}
       {p.ghost && (
         <span className="cb-token cb-ghost" style={{ width: p.ghost.size, height: p.ghost.size }}>
-          <Portrait person={p.ghost.person} size={p.ghost.size - 4} />
+          <Portrait person={p.ghost.person} name={p.ghost.name} size={p.ghost.size - 4} />
         </span>
       )}
       {p.token && (
@@ -125,13 +126,9 @@ const GridCell = memo(function GridCell(p: CellProps) {
           data-testid={`token-${p.token.person.id}`}
           style={{ width: p.token.size, height: p.token.size, '--tk': `${p.token.size}px` } as CSSProperties}
         >
-          <Portrait person={p.token.person} size={p.token.size - 4} />
-          <b className="cb-initial" aria-hidden="true">{p.token.person.name.charAt(0)}</b>
-          {p.token.bad && (
-            <svg className="cb-clash" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-              <path d="M5 21 C4 9 17 3 27 6 C37 10 38 25 29 33 C20 40 7 34 6 24" />
-            </svg>
-          )}
+          <Portrait person={p.token.person} name={p.token.name} size={p.token.size - 4} />
+          <b className="cb-initial" aria-hidden="true">{p.token.name.charAt(0)}</b>
+          {p.token.bad && <Notch />}
           {p.token.ringed && (
             <svg className="cb-circle" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
               <path pathLength={1} d="M26 12 C54 0 94 14 95 52 C96 90 52 99 24 90 C3 81 1 38 30 17 C46 6 66 6 78 14" />
@@ -196,6 +193,16 @@ function PlanImpl(props: PlanProps) {
     for (const cell of Object.values(placement)) { rows.add(cell.row); cols.add(cell.col) }
     return { rows, cols }
   }, [placement])
+  // A row or column held twice, on any floor: its numeral badge is struck through in ink (only while a conflict stands).
+  const twice = useMemo(() => {
+    const rows = new Set<number>(), cols = new Set<number>()
+    if (!conflicts.size) return { rows, cols }
+    const r = new Map<number, number>(), c = new Map<number, number>()
+    for (const cell of Object.values(placement)) { r.set(cell.row, (r.get(cell.row) ?? 0) + 1); c.set(cell.col, (c.get(cell.col) ?? 0) + 1) }
+    for (const [k, v] of r) if (v > 1) rows.add(k)
+    for (const [k, v] of c) if (v > 1) cols.add(k)
+    return { rows, cols }
+  }, [placement, conflicts])
   const away = useMemo(() => {
     const m = new Map<string, string>()
     for (const [id, cell] of Object.entries(placement)) if ((cell.floor ?? 0) !== floor) m.set(`${cell.row}:${cell.col}`, id)
@@ -236,8 +243,8 @@ function PlanImpl(props: PlanProps) {
     const furn = furnitureAt(puzzle, r, c, floor).map(furnitureWord)
     return [
       `Row ${r + 1}, column ${c + 1}`, fw, roomNameAt(puzzle, cell), furn.join(', '),
-      who ? `${who.name}${who.isVictim ? ' (victim)' : ''}${conflicts.has(who.id) ? ', shares a row or column' : ''}` : 'empty',
-      echo ? `${echo.name} is on the other floor in this row and column` : '',
+      who ? `${firstName(puzzle, who.id)}${who.isVictim ? ' (victim)' : ''}${conflicts.has(who.id) ? ', shares a row or column' : ''}` : 'empty',
+      echo ? `${firstName(puzzle, echo.id)} is on the other floor in this row and column` : '',
       ghostHere ? 'supposed here' : '', cross ? 'crossed out' : '',
       lensState === 'lit' ? 'lens: lit' : lensState === 'dim' ? 'lens: not lit' : '',
     ].filter(Boolean).join('. ')
@@ -257,8 +264,8 @@ function PlanImpl(props: PlanProps) {
         </div>
         {props.dusk && <div className="cb-dusk" aria-hidden="true" style={{ left: ox, top: oy, width: bw, height: bh }} />}
         <div className="cb-numerals" aria-hidden="true">
-          {idx.map(c => <span key={`c${c}`} className="cb-num" data-taken={taken.cols.has(c) || undefined} style={{ left: gx + c * u + u / 2 - 10, top: Math.max(0, gy - 0.2 * u - 16) }}>{c + 1}</span>)}
-          {idx.map(r => <span key={`r${r}`} className="cb-num" data-taken={taken.rows.has(r) || undefined} style={{ left: Math.max(0, gx - 0.2 * u - 22), top: gy + r * u + u / 2 - 8 }}>{r + 1}</span>)}
+          {idx.map(c => <span key={`c${c}`} className="cb-num" data-taken={taken.cols.has(c) || undefined} data-clash={twice.cols.has(c) || undefined} style={{ left: gx + c * u + u / 2 - 10, top: Math.max(0, gy - 0.2 * u - 16) }}>{c + 1}</span>)}
+          {idx.map(r => <span key={`r${r}`} className="cb-num" data-taken={taken.rows.has(r) || undefined} data-clash={twice.rows.has(r) || undefined} style={{ left: Math.max(0, gx - 0.2 * u - 22), top: gy + r * u + u / 2 - 8 }}>{r + 1}</span>)}
         </div>
         <div
           ref={gridRef} className="cb-grid" role="grid" aria-label={`Floor plan${fw ? `, ${fw}` : ''}. Rows run across, columns run down.`}
@@ -286,12 +293,12 @@ function PlanImpl(props: PlanProps) {
                     ring={!!remaining?.has(key) && !who}
                     cross={cross}
                     token={who ? {
-                      person: who, size: who.isVictim ? Math.round(tokenSize * 0.9) : tokenSize, selected: who.id === selected,
+                      person: who, name: firstName(puzzle, who.id), size: who.isVictim ? Math.round(tokenSize * 0.9) : tokenSize, selected: who.id === selected,
                       bad: conflicts.has(who.id), ringed: props.ringed === who.id, flying: props.flying === who.id, dim: !!props.dimmed?.has(who.id),
                       now: props.now === who.id,
                     } : null}
-                    echo={echo ? { person: echo, size: tokenSize } : null}
-                    ghost={ghostHere && ghostPerson ? { person: ghostPerson, size: tokenSize } : null}
+                    echo={echo ? { person: echo, name: firstName(puzzle, echo.id), size: tokenSize } : null}
+                    ghost={ghostHere && ghostPerson ? { person: ghostPerson, name: firstName(puzzle, ghostPerson.id), size: tokenSize } : null}
                     interactive={interactive}
                     onTap={tap} onLong={long}
                   />
@@ -308,7 +315,7 @@ function PlanImpl(props: PlanProps) {
         {Labels && lblProps && (
           <div className="cb-labels" aria-hidden="true" style={{ left: ox, top: oy, width: bw, height: bh }}><Labels {...lblProps} /></div>
         )}
-        <span className="cb-sr">{sel ? `${sel.name} selected` : ''}</span>
+        <span className="cb-sr">{sel ? `${firstName(puzzle, sel.id)} selected` : ''}</span>
       </div>
     </div>
   )

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { Puzzle } from '../core/types'
 import { firstName } from './cells'
 import { wrongAccusationLine } from './rollcall'
-import { MAX_STRIKES, TIER_LABEL } from './verdict'
+import { MAX_STRIKES } from './verdict'
 import type { Verdict } from './verdict'
 import { Portrait } from './Portrait'
 
@@ -12,18 +12,18 @@ interface Props {
   /** The person named in the last accusation. */
   accused: string | null
   strikes: number
-  /** The answer has been shown: a right name can only be "Called it" now. */
-  revealed: boolean
   onAccuse: (id: string) => void
   onBack: () => void
   onClose: () => void
-  onFinish: () => void
-  /** Open the alibi roll-call (the reveal). */
+  /** Open the alibi roll-call, once the accusations are spent and the case has gone cold. */
   onRoll: () => void
 }
 
-/** The accusation sheet: name one suspect. A wrong name says only that they have an alibi. */
-export function Sheet({ puzzle, verdict, accused, strikes, revealed, onAccuse, onBack, onClose, onFinish, onRoll }: Props) {
+/**
+ * The accusation sheet: name one suspect. A wrong name says only that they have an alibi. A right name never
+ * shows here: it goes straight into the alibi roll-call (Casebook), where the verdict is the payoff.
+ */
+export function Sheet({ puzzle, verdict, accused, strikes, onAccuse, onBack, onClose, onRoll }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const victim = firstName(puzzle, puzzle.victimId)
   const suspects = puzzle.people.filter(p => p.id !== puzzle.victimId)
@@ -45,20 +45,20 @@ export function Sheet({ puzzle, verdict, accused, strikes, revealed, onAccuse, o
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose, verdict])
 
-  const named = verdict && 'kind' in verdict && verdict.kind !== 'invalid'
+  const wrong = verdict?.kind === 'notThem' ? verdict : null
   return (
     <div className="cb-scrim" onClick={onClose}>
-      <div ref={ref} className="cb-sheet" role="dialog" aria-modal="true" aria-labelledby="cb-sheet-title" onClick={e => e.stopPropagation()} data-verdict={named ? verdict.kind : undefined}>
-        {!named && (
+      <div ref={ref} className="cb-sheet" role="dialog" aria-modal="true" aria-labelledby="cb-sheet-title" onClick={e => e.stopPropagation()} data-verdict={wrong?.kind}>
+        {!wrong && (
           <>
             <h2 id="cb-sheet-title" className="cb-sheet-title">Who was alone with {victim}?</h2>
-            <p className="cb-sheet-sub">Name one suspect. {strikes > 0 ? `${strikes} of ${MAX_STRIKES} strikes used.` : `${MAX_STRIKES} wrong names and the case goes cold.`}</p>
+            <p className="cb-sheet-sub">Name one suspect. {strikes > 0 ? `${strikes} of ${MAX_STRIKES} accusations used.` : `Three wrong accusations and the case goes cold.`}</p>
             <ul className="cb-suspects">
               {suspects.map(p => (
                 <li key={p.id}>
                   <button type="button" className="cb-suspect" onClick={() => onAccuse(p.id)}>
-                    <Portrait person={p} size={56} />
-                    <span>{p.name}</span>
+                    <Portrait person={p} name={firstName(puzzle, p.id)} size={56} />
+                    <span>{firstName(puzzle, p.id)}</span>
                   </button>
                 </li>
               ))}
@@ -66,26 +66,14 @@ export function Sheet({ puzzle, verdict, accused, strikes, revealed, onAccuse, o
             <button type="button" className="cb-ghostbtn" onClick={onClose}>Not yet</button>
           </>
         )}
-        {(verdict?.kind === 'proved' || verdict?.kind === 'provedHelp') && (
-          <>
-            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="proved">{TIER_LABEL[verdict.kind]}.</h2>
-            <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}, and every square of the plan holds.</p>
-            <button type="button" className="cb-primary" onClick={onRoll}>Hear the alibis</button>
-          </>
-        )}
-        {verdict?.kind === 'calledIt' && (
-          <>
-            <h2 id="cb-sheet-title" className="cb-verdict" data-kind="called">{TIER_LABEL.calledIt}.</h2>
-            <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}. {revealed ? 'You had seen the answer, so this stays a call, not a proof.' : 'The plan is not proven yet.'}</p>
-            <button type="button" className="cb-primary" onClick={revealed ? onClose : onFinish}>{revealed ? 'Close' : 'Finish the plan'}</button>
-            {!revealed && <button type="button" className="cb-ghostbtn" onClick={onRoll}>Hear the alibis instead</button>}
-          </>
-        )}
-        {verdict?.kind === 'notThem' && (
+        {wrong && (
           <>
             <h2 id="cb-sheet-title" className="cb-verdict" data-kind="no">{wrongAccusationLine(firstName(puzzle, accused ?? ''))}</h2>
-            <p className="cb-sheet-body">{verdict.cold ? 'Three wrong names. The case has gone cold.' : `${verdict.strikes} of ${MAX_STRIKES} accusations used.`}</p>
-            {verdict.cold
+            <p className="cb-sheet-count" data-testid="accusations-used">
+              <span className="cb-strikes" aria-hidden="true">{Array.from({ length: MAX_STRIKES }, (_, k) => <i key={k} data-on={k < wrong.strikes || undefined} />)}</span>
+              {wrong.cold ? 'Three accusations used. The case has gone cold.' : `${wrong.strikes} of ${MAX_STRIKES} accusations used.`}
+            </p>
+            {wrong.cold
               ? <button type="button" className="cb-primary" onClick={onRoll}>Hear the alibis</button>
               : <button type="button" className="cb-primary" onClick={onBack}>Back to the plan</button>}
           </>

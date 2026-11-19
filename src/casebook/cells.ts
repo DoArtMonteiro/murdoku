@@ -5,6 +5,7 @@ import type { Cell, Puzzle } from '../core/types'
 import { cellFloor } from '../core/types'
 import { roomIdAt } from '../core/engine'
 import type { Placement } from '../core/engine'
+import { displayName } from './stories'
 
 export type { Placement }
 
@@ -55,4 +56,5 @@ export function samePlacement(p: Puzzle, place: Placement): boolean {
   })
 }
 
-export const firstName = (p: Puzzle, id: string): string => p.people.find(x => x.id === id)?.name ?? id
+/** What a person is called on screen. The one name function: see displayName in stories.ts. */
+export const firstName = displayName

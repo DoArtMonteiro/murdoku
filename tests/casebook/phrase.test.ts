@@ -80,7 +80,9 @@ describe('statement chips', () => {
 
   it('frame the victim\'s statements as the scene, not as testimony', () => {
     for (const p of ALL) {
-      for (const st of statementsOf(p, p.victimId)) expect(st.text, `${p.id}: ${st.text}`).toMatch(/^Found: [a-z0-9]/)
+      // a negation has no "found" in it: "Never in the Pantry", not "Found: not in the Pantry"
+      for (const st of statementsOf(p, p.victimId)) expect(st.text, `${p.id}: ${st.text}`).toMatch(/^(Found: [a-z0-9]|Never in )/)
+      for (const st of statementsOf(p, p.victimId)) expect(st.text).not.toMatch(/Found: (not|never)/i)
       for (const x of p.people.filter(y => y.id !== p.victimId)) {
         for (const st of statementsOf(p, x.id)) expect(st.text).not.toMatch(/^Found/)
       }
