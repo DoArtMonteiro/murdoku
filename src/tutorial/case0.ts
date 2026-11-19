@@ -96,5 +96,5 @@ export const case0Story: CaseStory = {
   },
 }
 
-/** The investigator's line, said before the first move. In voice, and it names the rule the case teaches. */
-export const INVESTIGATOR_LINE = 'Nobody here lied to me. I only have to find whose true account leaves them alone with him.'
+/** The investigator's line, said before the first move. In voice, and it names the rule the case teaches. {V} is the victim: fillNames() puts the shown name there (story text never holds a cast name). */
+export const INVESTIGATOR_LINE = 'Nobody here lied to me. I only have to find whose true account leaves a suspect alone with {V}.'

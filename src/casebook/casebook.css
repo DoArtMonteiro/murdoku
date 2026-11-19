@@ -168,7 +168,9 @@
    The padding is room for a focus ring and the tutorial's glow, which the scroll box would clip. */
 .cb-chips { list-style: none; margin: -5px -6px; padding: 5px 6px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; max-height: calc(var(--cb-chips-h, 96px) + 10px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .cb-chips::-webkit-scrollbar { display: none; }
-.cb-chips[data-more]:not([data-end]) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); }
+.cb-chips[data-more] { --cb-fade-t: 0px; --cb-fade-b: 0px; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--cb-fade-t), #000 calc(100% - var(--cb-fade-b)), transparent); mask-image: linear-gradient(to bottom, transparent, #000 var(--cb-fade-t), #000 calc(100% - var(--cb-fade-b)), transparent); }
+.cb-chips[data-more][data-top] { --cb-fade-t: 16px; }
+.cb-chips[data-more]:not([data-end]) { --cb-fade-b: 20px; }
 .cb-chip {
   min-height: 44px; padding: 6px 14px; border-radius: 22px; text-align: left; background: var(--cb-sheet);
   border: 1.5px solid var(--cb-ink); font: 400 16px/1.2 var(--cb-serif); display: flex; flex-direction: row; align-items: center; gap: 7px;
@@ -332,6 +334,16 @@
 .cb-root[data-compact] .cb-chips { gap: 6px; }
 
 .cb-note { margin: 0; font: italic 400 16px var(--cb-serif); color: var(--cb-muted); }
+
+/* ---- a coach (Case 0): the step counter, the instruction in the readout slot, the desk held behind a card ------------ */
+.cb-panel[data-coach] { position: relative; }
+.cb-body { display: flex; flex-direction: column; gap: 8px; }
+.cb-body[inert] { visibility: hidden; }
+.cb-root[data-compact] .cb-body { gap: 4px; }
+.cb-coach-step { flex: none; align-self: center; font: 600 12px/1 var(--cb-sans); color: var(--cb-muted); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.cb-coach-line { margin: 0 0 4px; font: 600 17px/1.28 var(--cb-serif); color: var(--cb-ink); }
+.cb-root[data-compact] .cb-coach-line { font-size: 16px; line-height: 1.22; }
+.cb-readout[data-coach] { -webkit-mask-image: none !important; mask-image: none !important; }
 
 /* ---- sound toggle, statements-hold cue ---------------------------------------------------- */
 .cb-holds { position: absolute; left: -4px; bottom: 0; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--cb-ink); color: var(--cb-paper); font: 700 11px/1 var(--cb-sans); animation: cb-pop 220ms var(--cb-spring); }

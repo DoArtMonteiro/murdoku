@@ -17,7 +17,8 @@ interface Props {
   closing: string
   onAdvance: () => void
   onSkip: () => void
-  onProof: () => void
+  /** Opens the reconstruction. Without it (Case 0 has none) the ending offers no way to it. */
+  onProof?: () => void
   onClose: () => void
 }
 
@@ -93,7 +94,7 @@ export function Alibis({ puzzle, roll, step, list, tierLabel, motive, closing, o
       </div>
       {done ? (
         <div className="cb-roll-bar" data-end>
-          <button type="button" className="cb-linkbtn" onClick={e => { e.stopPropagation(); onProof() }}>Show the proof</button>
+          {onProof && <button type="button" className="cb-linkbtn" onClick={e => { e.stopPropagation(); onProof() }}>Show the proof</button>}
           <button type="button" className="cb-primary" onClick={e => { e.stopPropagation(); onClose() }}>Close the case</button>
         </div>
       ) : (

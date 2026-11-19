@@ -3,7 +3,7 @@ import { statementsOf } from '../../src/casebook/lens'
 import { cellKey } from '../../src/casebook/cells'
 import { suppose } from '../../src/casebook/suppose'
 import { case0 as p, ROLE, WRONG_SQUARE } from '../../src/tutorial/case0'
-import { accuseReady, beatFor, BEAT_TEXT, BEATS, initTut, SECOND_LIGHT_TEXT, tutReduce } from '../../src/tutorial/play'
+import { accuseReady, beatFor, BEAT_TEXT, BEATS, initTut, SECOND_LIGHT_TEXT, SUPPOSE_PLACED_TEXT, tutReduce } from '../../src/tutorial/play'
 import type { TutAction, TutState } from '../../src/tutorial/play'
 
 const run = (ts: TutState, ...as: TutAction[]): TutState => as.reduce((s, a) => tutReduce(p, s, a), ts)
@@ -90,17 +90,20 @@ describe('walk-through: the beats', () => {
     expect(b.targets).toEqual([{ kind: 'chip', position: 0 }])
   })
 
-  it('the second beat asks for the other statement, then the one lit square', () => {
+  it('the second beat says it is two taps: the other statement, then the one lit square', () => {
     let ts = run(initTut(p), { t: 'lit', index: statementsOf(p, ROLE.pinned)[0].index }, { t: 'cell', cell: p.solution.p0 })
     const rel = statementsOf(p, ROLE.measured)[0].index
     ts = run(ts, { t: 'lit', index: rel })
     let b = beatFor(p, ts)
     expect(b.id).toBe('second')
     expect(b.text).toBe(SECOND_LIGHT_TEXT)
+    expect(b.text).toMatch(/two taps/i)
+    expect(b.text).toMatch(/Tap 1/)
     expect(b.targets).toEqual([{ kind: 'chip', position: 1 }])
     ts = run(ts, { t: 'lit', index: statementsOf(p, ROLE.measured)[1].index })
     b = beatFor(p, ts)
     expect(b.text).toBe(BEAT_TEXT.second)
+    expect(b.text).toMatch(/Tap 2/)
     expect(b.targets).toEqual([{ kind: 'cell', cell: p.solution.p1 }])
   })
 
@@ -163,11 +166,28 @@ describe('walk-through: the beats', () => {
       expect(ts.game.selected).toBe(ROLE.supposed)
       expect(beatFor(p, ts).id).toBe('suppose')
       expect(beatFor(p, ts).targets).toEqual([{ kind: 'cell', cell: WRONG_SQUARE }])
+      // the instruction owns up to what the tap did and says what to do about it
+      expect(beatFor(p, ts).text).toBe(SUPPOSE_PLACED_TEXT)
+      expect(beatFor(p, ts).text).toBe('That placed Greta. Hold the same square to suppose instead.')
       ts = run(ts, { t: 'long', cell: WRONG_SQUARE })
       expect(ts.seen).toBe(true)
       ts = run(ts, { t: 'cell', cell: p.solution.p2 })
       expect(cellKey(ts.game.placement.p2)).toBe(cellKey(p.solution.p2))
       expect(beatFor(p, ts).id).toBe('scene')
+    })
+
+    it('a player who taps instead of holding, then does exactly what the new text says, reaches the next beat', () => {
+      let ts = run(toGreta(), { t: 'cell', cell: WRONG_SQUARE })
+      expect(beatFor(p, ts).text).toBe(SUPPOSE_PLACED_TEXT)
+      // "Hold the same square": the one she stands on, which is where the halo still points
+      expect(beatFor(p, ts).targets).toEqual([{ kind: 'cell', cell: WRONG_SQUARE }])
+      ts = run(ts, { t: 'long', cell: WRONG_SQUARE })
+      expect(beatFor(p, ts).id).toBe('third')
+      expect(beatFor(p, ts).text).toBe(BEAT_TEXT.third)
+    })
+
+    it('the plain supposing text stays for a player who has not tapped', () => {
+      expect(beatFor(p, toGreta()).text).toBe(BEAT_TEXT.suppose)
     })
 
     it('a stray tap that is not on her squares is also brought back, and she can still be lifted by tapping her own square', () => {

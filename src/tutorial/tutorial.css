@@ -1,5 +1,6 @@
-/* Case 0. Everything here is additive to casebook.css: the instruction line, the soft amber halo,
-   the prologue card and the closing card. The board, statements, portraits and bar are the casebook's own. */
+/* Case 0. Everything here is additive to casebook.css: the soft amber halo, the prologue card and the closing
+   card, the way out in the header, and the offer on the picker. The board, the statements, the portraits, the
+   bar, the instruction line and the step counter are the casebook's own (a coach, src/casebook/coach.ts). */
 
 .tut-root { --tut-halo-glow: rgba(226, 163, 58, .7); }
 
@@ -13,8 +14,8 @@
   0%, 100% { box-shadow: inset 0 0 0 3.5px rgba(255, 246, 220, .85), inset 0 0 8px 2px rgba(255, 246, 220, .45); }
   50% { box-shadow: inset 0 0 0 3.5px #fff, inset 0 0 22px 9px rgba(255, 246, 220, .95); }
 }
-.tut-root[data-reduced] { --tut-glow-anim: none; --tut-ring-anim: none; }
-.tut-root[data-reduced] :is(.cb-cell, .cb-chip, .cb-who, .cb-accuse) { transition-duration: 0ms; }
+.tut-root .cb-root[data-reduced] { --tut-glow-anim: none; --tut-ring-anim: none; }
+.tut-root .cb-root[data-reduced] :is(.cb-cell, .cb-chip, .cb-who, .cb-accuse) { transition-duration: 0ms; }
 
 /* ---- header --------------------------------------------------------------- */
 .tut-skip {
@@ -23,27 +24,15 @@
 }
 
 /* ---- panel ---------------------------------------------------------------- */
-.tut-panel { position: relative; }
-/* room around the statements so a halo is never clipped by the fixed-height block */
+/* the instruction can run to three lines, and a supposition or a hint adds more: the readout slot is taller than the casebook's */
 .tut-root { --tut-readout-h: 100px; }
-.tut-root[data-compact] { --tut-readout-h: 76px; }
-.tut-root .cb-mid { margin: -5px; padding: 5px; height: calc(var(--cb-chips-h, 96px) + var(--tut-readout-h) + 18px); }
-.tut-game { display: flex; flex-direction: column; gap: 8px; }
-.tut-game[inert] { visibility: hidden; }
-.cb-root[data-compact] .tut-game { gap: 4px; }
-.tut-step { flex: none; align-self: center; font: 600 12px/1 var(--cb-sans); color: var(--cb-muted); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
-
-.tut-line { margin: 0 0 4px; font: 600 17px/1.28 var(--cb-serif); color: var(--cb-ink); }
-.cb-root[data-compact] .tut-line { font-size: 16px; line-height: 1.22; }
-.tut-readout { -webkit-mask-image: none !important; mask-image: none !important; }
-
-/* the closing roll-call has no proof to show in Case 0 */
-.tut-root .cb-roll .cb-linkbtn { display: none; }
+.tut-root .cb-root[data-compact] { --tut-readout-h: 76px; }
+.tut-root .cb-mid { height: calc(var(--cb-chips-h, 96px) + var(--tut-readout-h) + 8px); }
 
 /* ---- cards: the prologue and the closing ------------------------------------- */
 .tut-card { display: flex; flex-direction: column; gap: 10px; }
-.tut-prologue { position: absolute; inset: 0; padding: 12px 16px 10px; background: var(--cb-desk); overflow-y: auto; justify-content: center; }
-.tut-done { flex: 1; justify-content: center; padding-top: 6px; }
+/* a card lies over the held desk, and the desk keeps the panel at its play-time height */
+.tut-prologue, .tut-done { position: absolute; inset: 0; padding: 12px 16px 10px; background: var(--cb-desk); overflow-y: auto; justify-content: center; }
 .tut-card-kicker { margin: 0; font: 600 12px/1 var(--cb-sans); letter-spacing: .14em; text-transform: uppercase; color: var(--cb-muted); }
 .tut-card-body { margin: 0; font: 400 16px/1.38 var(--cb-serif); }
 .tut-card-voice { margin: 0; font: italic 400 16px/1.38 var(--cb-serif); border-left: 3px solid var(--cb-ink); padding-left: 12px; }
@@ -51,7 +40,7 @@
 .tut-card-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
 .tut-card-bar .cb-primary { flex: 1 1 auto; }
 .tut-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
-.cb-root[data-compact] .tut-prologue { gap: 6px; padding-top: 8px; }
+.cb-root[data-compact] :is(.tut-prologue, .tut-done) { gap: 6px; padding-top: 8px; }
 .cb-root[data-compact] .tut-card-body, .cb-root[data-compact] .tut-card-voice { font-size: 15px; line-height: 1.32; }
 
 /* ---- the offer on the case picker ---------------------------------------------- */

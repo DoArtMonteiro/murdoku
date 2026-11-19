@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../src/App'
-import { case0 as p, case0Story, INVESTIGATOR_LINE } from '../../src/tutorial/case0'
+import { case0 as p, case0Story } from '../../src/tutorial/case0'
+import CasebookRoute from '../../src/casebook/Route'
 import Offer from '../../src/tutorial/Offer'
 import Tutorial from '../../src/tutorial/Tutorial'
 import { readTutorialFlag, TUTORIAL_KEY, writeTutorialFlag } from '../../src/tutorial/storage'
@@ -23,7 +23,9 @@ describe('Case 0 on screen', () => {
     render(<Tutorial />)
     const card = screen.getByRole('group', { name: 'Prologue' })
     expect(card).toHaveTextContent(case0Story.premise)
-    expect(card).toHaveTextContent(INVESTIGATOR_LINE)
+    // the investigator names the victim, not a pronoun
+    expect(card).toHaveTextContent('whose true account leaves a suspect alone with Marco.')
+    expect(card.textContent).not.toMatch(/{V}|him|them/)
     expect(within(card).getByRole('button', { name: /Begin/ })).toBeInTheDocument()
     const skip = screen.getByRole('link', { name: 'Skip — I know how to play' })
     expect(skip).toHaveAttribute('href', '?casebook=')
@@ -64,9 +66,10 @@ describe('Case 0 on screen', () => {
     expect(instruction()).toBe('Now this statement can be measured — tap it.')
     expect(haloStyle()).toContain('li:nth-child(1) .cb-chip')
     fireEvent.click(chip(/north of Lena/))
-    expect(instruction()).toBe('Light his other statement too, then place him.')
+    // placing Tomas is two taps, and the text says so: first his other statement, then the square
+    expect(instruction()).toBe('Placing Tomas takes two taps. Tap 1: light his other statement.')
     fireEvent.click(chip(/desk/))
-    expect(instruction()).toBe('Place the second suspect: tap the one lit square.')
+    expect(instruction()).toBe('Tap 2: the one lit square places Tomas.')
     expect(haloStyle()).toContain('[data-row="1"][data-col="1"]')
     fireEvent.click(cellAt(1, 1))
 
@@ -102,6 +105,8 @@ describe('Case 0 on screen', () => {
     expect(roll).toHaveTextContent('Lena: in the Hall, with Marco and no one else. No alibi.')
     expect(roll).toHaveTextContent(case0Story.cast.p0.motive.charAt(0).toLowerCase())
     expect(roll).toHaveTextContent(case0Story.closing!)
+    // Case 0 has no reconstruction to show: the casebook's "Show the proof" is simply not offered
+    expect(within(roll).queryByRole('button', { name: 'Show the proof' })).toBeNull()
     await waitFor(() => expect(localStorage.getItem(TUTORIAL_KEY)).toBe('done'))
 
     fireEvent.click(within(roll).getByRole('button', { name: 'Close the case' }))
@@ -176,6 +181,36 @@ describe('the picker offer', () => {
   })
 })
 
+describe('the picker offers Case 0 itself', () => {
+  it('the casebook picker carries the offer, and an unknown case id does not', () => {
+    const { unmount } = render(<CasebookRoute caseId="" />)
+    expect(screen.getByRole('link', { name: /Play Case 0/ })).toHaveAttribute('href', '?tutorial')
+    unmount()
+    render(<CasebookRoute caseId="no-such-case" />)
+    expect(screen.getByText(/No case called/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Play Case 0/ })).toBeNull()
+  })
+})
+
+describe('Case 0 is the casebook with a coach', () => {
+  it('shows the step counter in place of the accusation marks, and no case file, how-to or save', () => {
+    render(<Tutorial />)
+    fireEvent.click(screen.getByRole('button', { name: /Begin/ }))
+    expect(screen.getByLabelText('Step 1 of 8')).toHaveTextContent('1 / 8')
+    expect(document.querySelector('.cb-strikes')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Case file/ })).toBeNull()
+    expect(screen.queryByText(/Tap a square to place/)).toBeNull()
+  })
+
+  it('keeps the desk behind the prologue out of reach, and out of the live region', () => {
+    render(<Tutorial />)
+    expect(document.querySelector('.cb-body')).toHaveAttribute('inert')
+    expect(screen.getByTestId('beat-live')).toBeEmptyDOMElement()
+    fireEvent.click(cellAt(3, 0))
+    expect(document.querySelectorAll('[data-testid^=token-]')).toHaveLength(0)
+  })
+})
+
 describe('routes', () => {
   it('?tutorial renders Case 0 through App, lazy-loaded', async () => {
     window.history.replaceState(null, '', '/?tutorial')
@@ -201,12 +236,6 @@ describe('routes', () => {
     await screen.findByRole('grid', undefined, { timeout: 8000 })
     expect(screen.queryByRole('link', { name: /Play Case 0/ })).toBeNull()
   })
-})
-
-// jsdom does not apply imported CSS, so the rule that hides the casebook's "Show the proof" (Case 0 has no
-// reconstruction) is pinned at the source.
-it('hides "Show the proof" on the closing card', () => {
-  expect(readFileSync('src/tutorial/tutorial.css', 'utf8')).toMatch(/\.cb-roll\s+\.cb-linkbtn\s*\{\s*display:\s*none/)
 })
 
 // Keeps the puzzle import honest: the screen must be playing the verified case.

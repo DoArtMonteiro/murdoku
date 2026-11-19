@@ -13,6 +13,7 @@ import { Bar } from './Bar'
 import { Chips } from './Chips'
 import type { ChipsFlow } from './Chips'
 import { cellKey, conflictIds, firstName, floorsOf, norm } from './cells'
+import type { Coach } from './coach'
 import type { Placement } from './cells'
 import { initState, reduce, toSaved } from './game'
 import { heightForCell } from './layout'
@@ -44,10 +45,14 @@ const targetCell = (w: number) => (w < 340 ? 26 : 30)
 /** The least the statements box may shrink to: one chip and a glimpse of the next. */
 const MIN_CHIPS = 56
 
-export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
+/** Plays one case. With a `coach` (Case 0) the coach owns the game state and says what to do; see coach.ts. */
+export default function Casebook({ puzzle, coach }: { puzzle: Puzzle; coach?: Coach }) {
   const theme = useSliceTheme()
   const reduced = useReducedMotion()
-  const [state, dispatch] = useReducer((s: ReturnType<typeof initState>, a: Parameters<typeof reduce>[2]) => reduce(puzzle, s, a), puzzle, p => initState(p, loadSave(p)))
+  const [own, ownDispatch] = useReducer((s: ReturnType<typeof initState>, a: Parameters<typeof reduce>[2]) => reduce(puzzle, s, a), puzzle, p => initState(p, loadSave(p)))
+  // With a coach, its beat engine owns the game state and this screen only draws it. Nothing is saved.
+  const state = coach ? coach.state : own
+  const dispatch = coach ? coach.dispatch : ownDispatch
   const [board, setBoard] = useState<BoardModule | null>(null)
   const [sheet, setSheet] = useState(false)
   const [accused, setAccused] = useState<string | null>(null)
@@ -63,9 +68,9 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const [sound, setSound] = useState(loadSoundPref)
 
   useEffect(() => { warmAvatars(); let live = true; loadBoard().then(m => { if (live) setBoard(m) }, () => {}); return () => { live = false } }, [])
-  useEffect(() => { writeSave(puzzle.id, toSaved(state)) }, [puzzle.id, state.placement, state.pencil, state.strikes, state.outcome, state.hintsUsed, state.revealed]) // eslint-disable-line
+  useEffect(() => { if (!coach) writeSave(puzzle.id, toSaved(state)) }, [coach, puzzle.id, state.placement, state.pencil, state.strikes, state.outcome, state.hintsUsed, state.revealed]) // eslint-disable-line
 
-  const story = useMemo(() => storyFor(puzzle), [puzzle])
+  const story = useMemo(() => coach?.story ?? storyFor(puzzle), [puzzle, coach?.story])
   const solved = state.outcome === 'proved' || state.outcome === 'called' || state.outcome === 'cold'
   const vis = visibleStory(story, solved)
   const recon = useMemo(() => buildRecon(puzzle), [puzzle])
@@ -271,17 +276,56 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   useEffect(() => {
     if (sound && rollDone && tier) playCue(tier === 'calledIt' ? 'called' : 'proved')
   }, [rollDone]) // eslint-disable-line
+  useEffect(() => { if (rollDone) coach?.onEnd() }, [rollDone]) // eslint-disable-line
   const closing = fillNames(puzzle, vis.closing ?? computedClosing(puzzle))
   const alibi = sel.isVictim ? null : vis.alibiOf(sel.id)
   // The line keeps its place for the victim, who has none, so the plan does not move when the suspect changes.
   const hasAlibis = puzzle.people.some(x => !x.isVictim && !!vis.alibiOf(x.id))
   const nStatements = statementsOf(puzzle, sel.id).length
 
+  const desk = (
+    <>
+      <div className="cb-who-line">
+        <span className="cb-who-title">{firstName(puzzle, sel.id)}</span>
+        <span className="cb-who-role">{[role?.role, sel.isVictim ? 'victim' : ''].filter(Boolean).join(', ')}</span>
+        {flow.more && <span className="cb-who-more">{nStatements} statements <span aria-hidden="true">{flow.end ? '↑' : '↓'}</span></span>}
+        {coach
+          ? <span className="cb-coach-step" aria-label={`Step ${coach.beat.n} of ${coach.beat.of}`}>{coach.beat.n} / {coach.beat.of}</span>
+          : <span className="cb-strikes" aria-label={`${state.strikes} of 3 accusations used`}>{strikeDots.map((on, i) => <i key={i} data-on={on || undefined} />)}</span>}
+      </div>
+      {alibi ? <p className="cb-alibi">&ldquo;{alibi}&rdquo;</p> : hasAlibis && <p className="cb-alibi" aria-hidden="true">&nbsp;</p>}
+      <div className="cb-mid" style={{ '--cb-chips-h': `${reserve}px`, '--cb-readout-h': `${Math.min(88, Math.max(56, 200 - reserve))}px` } as CSSProperties}>
+        <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} onFlow={setFlow} />
+        <div className="cb-readout" data-testid="readout" data-coach={coach ? '' : undefined}>
+          {coach && <p className="cb-coach-line" ref={coach.lineRef} tabIndex={-1} data-testid="instruction">{coach.instruction}</p>}
+          {/* a coach keeps the case file, the how-to and the verdict link out of the slot: it says all of that itself */}
+          {(!coach || (report && state.ghost) || hint) && (
+            <Readout
+              puzzle={puzzle} selected={sel} oneLiner={role?.oneLiner ?? null} premise={vis.premise} premiseOpen={premiseOpen}
+              onTogglePremise={() => setPremiseOpen(o => !o)} ghostPerson={state.ghost?.person ?? null} report={report}
+              hint={hint} outcome={state.outcome} tier={tier} firstMove={firstMove} onRoll={startRoll}
+              lensCue={litFloor === null ? null : { floor: floorName(litFloor), onShow: () => dispatch({ t: 'floor', floor: litFloor }) }}
+            />
+          )}
+        </div>
+      </div>
+      <Rail face={compact ? 38 : 44} puzzle={puzzle} placement={state.placement} selected={state.selected} conflicts={conflicts} holds={holds} contradictions={contradictions} counts={counts} onSelect={id => dispatch({ t: 'select', id })} />
+      <Bar
+        pencilOn={state.pencilOn} supposeOn={state.supposeOn} canUndo={state.history.length > 0}
+        whyDone={coach ? coach.ready : state.outcome === 'proved' || !nextStep(puzzle, state.placement)} accuseDisabled={coach ? !coach.ready : state.outcome === 'cold' || state.outcome === 'proved'}
+        onPencil={() => dispatch({ t: 'pencil' })} onSuppose={() => dispatch({ t: 'suppose' })} onUndo={() => dispatch({ t: 'undo' })}
+        onWhy={() => dispatch({ t: 'why' })} onAccuse={() => setSheet(true)}
+      />
+    </>
+  )
+
   return (
     <div className="cb-root" ref={rootRef} data-compact={compact || undefined} data-theme={theme} data-reduced={reduced || undefined} data-mode={state.supposeOn ? 'suppose' : state.pencilOn ? 'pencil' : undefined}>
+      {coach && <style>{!coach.hold && !away && !sheet ? coach.haloCss : ''}</style>}
       <header className="cb-head">
         <a className="cb-back" href="?casebook=" aria-label="Back to the case list"><ArrowLeft size={22} aria-hidden="true" /></a>
-        <h1 className="cb-title">{titleFor(puzzle)}</h1>
+        <h1 className="cb-title">{coach?.title ?? titleFor(puzzle)}</h1>
+        {coach?.header}
         {floors > 1 && (
           <div className="cb-floors" role="group" aria-label="Floor">
             {Array.from({ length: floors }, (_, f) => {
@@ -307,7 +351,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
             <Plan
               puzzle={puzzle} floor={state.floor} theme={theme} board={board} avail={{ w: avail.w, h: avail.h }}
               placement={shown} selected={away ? '' : state.selected} conflicts={conflicts} lens={lens} crosses={crosses}
-              ghost={away ? null : state.ghost} remaining={remaining} interactive onCell={onCell} onLong={onLong}
+              ghost={away ? null : state.ghost} remaining={remaining} interactive={!coach?.hold} onCell={onCell} onLong={onLong}
               ringed={replay ? (finale ? recon.finale.murderer : null) : rollRing}
               flying={replay && !finale ? frames[replay.step].person : null}
               dimmed={replay ? (finale ? new Set(puzzle.people.map(p => p.id).filter(id => !recon.finale.group.includes(id))) : undefined) : rollDim}
@@ -316,7 +360,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
           </div>
         </section>
 
-        <section className="cb-panel" ref={panelRef} style={away && panelH ? { height: panelH } : undefined} data-away={away || undefined}>
+        <section className="cb-panel" ref={panelRef} style={away && panelH ? { height: panelH } : undefined} data-away={away || undefined} data-coach={coach ? '' : undefined}>
           {replay ? (
             <Replay
               puzzle={puzzle} recon={recon} step={replay.step} auto={auto} onNext={advance} onAuto={() => setAuto(a => !a)}
@@ -325,47 +369,26 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
           ) : roll ? (
             <Alibis
               puzzle={puzzle} roll={rollcall} step={roll.step} list={reduced} tierLabel={tierLabel} motive={vis.motive} closing={closing}
-              onAdvance={advanceRoll} onSkip={() => setRoll({ step: rollEnd })} onProof={startProof} onClose={() => setRoll(null)}
+              onAdvance={advanceRoll} onSkip={() => setRoll({ step: rollEnd })} onProof={coach ? undefined : startProof} onClose={() => { setRoll(null); coach?.onClose() }}
             />
           ) : (
             <>
-              <div className="cb-who-line">
-                <span className="cb-who-title">{firstName(puzzle, sel.id)}</span>
-                <span className="cb-who-role">{[role?.role, sel.isVictim ? 'victim' : ''].filter(Boolean).join(', ')}</span>
-                {flow.more && <span className="cb-who-more">{nStatements} statements <span aria-hidden="true">{flow.end ? '↑' : '↓'}</span></span>}
-                <span className="cb-strikes" aria-label={`${state.strikes} of 3 accusations used`}>{strikeDots.map((on, i) => <i key={i} data-on={on || undefined} />)}</span>
-              </div>
-              {alibi ? <p className="cb-alibi">&ldquo;{alibi}&rdquo;</p> : hasAlibis && <p className="cb-alibi" aria-hidden="true">&nbsp;</p>}
-              <div className="cb-mid" style={{ '--cb-chips-h': `${reserve}px`, '--cb-readout-h': `${Math.min(88, Math.max(56, 200 - reserve))}px` } as CSSProperties}>
-                <Chips puzzle={puzzle} person={sel.id} placement={state.placement} lit={lit} onToggle={index => dispatch({ t: 'lit', index })} onFlow={setFlow} />
-                <div className="cb-readout" data-testid="readout">
-                  <Readout
-                    puzzle={puzzle} selected={sel} oneLiner={role?.oneLiner ?? null} premise={vis.premise} premiseOpen={premiseOpen}
-                    onTogglePremise={() => setPremiseOpen(o => !o)} ghostPerson={state.ghost?.person ?? null} report={report}
-                    hint={hint} outcome={state.outcome} tier={tier} firstMove={firstMove} onRoll={startRoll}
-                    lensCue={litFloor === null ? null : { floor: floorName(litFloor), onShow: () => dispatch({ t: 'floor', floor: litFloor }) }}
-                  />
-                </div>
-              </div>
-              <Rail face={compact ? 38 : 44} puzzle={puzzle} placement={state.placement} selected={state.selected} conflicts={conflicts} holds={holds} contradictions={contradictions} counts={counts} onSelect={id => dispatch({ t: 'select', id })} />
-              <Bar
-                pencilOn={state.pencilOn} supposeOn={state.supposeOn} canUndo={state.history.length > 0}
-                whyDone={state.outcome === 'proved' || !nextStep(puzzle, state.placement)} accuseDisabled={state.outcome === 'cold' || state.outcome === 'proved'}
-                onPencil={() => dispatch({ t: 'pencil' })} onSuppose={() => dispatch({ t: 'suppose' })} onUndo={() => dispatch({ t: 'undo' })}
-                onWhy={() => dispatch({ t: 'why' })} onAccuse={() => setSheet(true)}
-              />
+              {coach ? <div className="cb-body" inert={coach.hold || undefined}>{desk}</div> : desk}
+              {coach?.card}
             </>
           )}
         </section>
       </main>
 
-      {sheet && (
+      {sheet && (coach ? coach.sheet({ wrongName: state.verdict?.kind === 'notThem' && accused ? firstName(puzzle, accused) : null, onAccuse: accuse, onClose: closeSheet }) : (
         <Sheet
           puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes}
           onAccuse={accuse} onBack={closeSheet} onClose={closeSheet} onRoll={startRoll}
         />
-      )}
+      ))}
       <div className="cb-sr" role="status" aria-live="polite">{state.announce}</div>
+      {/* the instruction is hidden behind a card, so a live region that exists from the start reads each beat out */}
+      {coach && <div className="cb-sr" role="status" aria-live="polite" data-testid="beat-live">{!coach.hold && !away ? `Step ${coach.beat.n} of ${coach.beat.of}. ${coach.instruction}` : ''}</div>}
     </div>
   )
 }

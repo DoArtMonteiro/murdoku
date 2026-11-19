@@ -30,6 +30,7 @@ export function Chips({ puzzle, person, placement, lit, onToggle, onFlow }: Prop
   const sts = statementsOf(puzzle, person)
   const box = useRef<HTMLUListElement>(null)
   const [flow, setFlow] = useState<ChipsFlow>({ more: false, end: true })
+  const [top, setTop] = useState(false)
   const [tip, setTip] = useState<{ text: string; x: number; y: number; below: boolean } | null>(null)
   const hold = useRef<number | undefined>(undefined)
   const gone = useRef<number | undefined>(undefined)
@@ -40,6 +41,7 @@ export function Chips({ puzzle, person, placement, lit, onToggle, onFlow }: Prop
     if (!el) return
     const next = { more: el.scrollHeight > el.clientHeight + 2, end: el.scrollTop + el.clientHeight >= el.scrollHeight - 2 }
     setFlow(f => (f.more === next.more && f.end === next.end ? f : next))
+    setTop(el.scrollTop > 2)
   }, [])
   // A new suspect starts at the top; the box is measured whenever its content or its room changes.
   useLayoutEffect(() => { if (box.current) box.current.scrollTop = 0; measure() }, [person, measure])
@@ -65,7 +67,7 @@ export function Chips({ puzzle, person, placement, lit, onToggle, onFlow }: Prop
 
   return (
     <>
-      <ul className="cb-chips" ref={box} onScroll={measure} data-more={flow.more || undefined} data-end={(flow.more && flow.end) || undefined} aria-label={`${firstName(puzzle, person)}'s statements`}>
+      <ul className="cb-chips" ref={box} onScroll={measure} data-more={flow.more || undefined} data-end={(flow.more && flow.end) || undefined} data-top={(flow.more && top) || undefined} aria-label={`${firstName(puzzle, person)}'s statements`}>
         {sts.map(st => {
           const ready = statementReady(st, placement)
           const on = lit.includes(st.index) && ready

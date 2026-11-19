@@ -57,14 +57,16 @@ export const BEAT_TEXT: Record<BeatId, string> = {
   lens: 'Tap a statement — the lamp shows where it can be true.',
   place: 'Only one square fits. Tap it to place her.',
   measure: 'Now this statement can be measured — tap it.',
-  second: 'Place the second suspect: tap the one lit square.',
+  second: 'Tap 2: the one lit square places Tomas.',
   suppose: 'Not sure? Hold a square to suppose.',
   third: 'Place the third suspect on the other lit square.',
   scene: 'Set the scene: tap where the victim was found.',
   accuse: 'Who was alone with the victim? Accuse.',
 }
-/** The second beat first asks for the other statement, then for the square. */
-export const SECOND_LIGHT_TEXT = 'Light his other statement too, then place him.'
+/** The second beat is two taps, and says so: first the other statement, then the square. */
+export const SECOND_LIGHT_TEXT = 'Placing Tomas takes two taps. Tap 1: light his other statement.'
+/** The supposing beat for a player who tapped instead of holding: the tap placed her. A hold on the same square still supposes. */
+export const SUPPOSE_PLACED_TEXT = 'That placed Greta. Hold the same square to suppose instead.'
 
 const N: Record<BeatId, number> = { lens: 1, place: 2, measure: 3, second: 4, suppose: 5, third: 6, scene: 7, accuse: 8 }
 
@@ -103,7 +105,11 @@ export function beatFor(p: Puzzle, ts: TutState): Beat {
   }
 
   if (!placedRight(p, g.placement, ROLE.supposed)) {
-    if (!ts.seen) return pick(p, g, ROLE.supposed, () => beat('suppose', [{ kind: 'cell', cell: WRONG_SQUARE }]))
+    if (!ts.seen) {
+      // a tap that placed her on the wrong square is not a supposition: say what it did and what to do instead
+      const text = g.placement[ROLE.supposed] ? SUPPOSE_PLACED_TEXT : undefined
+      return pick(p, g, ROLE.supposed, () => beat('suppose', [{ kind: 'cell', cell: WRONG_SQUARE }], text))
+    }
     return pick(p, g, ROLE.supposed, () => beat('third', [{ kind: 'cell', cell: sol[ROLE.supposed] }]))
   }
 

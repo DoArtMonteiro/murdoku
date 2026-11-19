@@ -5,8 +5,8 @@ import './tutorial.css'
 
 /**
  * "New here? Play Case 0 (90 s)" over the case picker, until the player has played, skipped or dismissed it.
- * It lives in the tutorial slice so the picker (src/casebook/Route.tsx) stays untouched; App.tsx mounts it
- * next to the picker. While it shows it asks the page for room under the last case (html[data-tut-offer]).
+ * The casebook's picker (src/casebook/Route.tsx) mounts it. While it shows it asks the page for room under
+ * the last case (html[data-tut-offer]).
  */
 export default function TutorialOffer() {
   const [open, setOpen] = useState(() => readTutorialFlag() === null)

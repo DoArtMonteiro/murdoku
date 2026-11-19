@@ -1,4 +1,5 @@
 import { pickerCases, resolveCase } from './cases'
+import TutorialOffer from '../tutorial/Offer'
 import Casebook from './Casebook'
 import { useSliceTheme } from './theme'
 import './casebook.css'
@@ -30,6 +31,8 @@ function Picker({ unknown }: { unknown: string }) {
           ))}
         </ul>
       </main>
+      {/* the first-run offer, on the plain case list only (not for an id that was not found) */}
+      {!unknown && <TutorialOffer />}
     </div>
   )
 }
