@@ -12,6 +12,8 @@ interface Props {
   /** The person named in the last accusation. */
   accused: string | null
   strikes: number
+  /** The answer has been shown: a right name can only be "Called it" now. */
+  revealed: boolean
   onAccuse: (id: string) => void
   onBack: () => void
   onClose: () => void
@@ -21,7 +23,7 @@ interface Props {
 }
 
 /** The accusation sheet: name one suspect. A wrong name says only that they have an alibi. */
-export function Sheet({ puzzle, verdict, accused, strikes, onAccuse, onBack, onClose, onFinish, onRoll }: Props) {
+export function Sheet({ puzzle, verdict, accused, strikes, revealed, onAccuse, onBack, onClose, onFinish, onRoll }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const victim = firstName(puzzle, puzzle.victimId)
   const suspects = puzzle.people.filter(p => p.id !== puzzle.victimId)
@@ -74,15 +76,15 @@ export function Sheet({ puzzle, verdict, accused, strikes, onAccuse, onBack, onC
         {verdict?.kind === 'calledIt' && (
           <>
             <h2 id="cb-sheet-title" className="cb-verdict" data-kind="called">{TIER_LABEL.calledIt}.</h2>
-            <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}. The plan is not proven yet.</p>
-            <button type="button" className="cb-primary" onClick={onFinish}>Finish the plan</button>
-            <button type="button" className="cb-ghostbtn" onClick={onRoll}>Hear the alibis instead</button>
+            <p className="cb-sheet-body">{firstName(puzzle, puzzle.murdererId)} was alone with {victim}. {revealed ? 'You had seen the answer, so this stays a call, not a proof.' : 'The plan is not proven yet.'}</p>
+            <button type="button" className="cb-primary" onClick={revealed ? onClose : onFinish}>{revealed ? 'Close' : 'Finish the plan'}</button>
+            {!revealed && <button type="button" className="cb-ghostbtn" onClick={onRoll}>Hear the alibis instead</button>}
           </>
         )}
         {verdict?.kind === 'notThem' && (
           <>
             <h2 id="cb-sheet-title" className="cb-verdict" data-kind="no">{wrongAccusationLine(firstName(puzzle, accused ?? ''))}</h2>
-            {verdict.cold && <p className="cb-sheet-body">Three wrong names. The case has gone cold.</p>}
+            <p className="cb-sheet-body">{verdict.cold ? 'Three wrong names. The case has gone cold.' : `${verdict.strikes} of ${MAX_STRIKES} accusations used.`}</p>
             {verdict.cold
               ? <button type="button" className="cb-primary" onClick={onRoll}>Hear the alibis</button>
               : <button type="button" className="cb-primary" onClick={onBack}>Back to the plan</button>}

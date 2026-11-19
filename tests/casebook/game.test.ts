@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { easy, hard } from './fixtures'
 import type { Puzzle } from '../../src/core/types'
-import { initState, reduce } from '../../src/casebook/game'
+import { initState, reduce, toSaved } from '../../src/casebook/game'
 import type { Action, GameState } from '../../src/casebook/game'
 import { emptySave, parseSave, saveKey } from '../../src/casebook/save'
 import { cellKey, conflictIds } from '../../src/casebook/cells'
@@ -126,6 +126,39 @@ describe('tier after the solve', () => {
     const innocent = hard.people.find(x => x.id !== hard.murdererId && x.id !== hard.victimId)!.id
     const s = run(hard, full(hard), { t: 'accuse', id: innocent }, { t: 'accuse', id: hard.murdererId })
     expect(s.verdict).toEqual({ kind: 'provedHelp' })
+  })
+})
+
+describe('a revealed answer', () => {
+  const full = (p: Puzzle) => initState(p, { ...emptySave(), placement: Object.fromEntries(p.people.map(x => [x.id, { ...p.solution[x.id], floor: p.solution[x.id].floor ?? 0 }])) })
+
+  it('after the alibis were heard, finishing the plan is still only "called"', () => {
+    let s = run(hard, initState(hard, emptySave()), { t: 'accuse', id: hard.murdererId })
+    expect(s.outcome).toBe('called')
+    s = run(hard, s, { t: 'reveal' })
+    expect(s.revealed).toBe(true)
+    s = { ...s, placement: full(hard).placement }
+    s = run(hard, s, { t: 'accuse', id: hard.murdererId })
+    expect(s.verdict).toEqual({ kind: 'calledIt' })
+    expect(s.outcome).toBe('called')
+  })
+
+  it('the cold-case reveal is a reveal too, and a proof already earned is not undone by hearing it again', () => {
+    const innocent = hard.people.find(x => x.id !== hard.murdererId && x.id !== hard.victimId)!.id
+    let c = initState(hard, emptySave())
+    for (let i = 0; i < 3; i++) c = run(hard, c, { t: 'accuse', id: innocent })
+    expect(run(hard, c, { t: 'reveal' }).revealed).toBe(true)
+    const proved = run(hard, full(hard), { t: 'accuse', id: hard.murdererId })
+    expect(proved.outcome).toBe('proved')
+    expect(run(hard, proved, { t: 'reveal' }).revealed).toBe(false)
+  })
+
+  it('persists across a reload, and a stale or malformed flag is ignored', () => {
+    const s = run(hard, initState(hard, emptySave()), { t: 'reveal' })
+    expect(toSaved(s).revealed).toBe(true)
+    expect(initState(hard, parseSave(hard, JSON.parse(JSON.stringify(toSaved(s))))).revealed).toBe(true)
+    expect(parseSave(hard, { revealed: 'yes' }).revealed).toBe(false)
+    expect(parseSave(hard, {}).revealed).toBe(false)
   })
 })
 

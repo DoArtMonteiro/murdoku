@@ -1,6 +1,7 @@
 // Named accusation. Pure: no UI, no storage. The right name over the exact plan
 // is "Proved", or "Proved with help" when a hint or a strike was spent on the
-// way. The right name over an unfinished or wrong plan is only "Called it". A
+// way. The right name over an unfinished or wrong plan is only "Called it", and
+// so is any right name once the answer has been revealed. A
 // wrong name is a strike and nothing more.
 import type { Puzzle } from '../core/types'
 import { samePlacement } from './cells'
@@ -24,16 +25,20 @@ export const TIER_LABEL: Record<Tier, string> = { proved: 'Proved', provedHelp: 
 export const provedTier = (hintsUsed: number, strikes: number): Tier => (hintsUsed > 0 || strikes > 0 ? 'provedHelp' : 'proved')
 
 /** The tier a saved outcome stands for, or null for an open or cold case. */
-export function tierOf(outcome: Outcome, hintsUsed: number, strikes: number): Tier | null {
+export function tierOf(outcome: Outcome, hintsUsed: number, strikes: number, revealed = false): Tier | null {
+  if (outcome === 'proved' || outcome === 'called') {
+    if (revealed) return 'calledIt'
+  }
   if (outcome === 'proved') return provedTier(hintsUsed, strikes)
   return outcome === 'called' ? 'calledIt' : null
 }
 
-export function judgeAccusation(p: Puzzle, accused: string, place: Placement, strikesBefore: number, hintsUsed = 0): Verdict {
+export function judgeAccusation(p: Puzzle, accused: string, place: Placement, strikesBefore: number, hintsUsed = 0, revealed = false): Verdict {
   const suspect = p.people.some(x => x.id === accused) && accused !== p.victimId
   if (!suspect) return { kind: 'invalid' }
   if (accused === p.murdererId) {
-    if (!samePlacement(p, place)) return { kind: 'calledIt' }
+    // Seeing the alibis or the true squares is the end of proving anything: no finished plan earns a proof now.
+    if (revealed || !samePlacement(p, place)) return { kind: 'calledIt' }
     return { kind: provedTier(hintsUsed, strikesBefore) === 'proved' ? 'proved' : 'provedHelp' }
   }
   const strikes = Math.min(MAX_STRIKES, strikesBefore + 1)

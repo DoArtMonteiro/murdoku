@@ -28,6 +28,7 @@ export interface GameState {
   ghost: Supposition | null
   hint: Hint | null
   hintsUsed: number
+  revealed: boolean
   strikes: number
   outcome: Outcome
   history: Snapshot[]
@@ -49,6 +50,7 @@ export type Action =
   | { t: 'accuse'; id: string }
   | { t: 'dropGhost' }
   | { t: 'clearVerdict' }
+  | { t: 'reveal' }
 
 const HISTORY_CAP = 60
 
@@ -57,13 +59,13 @@ export function initState(p: Puzzle, saved: Saved): GameState {
   return {
     placement: saved.placement, pencil: saved.pencil, selected: firstFree.id,
     floor: 0, lit: {}, pencilOn: false, supposeOn: false, ghost: null, hint: null,
-    hintsUsed: saved.hintsUsed, strikes: saved.strikes, outcome: saved.outcome,
+    hintsUsed: saved.hintsUsed, revealed: saved.revealed, strikes: saved.strikes, outcome: saved.outcome,
     history: [], announce: '', verdict: null,
   }
 }
 
 export const toSaved = (s: GameState): Saved =>
-  ({ placement: s.placement, pencil: s.pencil, strikes: s.strikes, outcome: s.outcome, hintsUsed: s.hintsUsed })
+  ({ placement: s.placement, pencil: s.pencil, strikes: s.strikes, outcome: s.outcome, hintsUsed: s.hintsUsed, revealed: s.revealed })
 
 const personAt = (place: Placement, cell: Cell): string | undefined =>
   Object.keys(place).find(id => sameCell(place[id], cell))
@@ -165,7 +167,7 @@ function why(p: Puzzle, s: GameState): GameState {
 
 function accuse(p: Puzzle, s: GameState, id: string): GameState {
   if (s.outcome === 'cold') return s
-  const v = judgeAccusation(p, id, s.placement, s.strikes, s.hintsUsed)
+  const v = judgeAccusation(p, id, s.placement, s.strikes, s.hintsUsed, s.revealed)
   const name = firstName(p, id)
   switch (v.kind) {
     case 'invalid': return s
@@ -200,5 +202,7 @@ export function reduce(p: Puzzle, s: GameState, a: Action): GameState {
     case 'accuse': return accuse(p, s, a.id)
     case 'dropGhost': return s.ghost ? { ...s, ghost: null, announce: 'Supposition released.' } : s
     case 'clearVerdict': return { ...s, verdict: null }
+    // The alibis or the true squares are about to be shown. A case already proved keeps its proof.
+    case 'reveal': return s.outcome === 'proved' || s.revealed ? s : { ...s, revealed: true }
   }
 }

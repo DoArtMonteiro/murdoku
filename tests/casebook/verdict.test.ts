@@ -38,6 +38,26 @@ describe('judgeAccusation', () => {
   })
 })
 
+describe('a revealed answer', () => {
+  it('can never earn a proof: a finished, correct plan is only "Called it"', () => {
+    expect(judgeAccusation(hard, hard.murdererId, hard.solution, 0, 0, true)).toEqual({ kind: 'calledIt' })
+    expect(judgeAccusation(hard, hard.murdererId, hard.solution, 2, 5, true)).toEqual({ kind: 'calledIt' })
+    expect(judgeAccusation(hard, hard.murdererId, hard.solution, 0, 0, false)).toEqual({ kind: 'proved' })
+  })
+
+  it('does not touch a wrong name: still a strike', () => {
+    const innocent = hard.people.find(x => x.id !== hard.murdererId && x.id !== hard.victimId)!.id
+    expect(judgeAccusation(hard, innocent, hard.solution, 0, 0, true)).toEqual({ kind: 'notThem', strikes: 1, cold: false })
+  })
+
+  it('caps the saved tier at "Called it", and leaves a cold case cold', () => {
+    expect(tierOf('called', 0, 0, true)).toBe('calledIt')
+    expect(tierOf('proved', 0, 0, true)).toBe('calledIt')
+    expect(tierOf('proved', 0, 0, false)).toBe('proved')
+    expect(tierOf('cold', 0, 3, true)).toBeNull()
+  })
+})
+
 describe('verdict tiers', () => {
   it('"Proved" needs no hint and no strike; either one makes it "Proved with help"', () => {
     expect(judgeAccusation(hard, hard.murdererId, hard.solution, 0, 0)).toEqual({ kind: 'proved' })

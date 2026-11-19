@@ -16,9 +16,11 @@ export interface Saved {
   strikes: number
   outcome: Outcome
   hintsUsed: number
+  /** The true squares or alibis were shown: the case can no longer be "Proved". Persisted, so a reload cannot undo it. */
+  revealed: boolean
 }
 
-export const emptySave = (): Saved => ({ placement: {}, pencil: {}, strikes: 0, outcome: null, hintsUsed: 0 })
+export const emptySave = (): Saved => ({ placement: {}, pencil: {}, strikes: 0, outcome: null, hintsUsed: 0, revealed: false })
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 const int = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x)
@@ -41,6 +43,7 @@ export function parseSave(p: Puzzle, raw: unknown): Saved {
   if (int(raw.strikes)) out.strikes = Math.max(0, Math.min(3, raw.strikes))
   if (raw.outcome === 'proved' || raw.outcome === 'called' || raw.outcome === 'cold') out.outcome = raw.outcome
   if (int(raw.hintsUsed)) out.hintsUsed = Math.max(0, raw.hintsUsed)
+  if (raw.revealed === true) out.revealed = true
   return out
 }
 

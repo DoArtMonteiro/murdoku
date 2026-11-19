@@ -55,7 +55,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   const [sound, setSound] = useState(loadSoundPref)
 
   useEffect(() => { warmAvatars(); let live = true; loadBoard().then(m => { if (live) setBoard(m) }, () => {}); return () => { live = false } }, [])
-  useEffect(() => { writeSave(puzzle.id, toSaved(state)) }, [puzzle.id, state.placement, state.pencil, state.strikes, state.outcome, state.hintsUsed]) // eslint-disable-line
+  useEffect(() => { writeSave(puzzle.id, toSaved(state)) }, [puzzle.id, state.placement, state.pencil, state.strikes, state.outcome, state.hintsUsed, state.revealed]) // eslint-disable-line
 
   const story = useMemo(() => storyFor(puzzle), [puzzle])
   const solved = state.outcome === 'proved' || state.outcome === 'called' || state.outcome === 'cold'
@@ -170,7 +170,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   }, [roll, replay, reduced, rollEnd])
   const advanceRoll = useCallback(() => setRoll(r => (r && r.step < rollEnd ? { step: r.step + 1 } : r)), [rollEnd])
   const startRoll = useCallback(() => {
-    setSheet(false); dispatch({ t: 'clearVerdict' }); setReplay(null); setAuto(false)
+    setSheet(false); dispatch({ t: 'reveal' }); dispatch({ t: 'clearVerdict' }); setReplay(null); setAuto(false)
     setRoll({ step: reduced ? rollEnd : 0 })
   }, [reduced, rollEnd])
   // A right name over the right plan goes straight to the roll-call: no sheet in between.
@@ -217,7 +217,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
   }
 
   const strikeDots = Array.from({ length: 3 }, (_, i) => i < state.strikes)
-  const tier = tierOf(state.outcome, state.hintsUsed, state.strikes)
+  const tier = tierOf(state.outcome, state.hintsUsed, state.strikes, state.revealed)
   const tierLabel = tier ? TIER_LABEL[tier] : 'The case went cold'
   const closing = vis.closing ?? computedClosing(puzzle)
 
@@ -302,7 +302,7 @@ export default function Casebook({ puzzle }: { puzzle: Puzzle }) {
 
       {sheet && (
         <Sheet
-          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes}
+          puzzle={puzzle} verdict={state.verdict} accused={accused} strikes={state.strikes} revealed={state.revealed}
           onAccuse={accuse} onBack={closeSheet} onClose={closeSheet} onFinish={closeSheet} onRoll={startRoll}
         />
       )}
