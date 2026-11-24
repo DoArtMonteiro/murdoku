@@ -186,7 +186,7 @@ describe('pin, cite, record, doubt', () => {
     expect(document.querySelector('[data-act="2"]')).toBeNull()
   })
 
-  it('with two contradictions the pill invites the comparison; the shared statement is linked in both rows', () => {
+  it('with two contradictions the pill invites the comparison, but never marks the shared statement', () => {
     render(<Game lieCase={C} />)
     begin()
     record(...C.collisions[0])
@@ -194,13 +194,9 @@ describe('pin, cite, record, doubt', () => {
     expect(screen.getByRole('button', { name: /Contradictions · 2 — compare them/ })).toBeInTheDocument()
     const rows = ledger().getAllByRole('listitem')
     expect(rows).toHaveLength(2)
-    for (const r of rows) {
-      const shared = r.querySelectorAll('[data-shared]')
-      expect(shared.length).toBeGreaterThan(0)
-      // the shared statements come first, so they line up
-      expect(r.firstElementChild).toHaveAttribute('data-shared')
-    }
-    expect(doubtChip('Ana · the Net Loft')).toHaveAttribute('aria-label', expect.stringMatching(/in 2 contradictions/))
+    // spotting the overlap is the player's deduction: no badge, no sorting, no count in the label
+    for (const r of rows) expect(r.querySelectorAll('[data-shared]')).toHaveLength(0)
+    expect(doubtChip('Ana · the Net Loft')).toHaveAttribute('aria-label', 'Doubt: Ana · the Net Loft')
   })
 
   it('when the ledger can prove something the pill says so, without saying what', () => {

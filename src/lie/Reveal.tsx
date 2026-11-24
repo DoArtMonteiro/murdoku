@@ -44,7 +44,7 @@ export function Reveal({ c, placed, tier, done, onNext, onReplay }: Props) {
       <h2 className="rv-head">{noLie ? `${nameOf(c, murderer)} was alone with ${nameOf(c, victim)}.` : `${liar} lied about one thing.`}</h2>
       {(motive || closing) && (
         <p className="rv-story">
-          {motive && <span>{motive} </span>}
+          {motive && <span><em className="rv-why">Why {liar}?</em> {motive} </span>}
           <span>{closing}</span>
         </p>
       )}

@@ -3,9 +3,8 @@
 // room. A statement that appears in more than one row is drawn linked (the same marker, aligned first in every row):
 // that is evidence the player can read, not an answer. In Act 1 a chip can be tapped to doubt that statement; once the
 // lie is proved the pill reads "solved" and the lie is struck through in every row.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronUp, X } from 'lucide-react'
-import { rowCounts } from './collide'
 import type { LedgerRow } from './collide'
 import type { LieCase } from './model'
 import { ACCUSE_PROMPT, chipOf } from './state'
@@ -32,7 +31,6 @@ export function Ledger({ c, rows, struck, canDoubt, ready, compact, onChip }: Pr
     document.addEventListener('keydown', key)
     return () => document.removeEventListener('keydown', key)
   }, [open])
-  const counts = useMemo(() => rowCounts(rows), [rows])
   const n = rows.length
   const accuse = ready && !struck
   const label = struck
@@ -40,8 +38,9 @@ export function Ledger({ c, rows, struck, canDoubt, ready, compact, onChip }: Pr
     : accuse ? (compact ? 'Enough to accuse' : ACCUSE_PROMPT)
       : n >= 2 && !compact ? `Contradictions · ${n} — compare them` : `Contradictions · ${n}`
   // the same statements first in every row, so the overlaps line up
-  const ordered = (row: LedgerRow): string[] =>
-    [...row].sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || row.indexOf(a) - row.indexOf(b))
+  // Rows keep reading order and carry no overlap count: spotting the statement two contradictions share
+  // is the player's deduction, so the ledger must not sort it first or badge it.
+  const ordered = (row: LedgerRow): string[] => [...row]
   return (
     <section className="ofa-ledger" aria-label="Contradictions" data-solved={struck ? '' : undefined} data-compact={compact || undefined}>
       <button
@@ -67,14 +66,13 @@ export function Ledger({ c, rows, struck, canDoubt, ready, compact, onChip }: Pr
                   const st = c.statements.find(s => s.id === id)
                   if (!st) return null
                   const text = chipOf(c, st)
-                  const times = counts.get(id) ?? 1
-                  const shared = times > 1 ? times : undefined
-                  const mark = shared ? <span className="ofa-chip-n" aria-hidden="true">{`×${shared}`}</span> : null
+                  const shared = undefined
+                  const mark = null
                   return canDoubt
                     ? (
                       <button
                         key={id} type="button" className="ofa-chip" data-shared={shared}
-                        aria-label={`Doubt: ${text}${shared ? ` (in ${shared} contradictions)` : ''}`}
+                        aria-label={`Doubt: ${text}`}
                         onClick={() => { setOpen(false); onChip(id) }}
                       >
                         <span>{text}</span>{mark}
