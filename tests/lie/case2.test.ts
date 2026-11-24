@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { OFA_02 } from '../../src/lie/cases/ofa-02'
-import { exposure, findMinimalCores, isMinimalContradiction, laneFree, satisfiable, verifyLieCase } from '../../src/lie/verify'
+import { exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, satisfiable, verifyLieCase } from '../../src/lie/verify'
 
 const c = OFA_02
 const byId = (id: string) => c.statements.find(s => s.id === id)!
@@ -14,7 +14,7 @@ describe('ofa-02 "The Notary\'s Last Page"', () => {
     const suspects = c.puzzle.people.filter(x => x.id !== c.puzzle.victimId)
     expect(suspects).toHaveLength(5)
     for (const x of suspects) expect(c.statements.filter(s => s.author === x.id)).toHaveLength(2)
-    expect(c.statements.filter(s => s.scene)).toHaveLength(2)
+    expect(c.statements.filter(s => s.scene)).toHaveLength(1)
     expect(result.failures).toEqual([])
   })
 
@@ -42,7 +42,8 @@ describe('ofa-02 "The Notary\'s Last Page"', () => {
 
   it('has exactly these minimal contradictions, all through the lie', () => {
     expect(findMinimalCores(c, 4)).toEqual([
-      ['s2', 's10'], ['s3', 's10'], ['s1', 's7', 's10'], ['s7', 's8', 's10'], ['s1', 's5', 's8', 's10'], ['s1', 's6', 's8', 's10'],
+      ['s2', 's10'], ['s3', 's10'], ['s1', 's7', 's10'], ['s7', 's8', 's10'],
+      ['s1', 's4', 's6', 's10'], ['s1', 's5', 's6', 's10'], ['s1', 's5', 's8', 's10'], ['s1', 's6', 's8', 's10'],
     ])
     for (const core of c.collisions) {
       expect(isMinimalContradiction(c, core)).toBe(true)
@@ -56,7 +57,11 @@ describe('ofa-02 "The Notary\'s Last Page"', () => {
     expect(result.report.reconstructionLaneSteps).toBe(0)
   })
 
-  it('a collision is visible by singles in all twelve statements', () => {
+  it('says something new in every statement', () => {
+    expect(impliedStatements(c)).toEqual([])
+  })
+
+  it('a collision is visible by singles in all eleven statements', () => {
     expect(result.report.legibilityLevel).toBe(0)
   })
 })

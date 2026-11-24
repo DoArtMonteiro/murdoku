@@ -369,6 +369,44 @@ export function placedBySingles(p: Puzzle, trueStmts: readonly Statement[]): Pla
   return propagate(buildNet(p, trueStmts.map(s => s.clue)), {}, false).placed
 }
 
+// ------------------------------------------------------- one speaker, independent claims
+
+/**
+ * Pairs [implied, by] of a speaker's own (non-scene) statements where the second makes the first
+ * redundant, given only the house: every way of satisfying `by` also satisfies `implied`
+ * (placements and the row/column rule ignored). A unary claim is compared by the squares it allows;
+ * a relational one by the squares it allows the speaker (some partner square exists), and two
+ * relational claims about the same person by the pairs of squares they allow.
+ */
+export function impliedStatements(c: LieCase): Array<[string, string]> {
+  const p = c.puzzle
+  const cells: Cell[] = []
+  for (let row = 0; row < p.size; row++) for (let col = 0; col < p.size; col++) cells.push({ row, col })
+  const tiles = (cl: Clue): Set<string> => new Set(cells.filter(x => {
+    const o = otherOf(cl)
+    return o === undefined ? unaryClueHolds(p, cl, x) : cells.some(y => clueHolds(p, cl, { [cl.person]: x, [o]: y }))
+  }).map(key))
+  const pairs = (cl: Clue): Set<string> => {
+    const o = otherOf(cl)!
+    const out = new Set<string>()
+    for (const x of cells) for (const y of cells) if (clueHolds(p, cl, { [cl.person]: x, [o]: y })) out.add(`${key(x)}|${key(y)}`)
+    return out
+  }
+  const subset = (a: Set<string>, b: Set<string>) => [...a].every(k => b.has(k))
+  const implies = (by: Clue, implied: Clue): boolean => {
+    const oi = otherOf(implied), ob = otherOf(by)
+    if (oi === undefined) return subset(tiles(by), tiles(implied))
+    if (ob === undefined || ob !== oi) return false
+    return subset(pairs(by), pairs(implied))
+  }
+  const out: Array<[string, string]> = []
+  for (const person of p.people) {
+    const mine = c.statements.filter(s => s.author === person.id && !s.scene)
+    for (const a of mine) for (const b of mine) if (a !== b && implies(b.clue, a.clue)) out.push([a.id, b.id])
+  }
+  return out
+}
+
 // ------------------------------------------------------------------ the checks
 
 /** Statements counted per suspect (scene facts are the victim's and are not accounts). */
@@ -477,6 +515,9 @@ export function verifyLieCase(c: LieCase, expect: CaseExpectations = {}): LieVer
   const vRoom = roomIdAt(p, sol[p.victimId])
   const names = (s: Statement) => (s.clue.kind === 'room' || s.clue.kind === 'notRoom') && s.clue.roomId === vRoom
   if (names(lie) && !truths.some(s => !s.scene && names(s))) fail("check 6: the lie is the only account naming the victim's room")
+
+  // every statement says something its speaker's other statement does not
+  for (const [implied, by] of impliedStatements(c)) fail(`check 6: ${implied} is implied by ${by}, the same speaker's other statement`)
 
   // the liar's own true statement must not hand the answer over by placing them in the victim's room
   if (liarOther && liarOther.clue.kind !== 'sameRoomAs' && !otherOf(liarOther.clue)) {

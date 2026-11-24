@@ -59,6 +59,8 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
   // a case that was already closed when the page loaded shows the final frame at once: no sequence, no bell
   const [restored] = useState(() => state.outcome === 'proved')
   const [replayed, setReplayed] = useState(false)
+  // beats never go backwards: the highest one shown retires every earlier one
+  const [peak, setPeak] = useState(0)
 
   // The theme tokens key off <html data-theme>. Only this mode sets it, and only while it is on screen.
   useEffect(() => {
@@ -113,9 +115,13 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
     return cell ? c.puzzle.rooms.find(r => r.id === roomIdAt(c.puzzle, cell))?.name ?? null : null
   }
 
-  const beat = coachOn && !intro && !doubting ? beatFor(state, truthOnly) : null
+  const rawBeat = coachOn && !intro && !doubting ? beatFor(state, truthOnly) : null
+  const beat = rawBeat !== null && rawBeat >= peak ? rawBeat : null
+  useEffect(() => { if (beat !== null && beat > peak) setPeak(beat) }, [beat, peak])
   const event = state.note ?? (nowhere ? { text: 'Nowhere fits all of that.', kind: 'info' as const } : null)
   const hint = !event && hunting && step >= 1 ? HINT : null
+  // the hint is the more useful line once the player has missed twice
+  const coach = hint ? null : beat
 
   const toggleSound = () => {
     const next = !sound
@@ -168,17 +174,14 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
 
         <div className="ofa-side">
           {!closed && <Strip c={c} order={order} selected={state.selected} placed={state.placed} onSelect={id => dispatch({ t: 'select', id })} />}
-          {(event || hint) && !closed && (
-            <p className="ofa-line" data-kind="event" data-tone={event?.kind ?? 'info'} role="status">
-              <span>{event?.text ?? hint}</span>
-            </p>
-          )}
-          {beat && !closed && (
-            <p className="ofa-line" data-kind="coach">
-              <span>{BEATS[beat]}</span>
-              <button type="button" className="ofa-line-x" aria-label="Dismiss hint" onClick={() => { setCoachOn(false); markCoachDone() }}>
-                <X size={16} aria-hidden="true" />
-              </button>
+          {!closed && (event || coach || hint) && (
+            <p className="ofa-line" data-kind={event || !coach ? 'event' : 'coach'} data-tone={event?.kind ?? 'info'} role="status">
+              <span>{event ? `${event.text}${coach === 2 ? ` ${BEATS[2]}` : ''}` : coach ? BEATS[coach] : hint}</span>
+              {coach && (
+                <button type="button" className="ofa-line-x" aria-label="Dismiss hint" onClick={() => { setCoachOn(false); markCoachDone() }}>
+                  <X size={16} aria-hidden="true" />
+                </button>
+              )}
             </p>
           )}
           {hunting && state.pins.length > 0 && (

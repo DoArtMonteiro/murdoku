@@ -49,12 +49,12 @@ const people: Person[] = [
 export const statements: Statement[] = [
   { id: 's1', author: 'p0', clue: { kind: 'direction', person: 'p0', other: 'p1', dir: 'N' }, text: 'Somewhere north of Inês.', display: 'I was somewhere north of Inês, mending nets.' },
   { id: 's2', author: 'p0', clue: { kind: 'besideFurniture', person: 'p0', furniture: 'lamp' }, text: 'Beside the lamp.', display: 'I was standing next to the lamp, mending by its glow.' },
-  { id: 's3', author: 'p1', clue: { kind: 'notRoom', person: 'p1', roomId: 'room3' }, text: 'Never set foot in the Porch.', display: 'I never set foot on the Porch.' },
+  { id: 's3', author: 'p1', clue: { kind: 'notSameRoomAs', person: 'p1', other: 'p3' }, text: 'Was not in the same room as Marta.', display: 'I never shared a room with Marta that night.' },
   { id: 's4', author: 'p1', clue: { kind: 'onFurniture', person: 'p1', furniture: 'counter' }, text: 'On the counter.', display: 'I was at the counter — bread doesn’t wait for gossip.' },
   { id: 's5', author: 'p2', clue: { kind: 'notSameRoomAs', person: 'p2', other: 'p1' }, text: 'Was not in the same room as Inês.', display: 'I never shared a room with Inês that night.' },
   { id: 's6', author: 'p2', clue: { kind: 'onFurniture', person: 'p2', furniture: 'chair' }, text: 'On the chair.', display: 'I sat on the chair, warming my hands.' },
-  { id: 's7', author: 'p3', clue: { kind: 'besideFurniture', person: 'p3', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I was standing next to the shrub, measuring cloth.' },
-  { id: 's8', author: 'p3', clue: { kind: 'notRoom', person: 'p3', roomId: 'room1' }, text: 'Never set foot in the Workshop.', display: 'I never set foot in the Workshop.' },
+  { id: 's7', author: 'p3', clue: { kind: 'onFurniture', person: 'p3', furniture: 'sofa' }, text: 'On the sofa.', display: 'I was on the sofa, measuring cloth.' },
+  { id: 's8', author: 'p3', clue: { kind: 'besideFurniture', person: 'p3', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I was next to the shrub, the cloth over my arm.' },
   { id: 's9', author: 'p4', clue: { kind: 'besideFurniture', person: 'p4', furniture: 'clock' }, text: 'Beside the clock.', display: 'He was found next to the clock.', scene: true },
 ]
 

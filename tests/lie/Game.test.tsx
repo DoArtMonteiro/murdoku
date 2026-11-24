@@ -22,7 +22,13 @@ const pin = (sid: string) => {
   fireEvent.click(screen.getByRole('button', { name: `Pin ${AUTHOR[sid]}'s statement: ${TEXT[sid]}` }))
 }
 const cite = () => fireEvent.click(screen.getByRole('button', { name: "These can't all be true" }))
-const ledger = () => within(screen.getByRole('region', { name: 'Contradictions' }))
+// the ledger is one line in the column; this opens it (if it is not open) and looks inside
+const ledger = () => {
+  const region = screen.getByRole('region', { name: 'Contradictions' })
+  const toggle = within(region).getByRole('button', { name: /^Contradictions/ })
+  if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle)
+  return within(region)
+}
 const line = () => document.querySelector('.ofa-line[data-kind="event"]')
 const record = (...ids: string[]) => { ids.forEach(pin); cite() }
 const proveBoth = () => { record(...C.collisions[0]); record(...C.collisions[1]) }
@@ -89,8 +95,7 @@ describe('a silent bench', () => {
     begin()
     put('b', 0, 0)
     put('c', 0, 3)
-    expect(line()).toHaveTextContent('Bruno already holds that row.')
-    expect(screen.getByText('One person per row and per column.')).toBeInTheDocument()
+    expect(line()).toHaveTextContent('Bruno already holds that row. One person per row and per column.')
     tile(1, 0)
     expect(line()).toHaveTextContent('That column is taken.')
   })
@@ -192,13 +197,13 @@ describe('pin, cite, record, doubt', () => {
     begin()
     put('b', 0, 0)
     proveBoth()
-    expect(within(screen.getByRole('region', { name: 'Contradictions' })).getAllByRole('listitem')).toHaveLength(2)
+    expect(ledger().getAllByRole('listitem')).toHaveLength(2)
     doubtFromLedger('Ana · the Net Loft')
     // act 2: the lie cracks, the liar token lifts, honest tokens lock, the subtitle asks the next question
     expect(document.querySelector('[data-act="2"]')).not.toBeNull()
     expect(screen.getByText('Then where was Ana?')).toBeInTheDocument()
     expect(screen.getByText('Cracked')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /Contradictions · solved/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Contradictions · solved' })).toBeInTheDocument()
     expect(ledger().getAllByText(/Ana · the Net Loft/)[0]).toHaveAttribute('data-struck')
     expect(screen.queryByRole('button', { name: /^Pin / })).toBeNull()
     expect(screen.queryByRole('region', { name: 'Pinned statements' })).toBeNull()
@@ -287,6 +292,33 @@ describe('coach', () => {
     unmount()
     render(<Game lieCase={C} />)
     expect(screen.queryByText(/Tap a statement: the plan shows/)).toBeNull()
+  })
+})
+
+describe('coach order', () => {
+  it('beats never go backwards: once the player has pinned or cited, beat 1 does not return', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    expect(screen.getByText('Tap a statement: the plan shows where it can hold.')).toBeInTheDocument()
+    pin('s1')
+    expect(screen.queryByText(/Tap a statement/)).toBeNull()
+    pin('s2')
+    pin('s3')
+    cite()
+    put('b', 0, 0)
+    expect(screen.queryByText(/Tap a statement/)).toBeNull()
+    pick('d')
+    expect(screen.queryByText(/Tap a statement/)).toBeNull()
+  })
+
+  it('only one line at a time: an event takes the place of a beat', () => {
+    const { container } = render(<Game lieCase={C} />)
+    begin()
+    pin('s1')
+    pin('s3')
+    cite()
+    expect(container.querySelectorAll('.ofa-line')).toHaveLength(1)
+    expect(line()).toHaveTextContent('They can all be true.')
   })
 })
 

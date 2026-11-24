@@ -12,7 +12,7 @@
 //     column and Rui east of her, off the plan. No row or column rule is needed (lane-free).
 // The two meet only in s10. Doubting any other statement leaves one of the stories standing.
 //
-// With s10 struck, the other eleven statements place everyone, but Dinis's own square is not
+// With s10 struck, the other ten statements place everyone, but Dinis's own square is not
 // forced by singles: it takes one suppose (tests/lie/case-ofa-02.test.ts pins the measure).
 import type { Person, Room } from '../../core/types'
 import type { LieCase, Statement } from '../model'
@@ -50,20 +50,19 @@ export const statements: Statement[] = [
   { id: 's1', author: 'p0', clue: { kind: 'direction', person: 'p0', other: 'p3', dir: 'E' }, text: 'Somewhere east of Marta.', display: 'I was somewhere east of Marta, mending until the light failed.' },
   { id: 's2', author: 'p0', clue: { kind: 'besideFurniture', person: 'p0', furniture: 'box' }, text: 'Beside the box.', display: 'I stood right next to the box, splicing rope.' },
   { id: 's3', author: 'p1', clue: { kind: 'onFurniture', person: 'p1', furniture: 'chair' }, text: 'On the chair.', display: 'I sat on the chair with my floury arms in my lap.' },
-  { id: 's4', author: 'p1', clue: { kind: 'room', person: 'p1', roomId: 'room0' }, text: 'In the Kitchen.', display: 'I was in the Kitchen, where the dough was proving.' },
-  { id: 's5', author: 'p2', clue: { kind: 'room', person: 'p2', roomId: 'room3' }, text: 'In the Courtyard.', display: 'I was in the Courtyard, trimming wicks for the evening.' },
-  { id: 's6', author: 'p2', clue: { kind: 'besideFurniture', person: 'p2', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I stood next to the shrub, out of the wind.' },
+  { id: 's4', author: 'p1', clue: { kind: 'direction', person: 'p1', other: 'p2', dir: 'W' }, text: 'Somewhere west of Tomé.', display: 'I was somewhere west of Tomé, shaping loaves.' },
+  { id: 's5', author: 'p2', clue: { kind: 'besideFurniture', person: 'p2', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I stood next to the shrub, out of the wind.' },
+  { id: 's6', author: 'p2', clue: { kind: 'sameRoomAs', person: 'p2', other: 'p3' }, text: 'In the same room as Marta.', display: 'I was in the same room as Marta, trimming wicks for the evening.' },
   { id: 's7', author: 'p3', clue: { kind: 'direction', person: 'p3', other: 'p4', dir: 'E' }, text: 'Somewhere east of Dinis.', display: 'I was somewhere east of Dinis, with sailcloth over my knees.' },
   { id: 's8', author: 'p3', clue: { kind: 'onFurniture', person: 'p3', furniture: 'sofa' }, text: 'On the sofa.', display: 'I was on the sofa, stitching until my eyes hurt.' },
-  { id: 's9', author: 'p4', clue: { kind: 'notRoom', person: 'p4', roomId: 'room3' }, text: 'Never set foot in the Courtyard.', display: 'I never set foot in the Courtyard.' },
+  { id: 's9', author: 'p4', clue: { kind: 'notSameRoomAs', person: 'p4', other: 'p0' }, text: 'Was not in the same room as Rui.', display: 'I never shared a room with Rui that night.' },
   { id: 's10', author: 'p4', clue: { kind: 'onFurniture', person: 'p4', furniture: 'box' }, text: 'On the box.', display: 'I sat on the box, counting coils of rope.' },
-  { id: 's11', author: 'p5', clue: { kind: 'room', person: 'p5', roomId: 'room2' }, text: 'In the Office.', display: 'She was found in the Office.', scene: true },
-  { id: 's12', author: 'p5', clue: { kind: 'besideFurniture', person: 'p5', furniture: 'clock' }, text: 'Beside the clock.', display: 'She was found next to the clock.', scene: true },
+  { id: 's11', author: 'p5', clue: { kind: 'besideFurniture', person: 'p5', furniture: 'clock' }, text: 'Beside the clock.', display: 'She was found next to the clock.', scene: true },
 ]
 
 export const OFA_02: LieCase = buildCase({
   id: 'ofa-02', title: 'The Notary’s Last Page', caseNumber: 'One False Alibi 2', difficulty: 'Medium', size: 6,
-  flavor: 'The harbour master’s will has lost its last page. Twelve accounts, and one of them was bent to fit the night.',
+  flavor: 'The harbour master’s will has lost its last page. Eleven accounts, and one of them was bent to fit the night.',
   rooms, furniture, people, victimId: 'p5',
   solution: { p0: at(0, 4), p1: at(1, 0), p2: at(3, 5), p3: at(5, 3), p4: at(4, 2), p5: at(2, 1) },
   statements, lieId: 's10', collisions: [['s3', 's10'], ['s1', 's7', 's10']],

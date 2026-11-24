@@ -19,7 +19,7 @@
 //   shape 2  a pair and a triple that chains through two witnesses, lane-free somewhere,
 //            and the liar's true square needs a lane step or a suppose
 //   shape 3  three collisions: the first two share the lie and one more statement, all three share
-//            only the lie; the true plan needs a suppose
+//            only the lie, at least one is lane-free; the true plan needs a suppose
 //
 // verify.ts is loaded through vite (no build step), so the search and the tests share ONE definition
 // of "sound". Hits are printed with ids, authors and sentences; the author writes each `display`.
@@ -222,6 +222,7 @@ function chooseCollisions(c, cores) {
         const cc = usable[k]
         const abc = interOf(interOf(a, b), cc)
         if (abc.length !== 1 || abc[0] !== c.lieId) continue
+        if (!lf(a) && !lf(b) && !lf(cc)) continue
         options.push([a, b, cc])
       }
     }
@@ -234,7 +235,7 @@ function chooseCollisions(c, cores) {
 
 const EXPECT = SHAPE === 1 ? { laneFreeAtLeast: 1 }
   : SHAPE === 2 ? { laneFreeAtLeast: 1, liarBeyondSingles: true }
-    : { supposesAtLeast: 1, firstTwoShare: 2 }
+    : { laneFreeAtLeast: 1, supposesAtLeast: 1, firstTwoShare: 2 }
 
 // ------------------------------------------------------------------ one trial
 const stats = { trials: 0, unique: 0, noKind: 0, lieUnsat: 0, check3: 0, shaped: 0, verified: 0 }

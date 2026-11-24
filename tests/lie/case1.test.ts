@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LIE_CASE_1, LIE_CASE_1_ID } from '../../src/lie/case1'
 import { OFA_01 } from '../../src/lie/cases/ofa-01'
-import { exposure, findMinimalCores, isMinimalContradiction, laneFree, verifyLieCase } from '../../src/lie/verify'
+import { exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, verifyLieCase } from '../../src/lie/verify'
 
 const c = OFA_01
 const authorOf = (id: string) => c.statements.find(s => s.id === id)!.author
@@ -38,7 +38,7 @@ describe('ofa-01 "The Silent Bell": the first case', () => {
   })
 
   it('has exactly these minimal contradictions, all through the lie', () => {
-    expect(findMinimalCores(c, 4)).toEqual([['s1', 's4'], ['s2', 's4', 's6'], ['s4', 's5', 's6']])
+    expect(findMinimalCores(c, 4)).toEqual([['s1', 's4'], ['s2', 's4', 's6'], ['s4', 's5', 's6'], ['s4', 's6', 's7'], ['s2', 's4', 's7', 's8']])
     for (const core of c.collisions) {
       expect(isMinimalContradiction(c, core)).toBe(true)
       expect(laneFree(c, core)).toBe(true)
@@ -51,6 +51,10 @@ describe('ofa-01 "The Silent Bell": the first case', () => {
     expect(result.report.reconstructionSupposes).toBe(0)
     expect(result.report.reconstructionLaneSteps).toBe(0)
     expect(result.report.liarPlacedBySingles).toBe(true)
+  })
+
+  it('says something new in every statement', () => {
+    expect(impliedStatements(c)).toEqual([])
   })
 
   it('is a short case: nine statements in all', () => {

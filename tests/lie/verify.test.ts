@@ -6,7 +6,7 @@ import { OFA_02 } from '../../src/lie/cases/ofa-02'
 import { OFA_03 } from '../../src/lie/cases/ofa-03'
 import type { LieCase, Statement } from '../../src/lie/model'
 import {
-  exposure, findMinimalCores, isMinimalContradiction, laneFree, legibility, liePlacesOutside, placedBySingles, puzzleOf, reconstruct,
+  exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, legibility, liePlacesOutside, placedBySingles, puzzleOf, reconstruct,
   satisfiable, verifyLieCase,
 } from '../../src/lie/verify'
 
@@ -76,7 +76,7 @@ describe('verifyLieCase: negative fixtures', () => {
 
   it('catches a wrong doubt that also solves (check 3)', () => {
     // only the chain s1, s7, s10 is left, so doubting s1 or s7 instead of the lie also gives a consistent world
-    const r = verifyLieCase(variant(without('s2', 's3', 's8')))
+    const r = verifyLieCase(variant(without('s2', 's3', 's4', 's5', 's8')))
     expect(r.ok).toBe(false)
     expect(r.failures).toContain('check 3: doubting s1 instead of the lie leaves a consistent world')
     expect(r.failures).toContain('check 3: doubting s7 instead of the lie leaves a consistent world')
@@ -145,10 +145,24 @@ describe('verifyLieCase: negative fixtures', () => {
   })
 
   it("catches a liar whose other true statement already puts them in the victim's room (check 6)", () => {
-    // Rui "on the box" is true, and the box stands in the Cellar with the victim: that would hand the answer over
-    const c = variant(stmts => stmts.map(s => (s.id === 's2' ? { ...s, clue: { kind: 'onFurniture' as const, person: 'p0', furniture: 'box' as const }, text: 'On the box.' } : s)), {}, OFA_03)
+    // Rui "in the Cellar" is true, and the Cellar is where the victim lay: that would hand the answer over
+    const c = variant(replace('s1', { kind: 'room', person: 'p0', roomId: 'room4' }, 'In the Cellar.'), {}, OFA_03)
     expect(verifyLieCase(c).failures).toContain("check 6: the liar's other statement already places them in the victim's room")
     expect(verifyLieCase(OFA_03).failures).not.toContain("check 6: the liar's other statement already places them in the victim's room")
+  })
+
+  it('catches a speaker whose second statement restates the first (check 6)', () => {
+    // Joana on the chair is already in the Kitchen: "in the Kitchen" adds nothing
+    const c = variant(replace('s4', { kind: 'room', person: 'p1', roomId: 'room0' }, 'In the Kitchen.'))
+    expect(impliedStatements(c)).toEqual([['s4', 's3']])
+    expect(verifyLieCase(c).failures).toContain("check 6: s4 is implied by s3, the same speaker's other statement")
+  })
+
+  it('does not call a relational claim a restatement of a unary one, or two claims about different people', () => {
+    for (const c of ALL) expect(impliedStatements(c)).toEqual([])
+    // same person, same direction family: west of Tomé is implied by west of Rui only if the pairs nest, which they do not
+    const d = variant(replace('s4', { kind: 'direction', person: 'p1', other: 'p0', dir: 'W' }, 'Somewhere west of Rui.'))
+    expect(impliedStatements(d)).toEqual([])
   })
 
   it('refuses a direction or "not with" lie: neither places the liar anywhere (check 9)', () => {

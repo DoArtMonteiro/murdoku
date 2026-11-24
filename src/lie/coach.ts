@@ -19,18 +19,18 @@ export function markCoachDone(): void {
   try { localStorage.setItem(COACH_KEY, '1') } catch { /* the line may come back next visit */ }
 }
 
-type Facts = Pick<GameState, 'placed' | 'pins' | 'ledger' | 'struck' | 'outcome' | 'refusalOpen' | 'touched'>
+type Facts = Pick<GameState, 'placed' | 'pins' | 'ledger' | 'struck' | 'outcome' | 'refusalOpen' | 'touched'> & Partial<Pick<GameState, 'falseCitations'>>
 
 /**
  * Which beat fits the game right now, or null.
  * 3: the player has pinned something and nothing is on the ledger yet (not in the hidden harness, which has no pins).
  * 2: the last move was a tap on a ruled-out tile.
- * 1: nothing has been touched yet.
+ * 1: nothing has been touched yet. Once the player has pinned or cited, it is retired for good.
  */
 export function beatFor(s: Facts, truthOnly: boolean): Beat | null {
   if (s.outcome || s.struck) return null
   if (!truthOnly && s.pins.length > 0 && s.ledger.length === 0) return 3
   if (s.refusalOpen) return 2
-  if (!s.touched && s.pins.length === 0 && Object.keys(s.placed).length === 0) return 1
+  if (!s.touched && s.pins.length === 0 && s.ledger.length === 0 && !s.falseCitations && Object.keys(s.placed).length === 0) return 1
   return null
 }

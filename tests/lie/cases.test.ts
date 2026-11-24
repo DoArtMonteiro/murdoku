@@ -18,16 +18,16 @@ function fingerprint(x: unknown): string {
 }
 
 const PINS: Record<string, string> = {
-  'ofa-01': '7cb749b2',
-  'ofa-02': 'c2b63677',
-  'ofa-03': '9c2678d6',
+  'ofa-01': 'f95bdc99',
+  'ofa-02': 'aa028268',
+  'ofa-03': 'dbfff2e6',
 }
 
 /** What each case promises beyond the shared checks (see the case files). */
 const EXPECT: Record<string, CaseExpectations> = {
   'ofa-01': { laneFreeAtLeast: 1 },
   'ofa-02': { laneFreeAtLeast: 1, liarBeyondSingles: true },
-  'ofa-03': { supposesAtLeast: 1, firstTwoShare: 2 },
+  'ofa-03': { laneFreeAtLeast: 1, supposesAtLeast: 1, firstTwoShare: 2 },
 }
 
 const LOADED: LieCase[] = await Promise.all(CASES_IN_ORDER.map(e => e.load()))
