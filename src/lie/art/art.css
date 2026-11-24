@@ -1,0 +1,103 @@
+/* One False Alibi art: classes only. The deployed CSP is style-src 'self', so no <style>
+   elements and no inline style attributes anywhere in the SVG; every colour, width and
+   animation lives here, and every colour is a token from ../tokens.css (fallbacks are the
+   light-theme values, so a component renders correctly even before tokens.css loads). */
+
+/* ---- emblems ---------------------------------------------------------------------- */
+.lem { display: inline-block; flex: none; color: var(--cobalt, #1F3F8F); }
+.lem-ground { fill: var(--cal, #F4EFE4); stroke: currentColor; stroke-width: 2.2; }
+.lem-hair { fill: none; stroke: currentColor; stroke-width: 0.7; opacity: 0.55; }
+.lem-fill { fill: currentColor; stroke: none; }
+.lem-dot { fill: var(--cal, #F4EFE4); stroke: none; }
+.lem-glyph { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.lem-glyph .lem-fill { stroke: none; }
+
+/* ---- plan ------------------------------------------------------------------------- */
+.lp {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+  color: var(--cobalt, #1F3F8F);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lp-frieze { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 1.4; opacity: 0.55; }
+
+.lp-cell { cursor: pointer; outline: none; }
+.lp-tile { fill: var(--cal, #F4EFE4); stroke: var(--grout, rgba(31, 63, 143, 0.3)); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.lp-tile[data-tone="1"] { fill: color-mix(in srgb, var(--cal, #F4EFE4) 97%, var(--cobalt, #1F3F8F)); }
+.lp-tile[data-tone="2"] { fill: var(--cal-2, #EBE4D2); }
+
+.lp-motif { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.27; pointer-events: none; }
+.lp-motif .lp-motif-dot { fill: var(--cobalt, #1F3F8F); stroke: none; }
+
+/* where a statement can hold: an ochre glaze that spreads out from the first lit tile */
+.lp-glaze { opacity: 0; transition: opacity 380ms ease; pointer-events: none; }
+.lp-glaze[data-lit] { opacity: 1; }
+.lp-glaze-fill { fill: var(--ochre, #D9A521); fill-opacity: 0.46; }
+.lp-glaze-gloss { fill: none; stroke: var(--cal, #F4EFE4); stroke-width: 3; stroke-linecap: round; opacity: 0.75; }
+.lp-glaze[data-d="1"] { transition-delay: 60ms; }
+.lp-glaze[data-d="2"] { transition-delay: 120ms; }
+.lp-glaze[data-d="3"] { transition-delay: 180ms; }
+.lp-glaze[data-d="4"] { transition-delay: 240ms; }
+.lp-glaze[data-d="5"] { transition-delay: 300ms; }
+.lp-glaze[data-d="6"] { transition-delay: 360ms; }
+.lp-glaze[data-d="7"] { transition-delay: 420ms; }
+
+/* excluded by an occupied row or column: dimmed toward the ground, not removed */
+.lp-blocked { fill: var(--dim, rgba(20, 33, 61, 0.14)); opacity: 0; transition: opacity 300ms ease; pointer-events: none; }
+.lp-blocked[data-on] { opacity: 1; }
+
+.lp-wall-in, .lp-jamb, .lp-wall-out { fill: none; stroke: var(--ink, #14213D); stroke-linecap: square; stroke-linejoin: miter; pointer-events: none; }
+.lp-wall-in, .lp-jamb { stroke-width: 6; }
+.lp-wall-out { stroke-width: 8.5; }
+.lp-sill { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 2.4; stroke-dasharray: 5 4; opacity: 0.75; pointer-events: none; }
+
+.lf { fill: var(--cal, #F4EFE4); fill-opacity: 0.94; stroke: var(--cobalt, #1F3F8F); stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
+.lf-bare { fill: var(--cal, #F4EFE4); fill-opacity: 0.94; stroke: none; }
+.lf-fill { fill: var(--cobalt, #1F3F8F); stroke: none; }
+.ln { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 2.8; stroke-linejoin: round; stroke-linecap: round; }
+.ln-heavy { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 5; stroke-linecap: round; }
+.lp-furn, .lp-label, .lp-token, .lp-crack { pointer-events: none; }
+
+.lp-label-plaque { fill: var(--cal, #F4EFE4); fill-opacity: 0.94; stroke: var(--cobalt, #1F3F8F); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.lp-label-text { fill: var(--ink, #14213D); font-family: var(--font-display, 'Fraunces', Georgia, serif); font-weight: 600; font-variant-caps: all-small-caps; letter-spacing: 0.08em; dominant-baseline: central; }
+
+.lp-shadow { fill: var(--shadow, rgba(20, 33, 61, 0.32)); }
+.lp-ring { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 4.5; }
+.lp-ring-murderer { fill: none; stroke: var(--almagre, #B4482E); stroke-width: 5; }
+.lp-emb { color: var(--cobalt, #1F3F8F); }
+.lp-ghost { opacity: 0.5; }
+.lp-ghost .lem-ground { stroke-dasharray: 5 3.5; }
+.lp-victim-ground { fill: var(--ink, #14213D); stroke: var(--cobalt, #1F3F8F); stroke-width: 2.2; }
+.lp-victim-chalk { fill: none; stroke: var(--cal, #F4EFE4); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2.6 2.2; }
+
+/* the caught liar's token lifts off the plan */
+.lp-lift { animation: lp-lift 500ms ease-out forwards; }
+@keyframes lp-lift {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-14px); opacity: 0; }
+}
+
+/* collision: an almagre hairline crack, drawn in across the tile */
+.lp-crack-halo { fill: none; stroke: var(--cal, #F4EFE4); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.7; }
+.lp-crack-line { fill: none; stroke: var(--almagre, #B4482E); stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; animation: lp-crack 480ms ease-out both; }
+@keyframes lp-crack { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+.lp-focus { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 4; stroke-dasharray: 9 6; pointer-events: none; }
+
+/* reduced motion: nothing travels, state changes crossfade */
+@media (prefers-reduced-motion: reduce) {
+  .lp-glaze, .lp-blocked { transition: opacity 160ms linear; transition-delay: 0ms !important; }
+  .lp-lift { animation: lp-fade 300ms linear forwards; }
+  .lp-crack-line { animation: lp-fade-in 300ms linear both; }
+  @keyframes lp-fade { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes lp-fade-in { from { opacity: 0; } to { opacity: 1; } }
+}

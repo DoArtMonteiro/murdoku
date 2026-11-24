@@ -36,6 +36,10 @@ const casebookParam = () => (CASEBOOK_ROUTE ? new URLSearchParams(window.locatio
 const TutorialRoute = CASEBOOK_ROUTE ? lazy(() => import('./tutorial/Route')) : null
 const tutorialRequested = () => CASEBOOK_ROUTE && new URLSearchParams(window.location.search).has('tutorial')
 
+// One False Alibi: `?alibi` | `?alibi=<caseId>` | `?alibi=<caseId>&truth` | `?alibi=gallery`, gated exactly like the casebook.
+const AlibiRoute = CASEBOOK_ROUTE ? lazy(() => import('./lie/Route')) : null
+const alibiParams = () => (CASEBOOK_ROUTE ? new URLSearchParams(window.location.search) : null)
+
 function Fallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg-deep">
@@ -50,6 +54,16 @@ export default function App() {
       <ErrorBoundary>
         <Suspense fallback={<Fallback />}>
           <TutorialRoute />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
+  const alibi = alibiParams()
+  if (AlibiRoute && alibi?.has('alibi')) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<Fallback />}>
+          <AlibiRoute alibi={alibi.get('alibi') ?? ''} truth={alibi.has('truth')} />
         </Suspense>
       </ErrorBoundary>
     )

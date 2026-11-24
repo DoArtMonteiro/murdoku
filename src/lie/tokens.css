@@ -1,0 +1,70 @@
+/* One False Alibi: identity tokens. Portugal in daylight: limewash ground, cobalt
+   two-ink linework, azulejo tiles. Import this once, from the mode's entry.
+
+   Colour has jobs. --ochre is the lens glaze and nothing else. --almagre is the lie,
+   the contradiction and the accusation and nothing else. --seaglass is "cleared".
+   None of the three is a text colour on --cal: ochre 1.96:1 and seaglass 2.27:1 are
+   below any text threshold, so they are fills, never type.
+
+   Contrast, WCAG 2.x relative luminance, measured:
+     light   --ink #14213D on --cal #F4EFE4   13.93   AA, AAA
+             --cobalt #1F3F8F on --cal          8.46   AA, AAA
+             --almagre #B4482E on --cal         4.69   AA (text, large or small)
+             --ink on --ochre #D9A521           7.12   AA, AAA  (text over the lens glaze)
+             --ink on --seaglass #7FA99B        6.12   AA
+             --cal on --almagre / --cobalt      4.69 / 8.46  (reversed labels)
+     dark    --ink #F4EFE4 on --cal #101B33    14.93   AA, AAA
+             --cobalt #8FA9E8 on --cal          7.34   AA
+             --almagre #E98669 on --cal         6.59   AA
+             --cal on --ochre / --seaglass      7.63 / 6.56
+   Nothing needed adjusting in the light theme. In the dark theme the light cobalt
+   (#8FA9E8) and the lifted almagre (#E98669) were chosen to clear 4.5:1 on #101B33;
+   ochre and seaglass keep their light-theme hex. Where --almagre meets --ochre
+   (2.39:1) the board drops the glaze, see TilePlan. */
+
+/* Fraunces: titles, names, room labels. SIL OFL 1.1, Latin subset, served from this app. */
+@font-face { font-family: 'Fraunces'; font-style: normal; font-weight: 600; font-display: swap; src: url('../../node_modules/@fontsource/fraunces/files/fraunces-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Fraunces'; font-style: normal; font-weight: 700; font-display: swap; src: url('../../node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff2') format('woff2'); }
+/* Newsreader italic: testimony. Declared here too because the casebook's fonts.css is not
+   loaded in this mode. Same file, so the bundle holds it once. */
+@font-face { font-family: 'Newsreader'; font-style: italic; font-weight: 400; font-display: swap; src: url('../../node_modules/@fontsource/newsreader/files/newsreader-latin-400-italic.woff2') format('woff2'); }
+/* Hanken Grotesk (controls) is declared globally in src/styles/fonts.css. */
+
+:root {
+  --cal: #F4EFE4;
+  --cal-2: #EBE4D2;
+  --cobalt: #1F3F8F;
+  --ink: #14213D;
+  --ochre: #D9A521;
+  --almagre: #B4482E;
+  --seaglass: #7FA99B;
+  --grout: color-mix(in srgb, var(--cobalt) 30%, transparent);
+  --shadow: rgba(20, 33, 61, 0.32);
+  --dim: rgba(20, 33, 61, 0.14);
+
+  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-voice: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cal: #101B33;
+    --cal-2: #16233F;
+    --cobalt: #8FA9E8;
+    --ink: #F4EFE4;
+    --almagre: #E98669;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --dim: rgba(0, 0, 0, 0.26);
+  }
+}
+
+:root[data-theme="dark"] {
+  --cal: #101B33;
+  --cal-2: #16233F;
+  --cobalt: #8FA9E8;
+  --ink: #F4EFE4;
+  --almagre: #E98669;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --dim: rgba(0, 0, 0, 0.26);
+}

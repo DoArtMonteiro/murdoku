@@ -1,0 +1,11 @@
+/* Dev gallery layout only. */
+.lg { background: var(--cal); color: var(--ink); font-family: var(--font-ui); padding: 16px; min-height: 100vh; }
+.lg h1, .lg h2 { font-family: var(--font-display); font-weight: 700; margin: 0 0 8px; }
+.lg-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lg-head button { font: inherit; background: none; color: var(--ink); border: 1px solid var(--cobalt); border-radius: 6px; padding: 4px 10px; margin-left: 4px; }
+.lg-head button[aria-pressed="true"] { background: var(--cobalt); color: var(--cal); }
+.lg-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: flex-end; }
+.lg-furn figure { margin: 0; text-align: center; font-size: 12px; }
+.lg-piece { background: var(--cal); border: 1px solid var(--grout); color: var(--cobalt); }
+.lg-note { font-family: var(--font-voice); font-style: italic; margin: 0 0 8px; }
+.lg-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }

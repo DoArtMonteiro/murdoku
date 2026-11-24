@@ -1,0 +1,163 @@
+/* One False Alibi: the game screen. Classes only (the deployed CSP is style-src 'self'); every colour is a token
+   from tokens.css. Ochre is the lens, almagre is the lie and the contradiction, seaglass is "stands" / cleared.
+   None of those three is used as text on --cal except almagre, which clears 4.5:1. */
+
+.ofa {
+  box-sizing: border-box;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--cal);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-text-size-adjust: 100%;
+}
+.ofa *, .ofa *::before, .ofa *::after { box-sizing: border-box; }
+.ofa button, .ofa a { font: inherit; color: inherit; }
+.ofa :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
+
+/* ---- top bar ---- */
+.ofa-bar { flex: none; display: flex; align-items: center; gap: 2px; min-height: 52px; padding: 2px 8px; }
+.ofa-bar-title { flex: 1; min-width: 0; padding: 0 6px; }
+.ofa-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ofa-phase { margin: 1px 0 0; font-size: 12px; line-height: 1.2; }
+.ofa-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: transparent; cursor: pointer; text-decoration: none;
+}
+.ofa-icon:disabled { opacity: 0.35; cursor: default; }
+.ofa-menu { position: relative; }
+.ofa-menu-pop {
+  position: absolute; right: 0; top: 100%; z-index: 20; min-width: 200px; padding: 6px;
+  background: var(--cal); border: 1.5px solid var(--cobalt); border-radius: 12px; box-shadow: 0 8px 24px var(--shadow);
+}
+.ofa-menu-pop button {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 10px;
+  border: 0; border-radius: 8px; background: transparent; text-align: left; cursor: pointer; font-size: 15px;
+}
+.ofa-menu-pop button:hover { background: var(--cal-2); }
+.ofa-menu-pop button em { margin-left: auto; font-style: normal; font-size: 13px; }
+
+/* ---- layout: one phone column; plan, then everything the player compares ---- */
+.ofa-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ofa-plan { flex: none; width: min(100%, 50dvh); margin: 0 auto; padding: 0 4px; }
+.ofa-side { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 6px 12px 8px; }
+
+@media (min-width: 1024px) {
+  .ofa-main { flex-direction: row; align-items: flex-start; gap: 28px; padding: 8px 28px 16px; }
+  .ofa-plan { width: min(58vw, calc(100dvh - 96px), 720px); margin: 0; padding: 0; }
+  .ofa-side { align-self: stretch; max-width: 520px; padding: 0; overflow-y: auto; }
+  .ofa-card { flex: none; overflow: visible; }
+}
+
+/* ---- the people strip ---- */
+.ofa-strip { flex: none; display: flex; gap: 4px; margin: 0; padding: 3px 2px; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.ofa-strip::-webkit-scrollbar { display: none; }
+.ofa-strip-li { flex: 1 1 0; min-width: 46px; max-width: 76px; }
+.ofa-strip-li[data-victim] { margin-left: 4px; padding-left: 6px; border-left: 1.5px dashed var(--grout); }
+.ofa-pick {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  width: 100%; min-width: 0; min-height: 64px; padding: 4px 1px; border: 2px solid transparent; border-radius: 12px; background: transparent; cursor: pointer;
+}
+.ofa-strip-li[data-victim] .ofa-pick { opacity: 1; }
+.ofa-strip-li[data-victim] .ofa-pick-art { filter: grayscale(1); }
+.ofa-pick[data-selected] { border-color: var(--cobalt); background: var(--cal-2); }
+.ofa-pick-art { position: relative; display: inline-flex; }
+.ofa-pick-name { font-size: 12px; line-height: 1.1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ofa-pick-check {
+  position: absolute; top: -4px; right: -6px; display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px; border-radius: 50%; background: var(--seaglass); color: var(--ink); border: 1.5px solid var(--cal);
+}
+.ofa-pick[data-common], .ofa-ledger-person[data-common] .lem {
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px var(--almagre), 0 0 14px color-mix(in srgb, var(--almagre) 70%, transparent);
+  animation: ofa-glow 2.4s ease-in-out infinite;
+}
+.ofa-ledger-person[data-common] .lem { border-radius: 6px; }
+@keyframes ofa-glow { 50% { box-shadow: 0 0 0 2px var(--almagre), 0 0 4px color-mix(in srgb, var(--almagre) 40%, transparent); } }
+
+/* ---- the Contradictions ledger ---- */
+.ofa-ledger { flex: none; display: flex; align-items: center; gap: 10px; padding: 4px 2px; border-block: 1px solid var(--grout); overflow-x: auto; scrollbar-width: none; }
+.ofa-ledger-h { margin: 0; flex: none; font-family: var(--font-ui); font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--almagre); }
+.ofa-ledger-rows { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ofa-ledger-row { flex: none; display: flex; align-items: center; gap: 3px; padding: 3px 7px; border: 1.5px solid color-mix(in srgb, var(--almagre) 60%, transparent); border-radius: 999px; }
+.ofa-ledger-person { display: inline-flex; align-items: center; gap: 3px; }
+.ofa-ledger-x { font-size: 13px; line-height: 1; color: var(--almagre); }
+
+/* ---- the one line above the accounts: a coach beat or an event ---- */
+.ofa-line { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 30px; margin: 0; font-size: 14px; line-height: 1.3; }
+.ofa-line[data-kind="event"] { font-weight: 600; padding-left: 8px; border-left: 4px solid var(--ink); }
+.ofa-line[data-cue="collision"], .ofa-line[data-cue="crack"] { border-left-color: var(--almagre); color: var(--almagre); }
+.ofa-line[data-cue="stand"] { border-left-color: var(--seaglass); }
+.ofa-line-x { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -8px -8px -8px 0; border: 0; background: transparent; cursor: pointer; }
+
+/* ---- the selected account ---- */
+.ofa-card { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.ofa-card-head { margin-bottom: 4px; }
+.ofa-card-name { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.15; }
+.ofa-card-role { margin: 1px 0 0; font-size: 13px; }
+.ofa-card-none { margin: 8px 0; font-family: var(--font-voice); font-style: italic; }
+.ofa-sts { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 0 4px; list-style: none; }
+.ofa-st { display: flex; align-items: stretch; gap: 6px; }
+.ofa-st-main {
+  flex: 1; min-width: 0; min-height: 48px; padding: 7px 11px; text-align: left; cursor: pointer;
+  background: var(--cal); border: 1.5px solid var(--grout); border-radius: 10px; display: flex; flex-direction: column; gap: 2px;
+}
+.ofa-st-main:disabled { cursor: default; }
+.ofa-st[data-lit] .ofa-st-main { background: color-mix(in srgb, var(--ochre) 30%, var(--cal)); border-color: var(--ochre); }
+.ofa-st[data-stands] .ofa-st-main { border-left: 5px solid var(--seaglass); }
+.ofa-st[data-struck] .ofa-st-main { border: 1.5px dashed var(--almagre); }
+.ofa-st[data-struck] .ofa-st-text { text-decoration: line-through; text-decoration-color: var(--almagre); text-decoration-thickness: 2px; }
+.ofa-st[data-scene] .ofa-st-main { border-style: double; border-width: 3px; }
+.ofa-st-voice { font-family: var(--font-voice); font-style: italic; font-size: 14.5px; line-height: 1.3; }
+.ofa-st-text { font-size: 15.5px; line-height: 1.3; }
+.ofa-st-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.ofa-st-tags:empty { display: none; }
+.ofa-tag { padding: 1px 7px; border: 1px solid var(--grout); border-radius: 999px; font-size: 11.5px; line-height: 1.4; }
+.ofa-tag[data-kind="wait"] { border-style: dashed; }
+.ofa-tag[data-kind="stands"] { background: var(--seaglass); border-color: var(--seaglass); color: var(--ink); font-weight: 600; }
+.ofa-tag[data-kind="cracked"] { color: var(--almagre); border-color: var(--almagre); font-weight: 600; }
+.ofa-tag[data-kind="lit"] { background: var(--ochre); border-color: var(--ochre); color: var(--ink); }
+.ofa-doubt {
+  flex: none; min-width: 64px; min-height: 48px; padding: 0 8px; cursor: pointer;
+  background: transparent; border: 1.5px dashed var(--almagre); border-radius: 10px; color: var(--almagre); font-size: 14px; font-weight: 600;
+}
+
+/* ---- sheets ---- */
+.ofa-scrim { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: color-mix(in srgb, var(--ink) 50%, transparent); }
+.ofa-sheet {
+  width: 100%; max-width: 460px; max-height: 92dvh; overflow-y: auto; padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  background: var(--cal); color: var(--ink); border-radius: 18px 18px 0 0; border: 1.5px solid var(--cobalt);
+}
+@media (min-width: 640px) { .ofa-scrim { align-items: center; } .ofa-sheet { border-radius: 18px; } }
+.ofa-sheet-title { margin: 0 0 8px; font-family: var(--font-display); font-weight: 700; font-size: 21px; line-height: 1.2; }
+.ofa-sheet-p { margin: 0 0 12px; font-size: 15.5px; line-height: 1.45; }
+.ofa-rules { margin: 0 0 16px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.4; }
+.ofa-sheet-row { display: flex; gap: 10px; }
+.ofa-sheet-row > * { flex: 1; }
+.ofa-primary, .ofa-ghost {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 12px;
+  font-weight: 600; font-size: 16px; cursor: pointer; text-decoration: none; text-align: center;
+}
+.ofa-primary { width: 100%; background: var(--cobalt); color: var(--cal); border: 1.5px solid var(--cobalt); }
+.ofa-primary[data-kind="doubt"] { background: var(--almagre); border-color: var(--almagre); }
+.ofa-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--cobalt); }
+
+/* ---- the reveal ---- */
+.ofa-reveal { flex: 1; min-height: 0; overflow-y: auto; }
+.ofa-tier { display: inline-block; margin: 0 0 8px; padding: 3px 12px; border: 2px solid var(--cobalt); border-radius: 999px; font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+.ofa-tier[data-tier="false-start"] { border-style: dashed; }
+.ofa-roll { display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px; padding: 0; list-style: none; }
+.ofa-roll-li { padding: 7px 11px; border-left: 5px solid var(--seaglass); background: var(--cal-2); border-radius: 0 10px 10px 0; font-size: 15px; line-height: 1.4; animation: ofa-in 0.5s both; }
+.ofa-roll-li[data-liar] { border-left-color: var(--almagre); }
+.ofa-roll-motive { border-left-color: var(--cobalt); font-family: var(--font-voice); font-style: italic; font-size: 15.5px; }
+.ofa-reveal-actions { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 6px; }
+@keyframes ofa-in { from { opacity: 0; transform: translateY(6px); } }
+
+.ofa-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ofa *, .ofa *::before, .ofa *::after { animation: none !important; transition: none !important; }
+}
