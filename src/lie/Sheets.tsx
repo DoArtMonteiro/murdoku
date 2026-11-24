@@ -2,10 +2,10 @@
 // three sheets that use it: the opening, the doubt confirmation, and the cold case.
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { CircleHelp, Ellipsis, Moon, RotateCcw, Sun, Volume2, VolumeX } from 'lucide-react'
+import { BookOpen, CircleHelp, Ellipsis, Moon, RotateCcw, Sun, Volume2, VolumeX } from 'lucide-react'
 import type { Theme } from '../casebook/theme'
 import type { LieCase } from './model'
-import { nameOf } from './state'
+import { nameOf, premiseOf, readOf } from './state'
 
 interface DialogProps {
   labelledBy: string
@@ -40,54 +40,72 @@ export function Dialog({ labelledBy, onClose, children }: DialogProps) {
   )
 }
 
-/** The opening: the premise, and the rules in plain words, once. */
+/** The opening: the premise, the one thing to do, and a single button. The rest is taught by playing. */
 export function Intro({ c, truthOnly, onBegin }: { c: LieCase; truthOnly: boolean; onBegin: () => void }) {
   const { story } = c
   return (
     <Dialog labelledBy="ofa-intro-title" onClose={onBegin}>
       <h2 id="ofa-intro-title" className="ofa-sheet-title">{story.title}</h2>
-      <p className="ofa-sheet-p">{story.premise}</p>
-      <ul className="ofa-rules">
-        {truthOnly
-          ? <li>Everyone told the truth. Put each person where their account says they were.</li>
-          : (
-            <>
-              <li>Every suspect gave an account. Exactly one statement in all of them is false, and whoever told it is the murderer.</li>
-              <li>Scene facts are evidence. They cannot be doubted.</li>
-            </>
-          )}
-        <li>Everyone stands in a row and a column of their own: no two people share one, and the plan dims what is taken.</li>
-        {!truthOnly && <li>When accounts cannot all be true, they collide. Doubt the statement you think is false.</li>}
-      </ul>
+      <p className="ofa-sheet-p">{premiseOf(story.premise)}</p>
+      <p className="ofa-sheet-p ofa-sheet-lead">{truthOnly ? 'Everyone told the truth. Put each person where their account says they were.' : 'One of them lied. Prove which.'}</p>
       <button type="button" className="ofa-primary" data-autofocus onClick={onBegin}>Begin</button>
     </Dialog>
   )
 }
 
-/** "Doubt {Name}'s statement: '{text}'?" */
+/** "How it works", from the menu: short, and the rules the game teaches by doing. */
+export function HowSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <Dialog labelledBy="ofa-how-title" onClose={onClose}>
+      <h2 id="ofa-how-title" className="ofa-sheet-title">How it works</h2>
+      <ul className="ofa-rules">
+        <li>Everyone stood in a row and a column of their own: one person per row and per column.</li>
+        <li>Tap a statement to light the tiles where it can hold. Place people to try an account out.</li>
+        <li>&ldquo;Beside&rdquo; means next to it, in the same room.</li>
+        <li>Scene facts are evidence about the victim. They are always true, and always part of the question.</li>
+        <li>Pin statements that cannot all be true, then cite them. The ledger keeps what you have shown.</li>
+      </ul>
+      <button type="button" className="ofa-primary" data-autofocus onClick={onClose}>Got it</button>
+    </Dialog>
+  )
+}
+
+/** Doubt a statement from the ledger. The gate itself lives in the reducer, which reads the ledger only. */
 export function DoubtSheet({ c, id, onYes, onNo }: { c: LieCase; id: string; onYes: () => void; onNo: () => void }) {
   const st = c.statements.find(s => s.id === id)
   if (!st) return null
   return (
     <Dialog labelledBy="ofa-doubt-title" onClose={onNo}>
       <h2 id="ofa-doubt-title" className="ofa-sheet-title">
-        Doubt {nameOf(c, st.author)}&rsquo;s statement: &ldquo;{st.text}&rdquo;?
+        {nameOf(c, st.author)}: &ldquo;{readOf(st)}&rdquo;
       </h2>
-      <p className="ofa-sheet-p">Doubt the wrong account twice and the case goes cold.</p>
+      <p className="ofa-sheet-p">Doubt this account?</p>
       <div className="ofa-sheet-row">
         <button type="button" className="ofa-ghost" onClick={onNo}>Not yet</button>
-        <button type="button" className="ofa-primary" data-kind="doubt" onClick={onYes}>Doubt it</button>
+        <button type="button" className="ofa-primary" data-kind="doubt" data-autofocus onClick={onYes}>Doubt this</button>
       </div>
     </Dialog>
   )
 }
 
-export function ColdSheet({ onRestart }: { onRestart: () => void }) {
+export interface CaseEntry { id: string; title: string; solved: boolean; current: boolean }
+
+/** The casebook: the cases in order, with solved marks. */
+export function CasesSheet({ cases, onClose }: { cases: CaseEntry[]; onClose: () => void }) {
   return (
-    <Dialog labelledBy="ofa-cold-title">
-      <h2 id="ofa-cold-title" className="ofa-sheet-title">The case has gone cold.</h2>
-      <p className="ofa-sheet-p">Two accounts you doubted stood. Start again with a clean plan.</p>
-      <button type="button" className="ofa-primary" data-autofocus onClick={onRestart}>Start again</button>
+    <Dialog labelledBy="ofa-cases-title" onClose={onClose}>
+      <h2 id="ofa-cases-title" className="ofa-sheet-title">Cases</h2>
+      <ol className="ofa-cases">
+        {cases.map(k => (
+          <li key={k.id}>
+            <a className="ofa-case" href={`?alibi=${encodeURIComponent(k.id)}`} aria-current={k.current ? 'true' : undefined}>
+              <span>{k.title}</span>
+              <em>{k.solved ? 'Solved' : k.current ? 'Open' : ''}</em>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <button type="button" className="ofa-ghost" data-autofocus onClick={onClose}>Close</button>
     </Dialog>
   )
 }
@@ -96,7 +114,7 @@ export function RestartSheet({ onYes, onNo }: { onYes: () => void; onNo: () => v
   return (
     <Dialog labelledBy="ofa-restart-title" onClose={onNo}>
       <h2 id="ofa-restart-title" className="ofa-sheet-title">Start over?</h2>
-      <p className="ofa-sheet-p">Your placements, doubts and notes will be cleared.</p>
+      <p className="ofa-sheet-p">Your placements, pins and contradictions will be cleared.</p>
       <div className="ofa-sheet-row">
         <button type="button" className="ofa-ghost" data-autofocus onClick={onNo}>Keep playing</button>
         <button type="button" className="ofa-primary" onClick={onYes}>Start over</button>
@@ -112,9 +130,11 @@ interface MenuProps {
   onTheme: () => void
   onRestart: () => void
   onHow: () => void
+  /** Present when there is a casebook to show. */
+  onCases?: () => void
 }
 
-export function Menu({ sound, theme, onSound, onTheme, onRestart, onHow }: MenuProps) {
+export function Menu({ sound, theme, onSound, onTheme, onRestart, onHow, onCases }: MenuProps) {
   const innerRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   useEffect(() => {
@@ -144,6 +164,11 @@ export function Menu({ sound, theme, onSound, onTheme, onRestart, onHow }: MenuP
           <button type="button" role="menuitem" onClick={act(onRestart)}>
             <RotateCcw size={18} aria-hidden="true" /><span>Restart</span>
           </button>
+          {onCases && (
+            <button type="button" role="menuitem" onClick={act(onCases)}>
+              <BookOpen size={18} aria-hidden="true" /><span>Cases</span>
+            </button>
+          )}
           <button type="button" role="menuitem" onClick={act(onHow)}>
             <CircleHelp size={18} aria-hidden="true" /><span>How it works</span>
           </button>

@@ -1,140 +1,92 @@
-// Collisions: places where the accounts, taken together with where the player has put people, cannot all be true.
-// Pure. It never reads puzzle.solution; it only evaluates statements against the current placement.
-import type { Cell } from '../core/types'
+// Rulings: when the player cites statements as "can't all be true", the engine decides. Pure.
+// The bench is silent: nothing here looks at the placement to find contradictions for the player. A citation is
+// judged against the statements alone (plus the victim's scene facts, which are always evidence), and a ruling
+// never says which of the cited statements is false.
+import { countSolutions } from '../core/engine'
+import type { Cell, Puzzle } from '../core/types'
 import type { LieCase, Statement } from './model'
-import { allTiles, holds, otherOf, tileKey, unaryAllows } from './lens'
+import { isMinimalContradiction, satisfiable } from './verify'
+import { tileKey } from './lens'
 import type { Placed } from './lens'
 
-export interface Collision {
-  /** The person whose account (or position) cannot be satisfied. */
-  subject: string
-  /** The subject first, then everyone they collide with. */
-  people: string[]
-  /** Every active statement by those people. */
-  statementIds: string[]
-  /** "row,col" tiles the subject's own statements allow, for the crack overlay. */
-  tiles: string[]
-}
+/** What the engine says about a cited set. */
+export type Ruling = 'minimal' | 'redundant' | 'satisfiable'
 
-/** A collision the detective wrote down. Kept even after the placement that caused it is undone. */
-export interface JournalEntry { people: string[]; statementIds: string[] }
+/** A recorded contradiction: statement ids in reading order. */
+export type LedgerRow = readonly string[]
 
-/** Stable identity of a collision: the sorted set of people. */
-export const collisionKey = (people: readonly string[]): string => [...people].sort().join('|')
+const byId = (c: LieCase, id: string): Statement | undefined => c.statements.find(s => s.id === id)
 
-const MAX_EXACT = 10
-/** Per subject, how many different groups are reported at most. */
-const MAX_GROUPS = 4
-
-/**
- * Every smallest-first group of placed people that already leaves the subject no tile, keeping only groups that
- * contain no smaller group (a group is dropped when a subset of it already blocks). So two different people who
- * each break the same account give two collisions, and a person who merely happens to be placed too gives none.
- */
-function minimalBlockers(candidates: string[], leavesTile: (subset: string[]) => boolean): string[][] {
-  if (candidates.length > MAX_EXACT) {
-    // Too many to enumerate: drop people one by one while the tile stays impossible.
-    let keep = [...candidates]
-    for (const id of [...candidates].reverse()) {
-      const trial = keep.filter(k => k !== id)
-      if (!leavesTile(trial)) keep = trial
-    }
-    return [keep]
-  }
-  const found: string[][] = []
-  const walk = (size: number, start: number, acc: string[]): void => {
-    if (found.length >= MAX_GROUPS) return
-    if (acc.length === size) {
-      if (found.some(f => f.every(id => acc.includes(id)))) return
-      if (!leavesTile(acc)) found.push(acc)
-      return
-    }
-    for (let i = start; i < candidates.length; i++) walk(size, i + 1, [...acc, candidates[i]])
-  }
-  for (let size = 0; size <= candidates.length && found.length < MAX_GROUPS; size++) walk(size, 0, [])
-  return found
-}
-
-/**
- * Collisions in the current placement, in the order of c.puzzle.people.
- * `active` is the statements not yet struck.
- *
- * Unplaced X: no tile with a free row and column satisfies X's unary statements and every relational statement
- * between X and a placed person (X's own, or the placed person's statement about X). The blockers are a smallest
- * group of placed people that already leaves X no tile, so the collision names only the accounts that actually
- * clash. When several different groups each do it, each is its own collision (at most four per subject).
- *
- * Placed X: an active statement of X is broken by the current placement.
- */
-export function findCollisions(c: LieCase, active: readonly Statement[], placed: Placed): Collision[] {
-  const p = c.puzzle
-  const out: Collision[] = []
-  const placedIds = p.people.map(x => x.id).filter(id => placed[id])
-  const byAuthor = (id: string) => active.filter(s => s.author === id)
-
-  for (const x of p.people) {
-    const X = x.id
-    const own = byAuthor(X)
-    const base: Cell[] = allTiles(p).filter(t => own.every(s => otherOf(s.clue) ? true : unaryAllows(p, s, t)))
-    const tiles = base.map(tileKey)
-
-    if (!placed[X]) {
-      const others = placedIds.filter(id => id !== X)
-      // relational statements that tie X to someone, whoever wrote them
-      const rel = active.filter(s => {
-        const o = otherOf(s.clue)
-        return !!o && (s.author === X || o === X)
-      })
-      const partner = (s: Statement) => (s.author === X ? otherOf(s.clue)! : s.author)
-      // Is there a tile for X once only `subset` is placed?
-      const leavesTile = (subset: string[]): boolean => {
-        const rows = new Set(subset.map(id => placed[id].row)), cols = new Set(subset.map(id => placed[id].col))
-        const sub: Placed = {}
-        for (const id of subset) sub[id] = placed[id]
-        return base.some(t => {
-          if (rows.has(t.row) || cols.has(t.col)) return false
-          const trial: Placed = { ...sub, [X]: t }
-          return rel.every(s => !subset.includes(partner(s)) || holds(p, s, trial))
-        })
-      }
-      if (leavesTile(others)) continue
-      // only people who take at least one of X's tiles away can be part of the collision
-      const takes = (id: string): boolean => base.some(t => {
-        if (placed[id].row === t.row || placed[id].col === t.col) return true
-        const trial: Placed = { [id]: placed[id], [X]: t }
-        return rel.some(s => partner(s) === id && !holds(p, s, trial))
-      })
-      for (const blockers of minimalBlockers(others.filter(takes), leavesTile)) {
-        const people = [X, ...blockers]
-        out.push({
-          subject: X,
-          people,
-          statementIds: active.filter(s => people.includes(s.author)).map(s => s.id),
-          tiles,
-        })
-      }
-    } else {
-      const broken = own.filter(s => !holds(p, s, placed))
-      if (!broken.length) continue
-      const refs: string[] = []
-      for (const s of broken) {
-        const o = otherOf(s.clue)
-        if (o && !refs.includes(o)) refs.push(o)
-      }
-      const people = [X, ...refs]
-      const ids = new Set(broken.map(s => s.id))
-      for (const s of active) if (refs.includes(s.author)) ids.add(s.id)
-      out.push({ subject: X, people, statementIds: active.filter(s => ids.has(s.id)).map(s => s.id), tiles })
-    }
+/** Cited ids that can be cited at all: known, and not a scene fact (those are always included, never pinned). */
+export function citable(c: LieCase, ids: readonly string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const id of ids) {
+    const s = byId(c, id)
+    if (!s || s.scene || seen.has(id)) continue
+    seen.add(id)
+    out.push(id)
   }
   return out
 }
 
-/** Collisions worth recording: two or more people, so a lone misplacement never reads as accounts clashing. */
-export const recordable = (list: readonly Collision[]): Collision[] => list.filter(k => k.people.length >= 2)
+/** Reading order, the order statements appear in the case. */
+export const inReadingOrder = (c: LieCase, ids: readonly string[]): string[] =>
+  c.statements.filter(s => ids.includes(s.id)).map(s => s.id)
 
-/** People who appear in every one of the rows (empty when there are none). */
-export function commonPeople(rows: readonly (readonly string[])[]): string[] {
-  if (!rows.length) return []
-  return rows[0].filter(id => rows.every(r => r.includes(id)))
+/**
+ * Unsatisfiable and minimal: every cited statement is needed (dropping any one makes the rest satisfiable).
+ * Unsatisfiable but not minimal: some statement is along for the ride. Otherwise they can all be true.
+ * The victim's scene facts are always part of the question; the engine-backed checks are the case verifier's own.
+ */
+export function rule(c: LieCase, ids: readonly string[]): Ruling {
+  const cited = citable(c, ids)
+  if (satisfiable(c, cited)) return 'satisfiable'
+  return isMinimalContradiction(c, cited) ? 'minimal' : 'redundant'
+}
+
+/** Stable identity of a recorded contradiction. */
+export const contradictionKey = (ids: readonly string[]): string => [...ids].sort().join('|')
+
+/**
+ * The doubt gate. Reads the ledger and nothing else: the recorded contradictions that contain `id` must be at
+ * least two and meet in exactly that one statement. Every true statement is jointly satisfiable, so any
+ * recorded contradiction holds the lie; two that meet only in `id` therefore make `id` the lie.
+ */
+export function proofGate(ledger: readonly LedgerRow[], id: string): boolean {
+  const rows = ledger.filter(r => r.includes(id))
+  if (rows.length < 2) return false
+  const common = rows[0].filter(x => rows.every(r => r.includes(x)))
+  return common.length === 1 && common[0] === id
+}
+
+/** Tiles of the cited statements' speakers who are already on the plan. Unplaced claims get no crack. */
+export function crackTiles(c: LieCase, ids: readonly string[], placed: Placed): Set<string> {
+  const out = new Set<string>()
+  for (const id of ids) {
+    const a = byId(c, id)?.author
+    if (a && placed[a]) out.add(tileKey(placed[a]))
+  }
+  return out
+}
+
+/**
+ * Of these placed people, who is already where the true statements put them? Taken one by one: a token stays when
+ * the true statements can still all hold with it and the tokens kept so far where they stand. (A row and a column
+ * clue per token pins the person to the tile.) Used when the lie is proved, so no honest token that was placed on
+ * a guess can lock the true plan out of reach.
+ */
+export function keepConsistent(c: LieCase, placed: Placed, who: readonly string[]): string[] {
+  const kept: string[] = []
+  const pin = (id: string, cell: Cell) => [
+    { clue: { kind: 'row' as const, person: id, row: cell.row }, text: '' },
+    { clue: { kind: 'col' as const, person: id, col: cell.col }, text: '' },
+  ]
+  for (const id of who) {
+    if (!placed[id]) continue
+    const trial = [...kept, id]
+    const p: Puzzle = { ...c.puzzle, clues: [...c.puzzle.clues, ...trial.flatMap(x => pin(x, placed[x]))] }
+    if (countSolutions(p, 1) > 0) kept.push(id)
+  }
+  return kept
 }

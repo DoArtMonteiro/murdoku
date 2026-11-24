@@ -17,6 +17,10 @@
              --cobalt #8FA9E8 on --cal          7.34   AA
              --almagre #E98669 on --cal         6.59   AA
              --cal on --ochre / --seaglass      7.63 / 6.56
+   Tokens: a suspect token is the accent darkened in its own hue (art/palette.ts deepTint) until --chalk
+   (#F4EFE4, the same in both themes) reads on it at 4.5:1 or better: the five case-1 accents land at
+   4.87 to 4.98, measured. The raw accents gave chalk only 2.58 to 3.52 (three below 3:1), hence the
+   derivation. Deep tints sit at about 3.0:1 on the dark board; the chalk border does the edge work there.
    Nothing needed adjusting in the light theme. In the dark theme the light cobalt
    (#8FA9E8) and the lifted almagre (#E98669) were chosen to clear 4.5:1 on #101B33;
    ochre and seaglass keep their light-theme hex. Where --almagre meets --ochre
@@ -40,7 +44,11 @@
   --seaglass: #7FA99B;
   --grout: color-mix(in srgb, var(--cobalt) 30%, transparent);
   --shadow: rgba(20, 33, 61, 0.32);
-  --dim: rgba(20, 33, 61, 0.14);
+  --dim: rgba(20, 33, 61, 0.14); /* legacy: the board no longer greys tiles out, see sightlines */
+  /* Token ink: emblem and border on a suspect token, light in BOTH themes (the token ground is a deep tint) */
+  --chalk: #F4EFE4;
+  /* The reveal washes the murder room with almagre warmed by ochre */
+  --room-tint: color-mix(in srgb, var(--almagre) 55%, var(--ochre));
 
   --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
   --font-voice: 'Newsreader', 'Iowan Old Style', Georgia, serif;

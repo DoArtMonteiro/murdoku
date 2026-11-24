@@ -11,6 +11,9 @@
 .lem-dot { fill: var(--cal, #F4EFE4); stroke: none; }
 .lem-glyph { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
 .lem-glyph .lem-fill { stroke: none; }
+/* a board token: solid tint (the fill is an attribute, see EmblemTile), chalk border and a hairline rim */
+.lem-ground-tk { stroke: currentColor; stroke-width: 2.4; }
+.lem-rim { fill: none; stroke: var(--ink, #14213D); stroke-width: 1; opacity: 0.85; }
 
 /* ---- plan ------------------------------------------------------------------------- */
 .lp {
@@ -51,9 +54,16 @@
 .lp-glaze[data-d="6"] { transition-delay: 360ms; }
 .lp-glaze[data-d="7"] { transition-delay: 420ms; }
 
-/* excluded by an occupied row or column: dimmed toward the ground, not removed */
-.lp-blocked { fill: var(--dim, rgba(20, 33, 61, 0.14)); opacity: 0; transition: opacity 300ms ease; pointer-events: none; }
-.lp-blocked[data-on] { opacity: 1; }
+/* excluded by an occupied row or column: a faint cobalt hatch, no fill, so the tilework stays whole */
+.lp-blocked { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0; transition: opacity 300ms ease; pointer-events: none; }
+.lp-blocked[data-on] { opacity: 0.22; }
+
+/* sightlines: the row and column of each placed person, as cobalt hairlines (1px, whatever the zoom) */
+.lp-sight { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 1.25; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; opacity: 0.6; pointer-events: none; }
+
+/* the room tint of the reveal: almagre warmed with ochre, over the limewash and under the furniture */
+.lp-tint { fill: var(--room-tint, #C77A28); fill-opacity: 0; transition: fill-opacity 600ms ease; pointer-events: none; }
+.lp-tint[data-on] { fill-opacity: 0.4; }
 
 .lp-wall-in, .lp-jamb, .lp-wall-out { fill: none; stroke: var(--ink, #14213D); stroke-linecap: square; stroke-linejoin: miter; pointer-events: none; }
 .lp-wall-in, .lp-jamb { stroke-width: 6; }
@@ -68,14 +78,49 @@
 .lp-furn, .lp-label, .lp-token, .lp-crack { pointer-events: none; }
 
 .lp-label-plaque { fill: var(--cal, #F4EFE4); fill-opacity: 0.94; stroke: var(--cobalt, #1F3F8F); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
-.lp-label-text { fill: var(--ink, #14213D); font-family: var(--font-display, 'Fraunces', Georgia, serif); font-weight: 600; font-variant-caps: all-small-caps; letter-spacing: 0.08em; dominant-baseline: central; }
+.lp-label-plaque { stroke-width: 1.4; }
+.lp-label-text { fill: var(--ink, #14213D); font-family: var(--font-display, 'Fraunces', Georgia, serif); font-weight: 700; letter-spacing: 0.01em; dominant-baseline: central; }
 
 .lp-shadow { fill: var(--shadow, rgba(20, 33, 61, 0.32)); }
+.lp-shadow-far { opacity: 0.45; }
 .lp-ring { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 4.5; }
 .lp-ring-murderer { fill: none; stroke: var(--almagre, #B4482E); stroke-width: 5; }
 .lp-emb { color: var(--cobalt, #1F3F8F); }
-.lp-ghost { opacity: 0.5; }
-.lp-ghost .lem-ground { stroke-dasharray: 5 3.5; }
+/* suspect tokens: chalk emblem and border on the person's deep tint, the same in both themes */
+.lp-emb-tk { color: var(--chalk, #F4EFE4); }
+.lp-emb-tk .lem-dot { opacity: 0; }
+.lp-ghost { opacity: 0.55; }
+.lp-ghost .lem-ground-tk { stroke-dasharray: 5 3.5; }
+
+/* the supposition glides between cells: one group per axis, positioned by data-row / data-col */
+.lp-gy, .lp-gx { transition: transform 900ms cubic-bezier(0.45, 0, 0.2, 1); }
+.lp-gy[data-row="0"] { transform: translateY(0px); }
+.lp-gy[data-row="1"] { transform: translateY(100px); }
+.lp-gy[data-row="2"] { transform: translateY(200px); }
+.lp-gy[data-row="3"] { transform: translateY(300px); }
+.lp-gy[data-row="4"] { transform: translateY(400px); }
+.lp-gy[data-row="5"] { transform: translateY(500px); }
+.lp-gy[data-row="6"] { transform: translateY(600px); }
+.lp-gy[data-row="7"] { transform: translateY(700px); }
+.lp-gy[data-row="8"] { transform: translateY(800px); }
+.lp-gy[data-row="9"] { transform: translateY(900px); }
+.lp-gx[data-col="0"] { transform: translateX(0px); }
+.lp-gx[data-col="1"] { transform: translateX(100px); }
+.lp-gx[data-col="2"] { transform: translateX(200px); }
+.lp-gx[data-col="3"] { transform: translateX(300px); }
+.lp-gx[data-col="4"] { transform: translateX(400px); }
+.lp-gx[data-col="5"] { transform: translateX(500px); }
+.lp-gx[data-col="6"] { transform: translateX(600px); }
+.lp-gx[data-col="7"] { transform: translateX(700px); }
+.lp-gx[data-col="8"] { transform: translateX(800px); }
+.lp-gx[data-col="9"] { transform: translateX(900px); }
+
+/* a token that pulses once, with a ring that opens out and fades */
+.lp-face { transform-box: fill-box; transform-origin: center; }
+.lp-pulse { animation: lp-pulse 1000ms ease-out 1; }
+@keyframes lp-pulse { 0%, 100% { transform: scale(1); } 35% { transform: scale(1.16); } }
+.lp-pulse-ring { fill: none; stroke: var(--cobalt, #1F3F8F); stroke-width: 4; transform-box: fill-box; transform-origin: center; animation: lp-ring-out 1000ms ease-out 1 both; }
+@keyframes lp-ring-out { from { opacity: 0.9; transform: scale(0.9); } to { opacity: 0; transform: scale(1.5); } }
 .lp-victim-ground { fill: var(--ink, #14213D); stroke: var(--cobalt, #1F3F8F); stroke-width: 2.2; }
 .lp-victim-chalk { fill: none; stroke: var(--cal, #F4EFE4); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2.6 2.2; }
 
@@ -96,6 +141,10 @@
 /* reduced motion: nothing travels, state changes crossfade */
 @media (prefers-reduced-motion: reduce) {
   .lp-glaze, .lp-blocked { transition: opacity 160ms linear; transition-delay: 0ms !important; }
+  .lp-tint { transition: fill-opacity 160ms linear; }
+  .lp-gy, .lp-gx { transition: none; }
+  .lp-pulse { animation: none; }
+  .lp-pulse-ring { animation: none; opacity: 0.8; }
   .lp-lift { animation: lp-fade 300ms linear forwards; }
   .lp-crack-line { animation: lp-fade-in 300ms linear both; }
   @keyframes lp-fade { from { opacity: 1; } to { opacity: 0; } }

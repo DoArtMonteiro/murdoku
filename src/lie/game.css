@@ -15,13 +15,15 @@
   -webkit-text-size-adjust: 100%;
 }
 .ofa *, .ofa *::before, .ofa *::after { box-sizing: border-box; }
-.ofa button, .ofa a { font: inherit; color: inherit; }
+/* :where keeps the reset at zero specificity, so .ofa-primary { color } is not overridden by it */
+:where(.ofa) button, :where(.ofa) a { font: inherit; color: inherit; }
 .ofa :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
 
 /* ---- top bar ---- */
 .ofa-bar { flex: none; display: flex; align-items: center; gap: 2px; min-height: 52px; padding: 2px 8px; }
 .ofa-bar-title { flex: 1; min-width: 0; padding: 0 6px; }
-.ofa-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ofa-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 18px; line-height: 1.15; overflow-wrap: anywhere; text-wrap: balance; }
+@media (max-width: 420px) { .ofa-title { font-size: 16px; } }
 .ofa-phase { margin: 1px 0 0; font-size: 12px; line-height: 1.2; }
 .ofa-icon {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
@@ -43,17 +45,17 @@
 /* ---- layout: one phone column; plan, then everything the player compares ---- */
 .ofa-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .ofa-plan { flex: none; width: min(100%, 50dvh); margin: 0 auto; padding: 0 4px; }
-.ofa-side { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 6px 12px 8px; }
+.ofa-side { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; padding: 0 12px 8px; overflow-y: auto; overscroll-behavior: contain; }
 
 @media (min-width: 1024px) {
   .ofa-main { flex-direction: row; align-items: flex-start; gap: 28px; padding: 8px 28px 16px; }
   .ofa-plan { width: min(58vw, calc(100dvh - 96px), 720px); margin: 0; padding: 0; }
   .ofa-side { align-self: stretch; max-width: 520px; padding: 0; overflow-y: auto; }
-  .ofa-card { flex: none; overflow: visible; }
+  .ofa-strip { position: static; }
 }
 
 /* ---- the people strip ---- */
-.ofa-strip { flex: none; display: flex; gap: 4px; margin: 0; padding: 3px 2px; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.ofa-strip { position: sticky; top: 0; z-index: 3; background: var(--cal); flex: none; display: flex; gap: 4px; margin: 0; padding: 3px 2px; list-style: none; overflow-x: auto; scrollbar-width: none; }
 .ofa-strip::-webkit-scrollbar { display: none; }
 .ofa-strip-li { flex: 1 1 0; min-width: 46px; max-width: 76px; }
 .ofa-strip-li[data-victim] { margin-left: 4px; padding-left: 6px; border-left: 1.5px dashed var(--grout); }
@@ -70,31 +72,37 @@
   position: absolute; top: -4px; right: -6px; display: inline-flex; align-items: center; justify-content: center;
   width: 17px; height: 17px; border-radius: 50%; background: var(--seaglass); color: var(--ink); border: 1.5px solid var(--cal);
 }
-.ofa-pick[data-common], .ofa-ledger-person[data-common] .lem {
-  border-radius: 12px;
-  box-shadow: 0 0 0 2px var(--almagre), 0 0 14px color-mix(in srgb, var(--almagre) 70%, transparent);
-  animation: ofa-glow 2.4s ease-in-out infinite;
+/* ---- the citation tray ---- */
+.ofa-tray { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 6px 0; border-block: 1px solid var(--grout); }
+.ofa-tray-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ofa-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 12px; max-width: 100%;
+  border: 1.5px solid var(--grout); border-radius: 999px; background: var(--cal); font-size: 14px; line-height: 1.25; text-align: left; cursor: pointer;
+  overflow-wrap: anywhere;
 }
-.ofa-ledger-person[data-common] .lem { border-radius: 6px; }
-@keyframes ofa-glow { 50% { box-shadow: 0 0 0 2px var(--almagre), 0 0 4px color-mix(in srgb, var(--almagre) 40%, transparent); } }
+.ofa-tray .ofa-chip { border-color: var(--cobalt); }
+span.ofa-chip { cursor: default; }
+.ofa-cite { min-height: 48px; }
 
-/* ---- the Contradictions ledger ---- */
-.ofa-ledger { flex: none; display: flex; align-items: center; gap: 10px; padding: 4px 2px; border-block: 1px solid var(--grout); overflow-x: auto; scrollbar-width: none; }
-.ofa-ledger-h { margin: 0; flex: none; font-family: var(--font-ui); font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--almagre); }
-.ofa-ledger-rows { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.ofa-ledger-row { flex: none; display: flex; align-items: center; gap: 3px; padding: 3px 7px; border: 1.5px solid color-mix(in srgb, var(--almagre) 60%, transparent); border-radius: 999px; }
-.ofa-ledger-person { display: inline-flex; align-items: center; gap: 3px; }
-.ofa-ledger-x { font-size: 13px; line-height: 1; color: var(--almagre); }
+/* ---- the Contradictions ledger: rows wrap, nothing clips ---- */
+.ofa-ledger { flex: none; display: flex; flex-direction: column; gap: 4px; padding: 6px 0; border-block: 1px solid var(--grout); }
+.ofa-ledger-h { margin: 0; font-family: var(--font-ui); font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--almagre); }
+.ofa-ledger-rows { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ofa-ledger-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 8px; border: 1.5px solid color-mix(in srgb, var(--almagre) 60%, transparent); border-radius: 14px; }
+.ofa-ledger-row .ofa-chip { border-color: color-mix(in srgb, var(--almagre) 45%, transparent); }
+.ofa-ledger-row[data-solved] { border-style: dashed; opacity: 0.8; }
+.ofa-ledger-row .ofa-chip[data-struck] { border-style: dashed; border-color: var(--almagre); color: var(--almagre); text-decoration: line-through; text-decoration-thickness: 2px; font-weight: 600; }
 
 /* ---- the one line above the accounts: a coach beat or an event ---- */
 .ofa-line { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 30px; margin: 0; font-size: 14px; line-height: 1.3; }
 .ofa-line[data-kind="event"] { font-weight: 600; padding-left: 8px; border-left: 4px solid var(--ink); }
-.ofa-line[data-cue="collision"], .ofa-line[data-cue="crack"] { border-left-color: var(--almagre); color: var(--almagre); }
-.ofa-line[data-cue="stand"] { border-left-color: var(--seaglass); }
+.ofa-line[data-tone="crack"] { border-left-color: var(--almagre); color: var(--almagre); }
+.ofa-line[data-kind="coach"] { color: var(--ink); opacity: 0.85; border-left: 4px solid var(--cobalt); padding-left: 8px; }
+.ofa-line[data-tone="refuse"] { border-left-color: var(--ink); }
 .ofa-line-x { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -8px -8px -8px 0; border: 0; background: transparent; cursor: pointer; }
 
 /* ---- the selected account ---- */
-.ofa-card { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.ofa-card { flex: none; }
 .ofa-card-head { margin-bottom: 4px; }
 .ofa-card-name { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.15; }
 .ofa-card-role { margin: 1px 0 0; font-size: 13px; }
@@ -107,23 +115,22 @@
 }
 .ofa-st-main:disabled { cursor: default; }
 .ofa-st[data-lit] .ofa-st-main { background: color-mix(in srgb, var(--ochre) 30%, var(--cal)); border-color: var(--ochre); }
-.ofa-st[data-stands] .ofa-st-main { border-left: 5px solid var(--seaglass); }
 .ofa-st[data-struck] .ofa-st-main { border: 1.5px dashed var(--almagre); }
 .ofa-st[data-struck] .ofa-st-text { text-decoration: line-through; text-decoration-color: var(--almagre); text-decoration-thickness: 2px; }
 .ofa-st[data-scene] .ofa-st-main { border-style: double; border-width: 3px; }
-.ofa-st-voice { font-family: var(--font-voice); font-style: italic; font-size: 14.5px; line-height: 1.3; }
-.ofa-st-text { font-size: 15.5px; line-height: 1.3; }
+.ofa-st-text { font-family: var(--font-voice); font-style: italic; font-size: 16px; line-height: 1.35; }
 .ofa-st-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .ofa-st-tags:empty { display: none; }
 .ofa-tag { padding: 1px 7px; border: 1px solid var(--grout); border-radius: 999px; font-size: 11.5px; line-height: 1.4; }
 .ofa-tag[data-kind="wait"] { border-style: dashed; }
-.ofa-tag[data-kind="stands"] { background: var(--seaglass); border-color: var(--seaglass); color: var(--ink); font-weight: 600; }
 .ofa-tag[data-kind="cracked"] { color: var(--almagre); border-color: var(--almagre); font-weight: 600; }
 .ofa-tag[data-kind="lit"] { background: var(--ochre); border-color: var(--ochre); color: var(--ink); }
-.ofa-doubt {
-  flex: none; min-width: 64px; min-height: 48px; padding: 0 8px; cursor: pointer;
-  background: transparent; border: 1.5px dashed var(--almagre); border-radius: 10px; color: var(--almagre); font-size: 14px; font-weight: 600;
+.ofa-pin {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; min-height: 48px; padding: 0; cursor: pointer;
+  background: transparent; border: 1.5px solid var(--grout); border-radius: 10px;
 }
+.ofa-pin[aria-pressed="true"] { background: var(--cobalt); border-color: var(--cobalt); color: var(--cal); }
+.ofa-st[data-pinned] .ofa-st-main { border-color: var(--cobalt); }
 
 /* ---- sheets ---- */
 .ofa-scrim { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: color-mix(in srgb, var(--ink) 50%, transparent); }
@@ -141,20 +148,16 @@
   display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 12px;
   font-weight: 600; font-size: 16px; cursor: pointer; text-decoration: none; text-align: center;
 }
+/* AA in both themes: --cal on --cobalt is 8.46 (light) and 7.34 (dark); --cal on --almagre is 4.69 and 6.59 */
 .ofa-primary { width: 100%; background: var(--cobalt); color: var(--cal); border: 1.5px solid var(--cobalt); }
 .ofa-primary[data-kind="doubt"] { background: var(--almagre); border-color: var(--almagre); }
+.ofa-primary:disabled { background: transparent; color: var(--ink); border-style: dashed; opacity: 0.7; cursor: default; }
+.ofa-sheet-lead { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+.ofa-cases { margin: 0 0 14px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ofa-case { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 0 12px; border: 1.5px solid var(--grout); border-radius: 10px; text-decoration: none; }
+.ofa-case[aria-current="true"] { border-color: var(--cobalt); background: var(--cal-2); }
+.ofa-case em { font-style: normal; font-size: 13px; }
 .ofa-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--cobalt); }
-
-/* ---- the reveal ---- */
-.ofa-reveal { flex: 1; min-height: 0; overflow-y: auto; }
-.ofa-tier { display: inline-block; margin: 0 0 8px; padding: 3px 12px; border: 2px solid var(--cobalt); border-radius: 999px; font-family: var(--font-display); font-weight: 700; font-size: 17px; }
-.ofa-tier[data-tier="false-start"] { border-style: dashed; }
-.ofa-roll { display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px; padding: 0; list-style: none; }
-.ofa-roll-li { padding: 7px 11px; border-left: 5px solid var(--seaglass); background: var(--cal-2); border-radius: 0 10px 10px 0; font-size: 15px; line-height: 1.4; animation: ofa-in 0.5s both; }
-.ofa-roll-li[data-liar] { border-left-color: var(--almagre); }
-.ofa-roll-motive { border-left-color: var(--cobalt); font-family: var(--font-voice); font-style: italic; font-size: 15.5px; }
-.ofa-reveal-actions { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 6px; }
-@keyframes ofa-in { from { opacity: 0; transform: translateY(6px); } }
 
 .ofa-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 

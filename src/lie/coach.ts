@@ -1,13 +1,14 @@
-// Three short beats, shown as one dismissible line above the accounts, on a player's first case only.
-// The beat is DERIVED from the real game state (nothing scripted), so a player who ignores it loses nothing.
+// Three short beats, shown as one dismissible, non-modal line above the accounts, on a player's first case only.
+// A beat is DERIVED from the real game state (nothing scripted): the game teaches by doing, and a player who
+// ignores the line loses nothing. The line never states the method.
 import type { GameState } from './state'
 
-export const COACH_KEY = 'alibi_ofa_coach_v1'
+export const COACH_KEY = 'alibi_ofa_coach_v2'
 
 export const BEATS = {
-  1: 'Tap a suspect, then a statement: the plan shows where it can be true.',
-  2: 'One person per row and column.',
-  3: 'Two accounts collide. One of them holds the lie: find a second collision.',
+  1: 'Tap a statement: the plan shows where it can hold.',
+  2: 'One person per row and per column.',
+  3: "Pin the statements that can't all be true, then cite them.",
 } as const
 export type Beat = keyof typeof BEATS
 
@@ -18,16 +19,18 @@ export function markCoachDone(): void {
   try { localStorage.setItem(COACH_KEY, '1') } catch { /* the line may come back next visit */ }
 }
 
+type Facts = Pick<GameState, 'placed' | 'pins' | 'ledger' | 'struck' | 'outcome' | 'refusalOpen' | 'touched'>
+
 /**
- * Which beat fits the game right now, or null. Beat 3 only ever shows in the lie-hunting direction,
- * and only until a second collision has been found or the lie has been struck.
+ * Which beat fits the game right now, or null.
+ * 3: the player has pinned something and nothing is on the ledger yet (not in the hidden harness, which has no pins).
+ * 2: the last move was a tap on a ruled-out tile.
+ * 1: nothing has been touched yet.
  */
-export function beatFor(s: Pick<GameState, 'placed' | 'journal' | 'struck' | 'outcome'>, truthOnly: boolean): Beat | null {
+export function beatFor(s: Facts, truthOnly: boolean): Beat | null {
   if (s.outcome || s.struck) return null
-  const placed = Object.keys(s.placed).length
-  if (!truthOnly && s.struck === null && s.journal.length === 1) return 3
-  if (s.journal.length > 0) return null
-  if (placed === 0) return 1
-  if (placed <= 2) return 2
+  if (!truthOnly && s.pins.length > 0 && s.ledger.length === 0) return 3
+  if (s.refusalOpen) return 2
+  if (!s.touched && s.pins.length === 0 && Object.keys(s.placed).length === 0) return 1
   return null
 }

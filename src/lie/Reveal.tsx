@@ -1,89 +1,82 @@
-// The reveal: the roll-call after the plan closes. Each innocent suspect is cleared by their own account, the liar's
-// statement is read back with the accounts that refute it, then the motive. Everything is in the DOM at once;
-// the stagger is CSS only, and reduced motion removes it.
+// The reveal panel: what the plan proved, once the theatrical sequence (reveal.ts) has played. Short, in
+// this order: the tier as a stamp, the liar's line as the headline, the motive and the closing line, one
+// line for the innocents (open it for where each of them was), then the buttons. Classes live in
+// reveal.css; nothing here uses a style attribute.
+import { Check } from 'lucide-react'
 import { roomIdAt } from '../core/engine'
 import type { Cell } from '../core/types'
 import type { LieCase } from './model'
-import { liar, nameOf } from './state'
+import { fillStory, joinNames, liarOf, nameOf } from './revealSequence'
+import './reveal.css'
 
-export type Tier = 'Proved' | 'Proved, after a false start' | 'Closed'
+// kept here for callers that already import them from this module
+export { joinNames, refuters, tierFor } from './revealSequence'
+export type { Tier } from './revealSequence'
 
-export const tierFor = (truthOnly: boolean, strikes: number): Tier =>
-  truthOnly ? 'Closed' : strikes === 0 ? 'Proved' : 'Proved, after a false start'
-
-const roomName = (c: LieCase, cell: Cell): string =>
-  c.puzzle.rooms.find(r => r.id === roomIdAt(c.puzzle, cell))?.name ?? 'house'
-
-/** "A", "A and B", "A, B and C" */
-export function joinNames(names: string[]): string {
-  if (names.length < 2) return names.join('')
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
-}
-
-/** Who refutes the lie: the authors of the other statements in the two collisions, never the liar. */
-export function refuters(c: LieCase): string[] {
-  const who = liar(c)
-  const out: string[] = []
-  for (const set of c.collisions) {
-    for (const id of set) {
-      const a = c.statements.find(s => s.id === id)?.author
-      if (a && a !== who && !out.includes(a)) out.push(a)
-    }
-  }
-  return out
-}
-
-const fill = (text: string, c: LieCase): string =>
-  text.replaceAll('{M}', nameOf(c, c.puzzle.murdererId)).replaceAll('{V}', nameOf(c, c.puzzle.victimId))
+const roomName = (c: LieCase, cell: Cell | undefined): string | null =>
+  cell ? c.puzzle.rooms.find(r => r.id === roomIdAt(c.puzzle, cell))?.name ?? null : null
 
 interface Props {
   c: LieCase
   placed: Record<string, Cell>
-  strikes: number
-  truthOnly: boolean
-  onRestart: () => void
+  /** 'Proved', 'Proved, after a false start' or 'Closed' (see tierFor) */
+  tier: string
+  /** the panel shows once the sequence is done */
+  done: boolean
+  /** "Next case"; the primary button is left out when absent */
+  onNext?: () => void
+  onReplay: () => void
 }
 
-export function Reveal({ c, placed, strikes, truthOnly, onRestart }: Props) {
+export function Reveal({ c, placed, tier, done, onNext, onReplay }: Props) {
+  if (!done) return null
   const murderer = c.puzzle.murdererId
   const victim = c.puzzle.victimId
+  const liar = nameOf(c, liarOf(c))
+  // Closed is the direction with no lie to catch: everyone told the truth, so the line is about the room
+  const noLie = tier === 'Closed'
   const innocents = c.puzzle.people.filter(x => x.id !== murderer && x.id !== victim)
-  const lie = c.statements.find(s => s.id === c.lieId)
-  const who = refuters(c).map(id => nameOf(c, id))
   const motive = c.story.cast[murderer]?.motive
-  const tier = tierFor(truthOnly, strikes)
-  const delay = (n: number) => ({ animationDelay: `${n * 260}ms` })
-  let n = 0
+  const closing = fillStory(c.story.closing, c)
+
   return (
-    <section className="ofa-reveal" aria-label="The case, closed">
-      <p className="ofa-tier" data-tier={tier === 'Proved' ? 'clean' : 'false-start'}>{tier}</p>
-      <ol className="ofa-roll">
-        {innocents.map(x => (
-          <li key={x.id} className="ofa-roll-li" style={delay(n++)}>
-            <strong>{nameOf(c, x.id)}</strong> was in the {roomName(c, placed[x.id])}: cleared by their own account.
-          </li>
-        ))}
-        <li className="ofa-roll-li" data-liar style={delay(n++)}>
-          {truthOnly || !lie
-            ? <><strong>{nameOf(c, murderer)}</strong> was in the {roomName(c, placed[murderer])}, alone with {nameOf(c, victim)}.</>
-            : (
-              <>
-                <strong>{nameOf(c, lie.author)}</strong> said &ldquo;{lie.text}&rdquo;.{' '}
-                {who.length > 0 && <>{who.length === 1 ? `${who[0]}'s account says` : `${joinNames(who.map(w => `${w}'s`))} accounts say`} otherwise.</>}
-              </>
-            )}
-        </li>
-        {(motive || c.story.closing) && (
-          <li className="ofa-roll-li ofa-roll-motive" style={delay(n++)}>
-            {motive && <span>{motive} </span>}
-            <span>{fill(c.story.closing, c)}</span>
-          </li>
-        )}
-      </ol>
-      <div className="ofa-reveal-actions">
-        <a className="ofa-ghost" href="?casebook=">Back to the casebook</a>
-        <button type="button" className="ofa-ghost" onClick={onRestart}>Play again</button>
+    <section className="rv" aria-label="The case, closed">
+      <p className="rv-stamp" data-tier={tier === 'Proved' ? 'clean' : tier === 'Closed' ? 'closed' : 'false-start'}>{tier}</p>
+      <h2 className="rv-head">{noLie ? `${nameOf(c, murderer)} was alone with ${nameOf(c, victim)}.` : `${liar} lied about one thing.`}</h2>
+      {(motive || closing) && (
+        <p className="rv-story">
+          {motive && <span>{motive} </span>}
+          <span>{closing}</span>
+        </p>
+      )}
+      {innocents.length > 0 && (
+        <details className="rv-clear">
+          <summary>
+            <span className="rv-ok" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
+            <span>{joinNames(innocents.map(x => nameOf(c, x.id)))} {noLie ? 'were cleared.' : 'told the truth.'}</span>
+          </summary>
+          <ul className="rv-where">
+            {innocents.map(x => {
+              const room = roomName(c, placed[x.id])
+              return room ? <li key={x.id}><strong>{nameOf(c, x.id)}</strong> in the {room}</li> : null
+            })}
+          </ul>
+        </details>
+      )}
+      <div className="rv-actions">
+        {onNext && <button type="button" className="rv-btn" data-kind="primary" onClick={onNext}>Next case</button>}
+        <button type="button" className="rv-btn" data-kind="ghost" onClick={onReplay}>Replay the reveal</button>
       </div>
     </section>
+  )
+}
+
+/** The line under the board while the sequence plays. A polite live region, with a Skip button until it is done. */
+export function RevealCaption({ text, done, onSkip }: { text: string | null; done: boolean; onSkip: () => void }) {
+  return (
+    <div className="rv-caption">
+      <p className="rv-caption-text" role="status" aria-live="polite" aria-atomic="true">{text}</p>
+      {!done && <button type="button" className="rv-skip" onClick={onSkip}>Skip</button>}
+    </div>
   )
 }

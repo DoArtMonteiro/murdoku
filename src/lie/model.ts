@@ -20,8 +20,15 @@ export interface Statement {
   clue: Clue
   /** Positional sentence, byte-identical to the string tests/truth/literal.ts parses. */
   text: string
-  /** Optional non-positional flavour in the speaker's voice, shown before `text`. */
+  /** Optional non-positional flavour in the speaker's voice. Superseded by `display` where present. */
   voice?: string
+  /**
+   * The testimony as the player reads it: one first-person sentence in the speaker's voice that
+   * carries exactly the positional claim of `text` and nothing more (no extra place, direction,
+   * furniture or person). `text` stays the machine-checked sentence; tests pin that `display`
+   * names the same room/furniture/person as `text`.
+   */
+  display?: string
   /** Scene facts are physical evidence about the victim. They cannot be doubted. */
   scene?: boolean
 }
@@ -38,7 +45,7 @@ export interface LieCase {
    * Two collisions the player can find, each a set of statement ids that cannot all hold.
    * They overlap only in `lieId`. Used by the roll-call ("refuted by X and Y") and by tests.
    */
-  collisions: [string[], string[]]
+  collisions: string[][]
   story: LieStory
 }
 

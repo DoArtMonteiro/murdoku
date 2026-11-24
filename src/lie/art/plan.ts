@@ -146,19 +146,37 @@ export interface RoomLabel {
   fs: number
 }
 
-/** Label type size in drawing units: stays near 8 to 11 screen px from 4x4 up to 10x10. */
+/** Where a token starts inside its tile (drawing units). Plaques stay above this line. */
+export const TOKEN_TOP = 36
+/** Plaque offset from the top of its tile: just inside the wall stroke. */
+export const LABEL_TOP = 5
+const PLAQUE_H = 1.28
+
+/**
+ * Label type size in drawing units. About 0.0385 of the plan width keeps the type near 14px at a
+ * 390px viewport for 4x4 to 6x6; above that it is capped so the plaque (LABEL_TOP + 1.28 fs)
+ * ends above TOKEN_TOP and never touches a token.
+ */
 export function labelSize(size: number): number {
-  return Math.min(22, Math.max(13, size * 2.5))
+  const cap = (TOKEN_TOP - 0.5 - LABEL_TOP) / PLAQUE_H
+  return Math.min(cap, Math.max(14, 0.0385 * (size * U + PAD * 2)))
 }
 
 const CHAR_W = 0.64
+const PAD_W = 0.8
+const STEPS = [1, 0.9, 0.8, 0.7]
+const plaqueW = (name: string, fs: number) => name.length * fs * CHAR_W + fs * PAD_W
+
+interface Spot { c: { row: number; col: number }; fs: number; w: number; cost: number }
 
 /**
- * One plaque per room, laid along the top edge of a furniture-free cell, the first (reading
- * order) where the whole name fits inside the room. Tokens sit lower in their tile than the
- * plaque, so a token in the same cell never covers it. Placement uses the plan only.
+ * One plaque per room, laid along the top edge of a tile in the room. The plaque starts on a
+ * furniture-free tile and takes the run (consecutive tiles of the room in a row) where it covers
+ * the least furniture, shrinking in steps only when that buys a cleaner spot. Tokens start at
+ * TOKEN_TOP, below the plaque, so a token in the same tile never covers it. Placement uses the
+ * plan only.
  */
-export function roomLabels(p: Puzzle, furnKeys: ReadonlySet<string>): RoomLabel[] {
+export function roomLabels(p: Puzzle, furnKeys: ReadonlySet<string>, furn?: ReadonlyMap<string, Furniture[]>): RoomLabel[] {
   const N = p.size
   const byRoom = new Map<string, { row: number; col: number }[]>()
   for (let r = 0; r < N; r++) {
@@ -168,26 +186,47 @@ export function roomLabels(p: Puzzle, furnKeys: ReadonlySet<string>): RoomLabel[
     }
   }
   const fs0 = labelSize(N)
+  const margin = 8
   const out: RoomLabel[] = []
   for (const room of p.rooms) {
     const cells = byRoom.get(room.id)
     if (!cells?.length) continue
     const inRoom = (r: number, c: number) => roomAt(p, r, c) === room.id
     const free = cells.filter(c => !furnKeys.has(keyOf(c.row, c.col)))
-    const pool = free.length ? free : cells
+    const starts = free.length ? free : cells
     const runOf = (c: { row: number; col: number }) => {
       let n = 0
-      while (inRoom(c.row, c.col + n) && (free.length === 0 || !furnKeys.has(keyOf(c.row, c.col + n)))) n++
+      while (inRoom(c.row, c.col + n)) n++
       return n
     }
-    const need = room.name.length * fs0 * CHAR_W + fs0
-    const margin = 8
-    const fits = pool.find(c => runOf(c) * U - margin * 2 >= need)
-    const best = fits ?? pool.reduce((a, b) => (runOf(b) > runOf(a) ? b : a), pool[0])
-    const avail = runOf(best) * U - margin * 2
-    const fs = fits ? fs0 : Math.max(fs0 * 0.6, Math.min(fs0, (fs0 * avail) / need))
-    const w = Math.min(avail, room.name.length * fs * CHAR_W + fs)
-    out.push({ roomId: room.id, name: room.name, x: best.col * U + margin, y: best.row * U + margin, w, h: fs * 1.45, fs })
+    // what a plaque of width w starting at c would sit on: a rug is floor, anything else is furniture
+    const cover = (c: { row: number; col: number }, w: number) => {
+      let cost = 0
+      for (let i = 1; i < Math.ceil((w + margin) / U); i++) {
+        const k = keyOf(c.row, c.col + i)
+        if (!furnKeys.has(k)) continue
+        cost += furn?.get(k)?.every(f => f.type === 'rug') ? 0.2 : 1
+      }
+      return cost
+    }
+    const spots: Spot[] = []
+    for (const c of starts) {
+      const avail = runOf(c) * U - margin * 2
+      STEPS.forEach((step, i) => {
+        const fs = fs0 * step
+        const w = plaqueW(room.name, fs)
+        if (w <= avail) spots.push({ c, fs, w, cost: cover(c, w) * 3 + i + (c.row * N + c.col) * 0.001 })
+      })
+    }
+    let best = spots.reduce<Spot | null>((a, b) => (!a || b.cost < a.cost ? b : a), null)
+    if (!best) {
+      // nothing fits even at 70%: squeeze into the longest run
+      const c = starts.reduce((a, b) => (runOf(b) > runOf(a) ? b : a), starts[0])
+      const avail = runOf(c) * U - margin * 2
+      const fs = Math.max(fs0 * 0.55, Math.min(fs0, (fs0 * avail) / plaqueW(room.name, fs0)))
+      best = { c, fs, w: Math.min(avail, plaqueW(room.name, fs)), cost: 0 }
+    }
+    out.push({ roomId: room.id, name: room.name, x: best.c.col * U + margin, y: best.c.row * U + LABEL_TOP, w: best.w, h: best.fs * PLAQUE_H, fs: best.fs })
   }
   return out
 }

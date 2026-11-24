@@ -31,8 +31,8 @@ const RECIPES: Record<Cue, Recipe> = {
   lift: { notes: [{ f: 520, to: 760, at: 0, dur: 0.06, gain: 0.035, type: 'triangle' }] },
   // a soft ochre chime
   lens: { notes: [{ f: 659, at: 0, dur: 0.22, gain: 0.04, type: 'sine' }, { f: 988, at: 0.07, dur: 0.3, gain: 0.03, type: 'sine' }] },
-  // a low crack, as of dry paint giving way
-  collision: { notes: [{ f: 120, to: 52, at: 0, dur: 0.28, gain: 0.09, type: 'sawtooth' }], noise: { at: 0, dur: 0.09, gain: 0.07, lowpass: 1800 } },
+  // a soft crack, as of dry paint starting to give way: a contradiction is recorded
+  collision: { notes: [{ f: 140, to: 70, at: 0, dur: 0.22, gain: 0.04, type: 'triangle' }], noise: { at: 0, dur: 0.07, gain: 0.035, lowpass: 1600 } },
   crack: { notes: [{ f: 150, to: 45, at: 0, dur: 0.4, gain: 0.1, type: 'sawtooth' }], noise: { at: 0, dur: 0.14, gain: 0.1, lowpass: 2600 } },
   stand: { notes: [{ f: 262, to: 233, at: 0, dur: 0.3, gain: 0.05, type: 'sine' }] },
   bell: { notes: BELL },

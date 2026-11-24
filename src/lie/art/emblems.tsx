@@ -112,11 +112,17 @@ export const EMBLEM_IDS = Object.keys(GLYPHS) as EmblemId[]
 /**
  * The tile, as bare SVG content in a 48 x 48 box, so a board can place it with a
  * transform instead of nesting an <svg>. Colour comes from `color` on an ancestor.
+ * With `fill` (a hex) the ground is a solid tint instead of limewash: a board token. The colour
+ * is a presentation attribute, not a style, so it stays CSP-clean; that ground has no fill rule
+ * of its own, because any CSS rule would beat the attribute.
  */
-export function EmblemTile({ id }: { id: EmblemId }): JSX.Element {
+export function EmblemTile({ id, fill }: { id: EmblemId; fill?: string }): JSX.Element {
   return (
     <>
-      <rect className="lem-ground" x="1.2" y="1.2" width="45.6" height="45.6" rx="4.5" />
+      {fill && <rect className="lem-rim" x="0.5" y="0.5" width="47" height="47" rx="5" />}
+      {fill
+        ? <rect className="lem-ground-tk" fill={fill} x="1.2" y="1.2" width="45.6" height="45.6" rx="4.5" />
+        : <rect className="lem-ground" x="1.2" y="1.2" width="45.6" height="45.6" rx="4.5" />}
       <rect className="lem-hair" x="4.4" y="4.4" width="39.2" height="39.2" rx="2.2" />
       {[0, 90, 180, 270].map(a => (
         <g key={a} transform={`rotate(${a} 24 24)`}>

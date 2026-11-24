@@ -1,12 +1,28 @@
-// One False Alibi: search for a sound 6x6 case on a fixed, hand-built house.
+// One False Alibi: search for the true statements around an authored skeleton.
 //
-//   node scripts/lie-search.mjs [--seed N] [--trials N] [--out file.jsonl]
+//   node scripts/lie-search.mjs --case ofa-02 [--shape 1|2|3] [--keep s1,s4] [--per 2] [--seed N]
+//                               [--trials N] [--max N] [--best N] [--skip kind,kind]
+//                               [--w kind=weight,...] [--out file.jsonl] [--debug]
 //
-// Loads src/lie/verify.ts through vite (no build step) so the search and the test share ONE
-// definition of "sound". For each trial: random true plan (victim's room holds exactly one
-// suspect, the liar), 2 true statements per suspect (one for the liar) + 1-2 scene facts,
-// hill-climbed to a unique solution; then every false statement the liar could have made is
-// tried as the lie. Survivors are run through verifyLieCase and printed as JSON.
+//   --keep   ids of statements in the case file that stay fixed (the lie is always kept)
+//   --best   keep every hit and print the N with the fewest direction/edge/negative statements
+//   --w      sampling weights per clue kind (defaults favour room, furniture and beside)
+//   --debug  print the first few rejected sets with the verifier's reasons
+//
+// The author decides the story first: the house, the true plan, who lied and what they claimed.
+// That is the skeleton, read from src/lie/cases/<case>.ts (its puzzle, its lie statement, and any
+// statements named in --keep, which stay fixed). The search then draws the remaining true statements
+// (--per per suspect, the liar one fewer, 1-2 scene facts), hill-climbs to a unique solution, and
+// keeps the sets that pass verifyLieCase with the shape's promises:
+//
+//   shape 1  two collisions meeting only in the lie, different witnesses, at least one lane-free
+//   shape 2  a pair and a triple that chains through two witnesses, lane-free somewhere,
+//            and the liar's true square needs a lane step or a suppose
+//   shape 3  three collisions: the first two share the lie and one more statement, all three share
+//            only the lie; the true plan needs a suppose
+//
+// verify.ts is loaded through vite (no build step), so the search and the tests share ONE definition
+// of "sound". Hits are printed with ids, authors and sentences; the author writes each `display`.
 import { createServer } from 'vite'
 import { appendFileSync } from 'node:fs'
 
@@ -14,52 +30,40 @@ const arg = (name, dflt) => {
   const i = process.argv.indexOf(`--${name}`)
   return i >= 0 ? process.argv[i + 1] : dflt
 }
+const CASE = arg('case', '')
+if (!CASE) throw new Error('usage: node scripts/lie-search.mjs --case ofa-02 [--shape 1|2|3] ...')
 const SEED = Number(arg('seed', 1))
 const TRIALS = Number(arg('trials', 20000))
+const SHAPE = Number(arg('shape', CASE === 'ofa-01' ? 1 : CASE === 'ofa-02' ? 2 : 3))
+const PER = Number(arg('per', 2))
+const MAX = Number(arg('max', 12))
+const KEEP = new Set((arg('keep', '') || '').split(',').filter(Boolean))
+const SKIP = new Set((arg('skip', '') || '').split(',').filter(Boolean))
 const OUT = arg('out', '')
+const DEBUG = process.argv.includes('--debug')
 
 const server = await createServer({ configFile: false, root: process.cwd(), server: { middlewareMode: true, hmr: false, watch: null }, appType: 'custom', logLevel: 'error' })
 const eng = await server.ssrLoadModule('/src/core/engine.ts')
 const ver = await server.ssrLoadModule('/src/lie/verify.ts')
+const mod = await server.ssrLoadModule(`/src/lie/cases/${CASE}.ts`)
+const skel = Object.values(mod).find(v => v && typeof v === 'object' && v.puzzle && v.statements)
+if (!skel) throw new Error(`src/lie/cases/${CASE}.ts exports no LieCase`)
 
-// ------------------------------------------------------------------ the house
-const rect = (r0, c0, r1, c1) => {
-  const out = []
-  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) out.push({ row: r, col: c })
-  return out
-}
-export const ROOMS = [
-  { id: 'room0', name: 'Kitchen', hue: 20, cells: rect(0, 0, 1, 2) },
-  { id: 'room1', name: 'Workshop', hue: 210, cells: rect(0, 3, 2, 5) },
-  { id: 'room2', name: 'Living Room', hue: 150, cells: rect(2, 0, 5, 2) },
-  { id: 'room3', name: 'Courtyard', hue: 95, cells: rect(3, 3, 5, 5) },
-]
-const piece = (type, row, col, w = 1, h = 1) => ({ type, row, col, w, h, rotation: w < h ? 90 : 0, floor: 0 })
-export const FURNITURE = [
-  piece('stove', 0, 0), piece('counter', 0, 1, 2, 1), piece('table', 1, 1), piece('chair', 1, 2),
-  piece('desk', 0, 4), piece('lamp', 1, 5), piece('box', 2, 3), piece('chair', 2, 5),
-  piece('bookshelf', 2, 0), piece('clock', 2, 2), piece('sofa', 3, 1, 2, 1), piece('rug', 4, 0, 2, 2), piece('plant', 5, 2),
-  piece('shrub', 3, 5), piece('table', 4, 4), piece('box', 5, 3),
-]
-const N = 6
-const roomOf = Array.from({ length: N }, () => Array(N).fill(''))
-for (const r of ROOMS) for (const c of r.cells) roomOf[c.row][c.col] = r.id
-const NAMES = ['Rui', 'Inês', 'Tomé', 'Marta', 'Lúcia', 'Álvaro']
-const people = NAMES.map((name, i) => ({ id: `p${i}`, name, avatarSeed: `${name}-ofa1-${i}`, accent: '#8A7CA8', ...(i === 5 ? { isVictim: true } : {}) }))
+// ------------------------------------------------------------------ the skeleton
+const P = skel.puzzle
+const N = P.size
+const people = P.people
 const IDS = people.map(x => x.id)
-const VICTIM = 'p5'
-const base = { id: 'ofa-01', title: 'ofa-01', caseNumber: 'One False Alibi 1', difficulty: 'Medium', size: 6, rooms: ROOMS, roomOf, furniture: FURNITURE, people, clues: [], solution: {}, victimId: VICTIM, murdererId: '', flavor: '', source: 'custom' }
-const roomName = id => ROOMS.find(r => r.id === id).name
-const countType = t => FURNITURE.filter(f => f.type === t).length
-
-// ------------------------------------------------------------------ rng
-let s = SEED >>> 0
-const rnd = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
-const pick = a => a[Math.floor(rnd() * a.length)]
-const shuffle = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1));[b[i], b[j]] = [b[j], b[i]] } return b }
-
-// ------------------------------------------------------------------ clue language
+const VICTIM = P.victimId
+const LIAR = P.murdererId
+const SUSPECTS = IDS.filter(id => id !== VICTIM)
+const sol = P.solution
+const base = { ...P, clues: [] }
+const lieSt = skel.statements.find(s => s.id === skel.lieId)
+const roomName = id => P.rooms.find(r => r.id === id).name
+const countType = t => P.furniture.filter(f => f.type === t).length
 const nameOf = id => people.find(x => x.id === id).name
+const pinned = skel.statements.filter(s => KEEP.has(s.id) && s.id !== skel.lieId)
 const DIRWORD = { N: 'north', S: 'south', E: 'east', W: 'west' }
 function textOf(c) {
   switch (c.kind) {
@@ -74,13 +78,18 @@ function textOf(c) {
   }
   throw new Error(c.kind)
 }
-const stmtOf = (id, clue, extra = {}) => ({ author: id, clue, text: textOf(clue), ...extra })
 
-/** Every clue `id` could say about the plan `sol`, each tagged with whether it is true. */
-function candidates(id, sol, suspectsOnly = true) {
+// ------------------------------------------------------------------ rng
+let s = SEED >>> 0
+const rnd = () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
+const pick = a => a[Math.floor(rnd() * a.length)]
+const shuffle = a => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1));[b[i], b[j]] = [b[j], b[i]] } return b }
+
+// ------------------------------------------------------------------ clue language
+function candidates(id) {
   const out = []
-  const types = [...new Set(FURNITURE.map(f => f.type))]
-  for (const r of ROOMS) { out.push({ kind: 'room', person: id, roomId: r.id }); out.push({ kind: 'notRoom', person: id, roomId: r.id }) }
+  const types = [...new Set(P.furniture.map(f => f.type))]
+  for (const r of P.rooms) { out.push({ kind: 'room', person: id, roomId: r.id }); out.push({ kind: 'notRoom', person: id, roomId: r.id }) }
   for (const t of types) { out.push({ kind: 'onFurniture', person: id, furniture: t }); out.push({ kind: 'besideFurniture', person: id, furniture: t }) }
   out.push({ kind: 'edge', person: id })
   if (id !== VICTIM) {
@@ -90,33 +99,32 @@ function candidates(id, sol, suspectsOnly = true) {
       for (const dir of ['N', 'S', 'E', 'W']) out.push({ kind: 'direction', person: id, other: o, dir })
     }
   }
-  const pz = { ...base, clues: [], solution: sol }
-  return out.map(c => ({ clue: c, true: eng.clueHolds(pz, c, sol) }))
+  return out.filter(c => !SKIP.has(c.kind) && eng.clueHolds(base, c, sol))
 }
-const WEIGHT = { room: 3, onFurniture: 3, besideFurniture: 2.5, direction: 2, sameRoomAs: 2, notRoom: 1.5, notSameRoomAs: 1, edge: 1 }
+const WEIGHT = { room: 3, onFurniture: 3, besideFurniture: 2.5, direction: 2, sameRoomAs: 2, notRoom: 1.5, notSameRoomAs: 1.5, edge: 1 }
+for (const kv of (arg('w', '') || '').split(',').filter(Boolean)) { const [k, v] = kv.split('='); WEIGHT[k] = Number(v) }
 function wpick(list) {
-  const tot = list.reduce((a, c) => a + WEIGHT[c.clue.kind], 0)
+  const tot = list.reduce((a, c) => a + WEIGHT[c.kind], 0)
   let x = rnd() * tot
-  for (const c of list) { x -= WEIGHT[c.clue.kind]; if (x <= 0) return c }
+  for (const c of list) { x -= WEIGHT[c.kind]; if (x <= 0) return c }
   return list[list.length - 1]
 }
+const TRUES = Object.fromEntries(IDS.map(id => [id, candidates(id)]))
+const SCENE_KINDS = ['room', 'onFurniture', 'besideFurniture', 'edge']
+const jc = c => JSON.stringify(c)
 
-// ------------------------------------------------------------------ fast solver
-// Same semantics as the engine (each clue's truth table is built by the engine's own
-// unaryClueHolds / clueHolds); only the search is specialised. The finished case is
-// re-verified by verifyLieCase on the real engine.
+// ------------------------------------------------------------------ fast solver (engine truth tables)
 const cellOf = i => ({ row: Math.floor(i / N), col: i % N })
-const unaryCache = new Map()
-const relCache = new Map()
+const unaryCache = new Map(), relCache = new Map()
 const REL = new Set(['sameRoomAs', 'notSameRoomAs', 'direction'])
 function unaryTable(clue) {
-  const k = JSON.stringify(clue)
+  const k = jc(clue)
   let t = unaryCache.get(k)
   if (!t) { t = new Uint8Array(N * N); for (let i = 0; i < N * N; i++) t[i] = eng.unaryClueHolds(base, clue, cellOf(i)) ? 1 : 0; unaryCache.set(k, t) }
   return t
 }
 function relTable(clue) {
-  const k = JSON.stringify(clue)
+  const k = jc(clue)
   let t = relCache.get(k)
   if (!t) {
     t = new Uint8Array(N * N * N * N)
@@ -125,12 +133,11 @@ function relTable(clue) {
   }
   return t
 }
-function count(stmts, cap = 2) {
+function count(clues, cap = 2) {
   const dom = {}
   for (const id of IDS) dom[id] = Array.from({ length: N * N }, (_, i) => i)
   const rels = Object.fromEntries(IDS.map(id => [id, []]))
-  for (const st of stmts) {
-    const c = st.clue
+  for (const c of clues) {
     if (REL.has(c.kind)) {
       const t = relTable(c)
       rels[c.person].push({ other: c.other, t, self: 'a' })
@@ -167,154 +174,174 @@ function count(stmts, cap = 2) {
   rec(0)
   return n
 }
-const sat = stmts => count(stmts, 1) > 0
-function minimalCores(statements, lieId, maxSize = 4) {
-  const lie = statements.find(x => x.id === lieId)
-  const others = statements.filter(x => x.id !== lieId)
-  const cores = []
-  const pickK = (start, k, chosen) => {
-    if (chosen.length === k) {
-      const ids = [lieId, ...chosen.map(x => x.id)]
-      if (cores.some(core => core.every(id => ids.includes(id)))) return
-      if (!sat([lie, ...chosen])) cores.push(ids)
-      return
+
+// the liar's own true statements must not refute the lie by themselves (check 5)
+TRUES[LIAR] = TRUES[LIAR].filter(c => count([c, lieSt.clue], 1) > 0)
+// ... and must not by itself put the liar in the victim's room (that would be a tell)
+const vRoom = eng.roomIdAt(base, sol[VICTIM])
+TRUES[LIAR] = TRUES[LIAR].filter(c => REL.has(c.kind) || unaryTable(c).some((v, i) => v && eng.roomIdAt(base, cellOf(i)) !== vRoom))
+
+// ------------------------------------------------------------------ shapes
+const authorOf = (c, id) => c.statements.find(x => x.id === id).author
+const sizeOfInter = (a, b) => a.filter(id => b.includes(id)).length
+const interOf = (a, b) => a.filter(id => b.includes(id))
+const othersOf = (c, core) => core.filter(id => id !== c.lieId)
+
+/** Pick the stored collisions for the shape, or null. */
+function chooseCollisions(c, cores) {
+  const lf = core => ver.laneFree(c, core)
+  const authorsOf = core => new Set(othersOf(c, core).map(id => authorOf(c, id)))
+  const disjoint = (a, b) => ![...authorsOf(a)].some(x => authorsOf(b).has(x))
+  const noLiarOther = core => !othersOf(c, core).some(id => authorOf(c, id) === LIAR)
+  const usable = cores.filter(core => core.length >= 2 && noLiarOther(core) && !ver.satisfiable(c, core, { scene: false }) && ver.exposure(c, core).ok)
+  const options = []
+  if (SHAPE === 1) {
+    for (let i = 0; i < usable.length; i++) for (let j = i + 1; j < usable.length; j++) {
+      const a = usable[i], b = usable[j]
+      if (sizeOfInter(a, b) !== 1 || !disjoint(a, b)) continue
+      if (!lf(a) && !lf(b)) continue
+      options.push([a, b])
     }
-    for (let i = start; i < others.length; i++) pickK(i + 1, k, [...chosen, others[i]])
+  } else if (SHAPE === 2) {
+    for (const a of usable.filter(x => x.length === 2)) for (const b of usable.filter(x => x.length === 3)) {
+      if (sizeOfInter(a, b) !== 1 || !disjoint(a, b)) continue
+      if (!lf(a) && !lf(b)) continue
+      const bo = othersOf(c, b).map(id => c.statements.find(x => x.id === id))
+      const bAuthors = new Set(bo.map(x => x.author))
+      if (bAuthors.size !== 2) continue
+      const chained = bo.some(x => x.clue.other && bAuthors.has(x.clue.other)) || c.statements.find(x => x.id === c.lieId).clue.other !== undefined
+      if (!chained) continue
+      options.push([a, b])
+    }
+  } else {
+    for (let i = 0; i < usable.length; i++) for (let j = i + 1; j < usable.length; j++) {
+      const a = usable[i], b = usable[j]
+      if (sizeOfInter(a, b) !== 2) continue
+      for (let k = 0; k < usable.length; k++) {
+        if (k === i || k === j) continue
+        const cc = usable[k]
+        const abc = interOf(interOf(a, b), cc)
+        if (abc.length !== 1 || abc[0] !== c.lieId) continue
+        options.push([a, b, cc])
+      }
+    }
   }
-  for (let k = 1; k <= maxSize - 1; k++) pickK(0, k, [])
-  return cores
+  if (!options.length) return null
+  // prefer the smallest, then the most lane-free
+  options.sort((x, y) => x.flat().length - y.flat().length || y.filter(lf).length - x.filter(lf).length)
+  return options[0]
 }
+
+const EXPECT = SHAPE === 1 ? { laneFreeAtLeast: 1 }
+  : SHAPE === 2 ? { laneFreeAtLeast: 1, liarBeyondSingles: true }
+    : { supposesAtLeast: 1, firstTwoShare: 2 }
 
 // ------------------------------------------------------------------ one trial
-const stats = { trials: 0, planOk: 0, unique: 0, lieUnsat: 0, check3: 0, cores: 0, tells: 0, verified: 0 }
+const stats = { trials: 0, unique: 0, noKind: 0, lieUnsat: 0, check3: 0, shaped: 0, verified: 0 }
+const rejects = {}
+let shown = 0
+const seen = new Set()
 const found = []
-
-function randomPlan() {
-  const cols = shuffle([0, 1, 2, 3, 4, 5])
-  const rowsFor = shuffle(IDS)
-  const sol = {}
-  rowsFor.forEach((id, row) => { sol[id] = { row, col: cols[row], floor: 0 } })
-  const pz = { ...base, solution: sol }
-  const vRoom = eng.roomIdAt(pz, sol[VICTIM])
-  const mates = IDS.filter(id => id !== VICTIM && eng.roomIdAt(pz, sol[id]) === vRoom)
-  if (mates.length !== 1) return null
-  return { sol, liar: mates[0], vRoom }
-}
-
-/** A lie is an alibi only if it puts the liar somewhere other than the victim's room. */
-function placesElsewhere(clue, plan) {
-  const inV = i => base.roomOf[Math.floor(i / N)][i % N] === plan.vRoom
-  if (clue.kind === 'sameRoomAs') return eng.roomIdAt(base, plan.sol[clue.other]) !== plan.vRoom
-  if (clue.kind === 'notSameRoomAs' || clue.kind === 'direction') return clue.kind === 'direction'
-  const t = unaryTable(clue)
-  for (let i = 0; i < N * N; i++) if (t[i] && inV(i)) return false
-  return true
-}
-const countOf = stmts => count(stmts, 12)
+const BEST = Number(arg('best', 0))
+const scoreOf = statements => statements.reduce((a, x) => a + (x.clue.kind === 'direction' ? 1 : x.clue.kind === 'edge' ? 1 : x.clue.kind === 'notRoom' ? 0.5 : x.clue.kind === 'notSameRoomAs' ? 0.7 : 0), 0)
+const reject = fs => { for (const f of fs) { const k = f.replace(/s\d+/g, 'sN').slice(0, 110); rejects[k] = (rejects[k] ?? 0) + 1 } }
 
 function trial() {
   stats.trials++
-  const plan = randomPlan()
-  if (!plan) return
-  stats.planOk++
-  const { sol, liar } = plan
-  const suspects = IDS.filter(id => id !== VICTIM)
-  const cand = Object.fromEntries(IDS.map(id => [id, candidates(id, sol)]))
-  const trues = Object.fromEntries(IDS.map(id => [id, cand[id].filter(c => c.true)]))
-  const lies = cand[liar].filter(c => !c.true)
-
-  // true statements: 2 per suspect except the liar (1), scene facts for the victim (1-2)
-  const want = Object.fromEntries(suspects.map(id => [id, id === liar ? 1 : 2]))
-  want[VICTIM] = rnd() < 0.5 ? 1 : 2
-  const chosen = Object.fromEntries(IDS.map(id => [id, []]))
+  const want = Object.fromEntries(SUSPECTS.map(id => [id, id === LIAR ? PER - 1 : PER]))
+  const pins = Object.fromEntries(IDS.map(id => [id, pinned.filter(x => x.author === id)]))
+  const sceneWant = Math.max(pins[VICTIM].length, rnd() < 0.5 ? 1 : 2)
+  want[VICTIM] = sceneWant
+  const chosen = Object.fromEntries(IDS.map(id => [id, pins[id].map(x => ({ clue: x.clue, fixed: true }))]))
+  const pool = id => TRUES[id].filter(c => id !== VICTIM || SCENE_KINDS.includes(c.kind))
   for (const id of IDS) {
-    const list = trues[id].filter(c => id !== VICTIM || ['room', 'onFurniture', 'besideFurniture', 'edge'].includes(c.clue.kind))
-    for (let k = 0; k < want[id]; k++) {
-      let c
-      do { c = wpick(list) } while (chosen[id].some(x => JSON.stringify(x.clue) === JSON.stringify(c.clue)))
-      chosen[id].push(c)
+    while (chosen[id].length < want[id]) {
+      const c = wpick(pool(id))
+      if (chosen[id].some(x => jc(x.clue) === jc(c))) continue
+      chosen[id].push({ clue: c, fixed: false })
     }
   }
-  const flat = () => IDS.flatMap(id => chosen[id].map(c => stmtOf(id, c.clue)))
-  let n = countOf(flat())
+  const clues = () => IDS.flatMap(id => chosen[id].map(x => x.clue))
+  let n = count(clues())
   for (let step = 0; step < 80 && n > 1; step++) {
     const id = pick(IDS)
-    const i = Math.floor(rnd() * chosen[id].length)
+    const free = chosen[id].map((x, i) => (x.fixed ? -1 : i)).filter(i => i >= 0)
+    if (!free.length) continue
+    const i = pick(free)
     const old = chosen[id][i]
-    const list = trues[id].filter(c => id !== VICTIM || ['room', 'onFurniture', 'besideFurniture', 'edge'].includes(c.clue.kind))
-    const c = wpick(list)
-    if (chosen[id].some(x => JSON.stringify(x.clue) === JSON.stringify(c.clue))) continue
-    chosen[id][i] = c
-    const m = countOf(flat())
+    const c = wpick(pool(id))
+    if (chosen[id].some(x => jc(x.clue) === jc(c))) continue
+    chosen[id][i] = { clue: c, fixed: false }
+    const m = count(clues())
     if (m <= n) n = m
     else chosen[id][i] = old
   }
   if (n !== 1) return
   stats.unique++
-
-  const trueStmts = flat()
-  // try every lie the liar could have told
-  for (const L of shuffle(lies)) {
-    if (!placesElsewhere(L.clue, plan)) continue
-    const lieStmt = stmtOf(liar, L.clue)
-    const all = [...trueStmts, lieStmt]
-    if (sat(all)) continue
-    stats.lieUnsat++
-    // doubting any other doubtable statement must still leave no consistent world
-    let ok = true
-    for (const d of all) {
-      if (d === lieStmt || d.author === VICTIM) continue
-      if (sat(all.filter(x => x !== d))) { ok = false; break }
-    }
-    if (!ok) continue
-    stats.check3++
-    // assemble in reading order: suspects p0..p4 by author, victim scene facts last
-    const ordered = IDS.flatMap(id => {
-      const mine = all.filter(x => x.author === id)
-      return id === liar ? shuffle(mine) : mine
-    })
-    // ids s1..sN; liar's pair order randomised above
-    const statements = ordered.map((x, i) => ({ id: `s${i + 1}`, author: x.author, clue: x.clue, text: x.text, ...(x.author === VICTIM ? { scene: true } : {}) }))
-    const lieId = statements.find(x => x.author === liar && JSON.stringify(x.clue) === JSON.stringify(L.clue)).id
-    const probe = { ...base, solution: sol, murdererId: liar }
-    const cores = minimalCores(statements, lieId, 4)
-    const usable = cores.filter(core => !core.some(id => id !== lieId && statements.find(x => x.id === id).author === liar))
-    let pair = null
-    for (let i = 0; i < usable.length && !pair; i++) {
-      for (let j = i + 1; j < usable.length && !pair; j++) {
-        const a = usable[i], b = usable[j]
-        if (a.filter(id => b.includes(id)).length !== 1) continue
-        const au = new Set(a.filter(id => id !== lieId).map(id => statements.find(x => x.id === id).author))
-        const bu = new Set(b.filter(id => id !== lieId).map(id => statements.find(x => x.id === id).author))
-        if ([...au].some(x => bu.has(x))) continue
-        pair = [a, b]
-      }
-    }
-    if (!pair) continue
-    stats.cores++
-    const puzzle = { ...base, solution: sol, murdererId: liar, clues: [...statements.filter(x => x.id !== lieId).map(x => ({ clue: x.clue, text: x.text })), { clue: { kind: 'victim', person: VICTIM }, text: 'The victim — found alone with the murderer.' }] }
-    const lc = { id: 'ofa-01', puzzle, statements, lieId, collisions: pair, story: null }
-    const res = ver.verifyLieCase(lc)
-    if (res.failures.some(f => f.startsWith('check 6'))) stats.tells++
-    if (!res.ok) { rejectCount(res.failures); continue }
-    stats.verified++
-    const rec = { seed: SEED, level: res.report.legibilityLevel, supposes: res.report.reconstructionSupposes, detail: res.report.legibilityDetail, case: lc }
-    found.push(rec)
-    const line = JSON.stringify(rec)
-    if (OUT) appendFileSync(OUT, line + '\n')
-    console.log(`FOUND level=${rec.level} supposes=${rec.supposes} liar=${liar} lie="${lieStmt.text}" cores=${JSON.stringify(pair)}`)
+  const trues = clues()
+  // cheap prefilter for check 6: someone else must use the lie's kind
+  if (!IDS.some(id => id !== VICTIM && chosen[id].some(x => x.clue.kind === lieSt.clue.kind))) { stats.noKind++; return }
+  const withLie = [...trues, lieSt.clue]
+  if (count(withLie, 1) > 0) return
+  stats.lieUnsat++
+  const all = IDS.flatMap(id => (id === LIAR ? [...chosen[id].map(x => x.clue), lieSt.clue] : chosen[id].map(x => x.clue)))
+  for (let k = 0; k < all.length; k++) {
+    if (all[k].person === VICTIM || jc(all[k]) === jc(lieSt.clue)) continue
+    if (count(all.filter((_, j) => j !== k), 1) > 0) return
   }
-}
-
-const rejects = {}
-function rejectCount(fs) {
-  for (const f of fs) { const k = f.replace(/ (s\d+|\d+).*/, '').slice(0, 60); rejects[k] = (rejects[k] ?? 0) + 1 }
+  stats.check3++
+  // reading order: suspects by id, liar's two statements in random order, scene facts last
+  const ordered = IDS.flatMap(id => {
+    const mine = id === LIAR ? shuffle([...chosen[id].map(x => x.clue), lieSt.clue]) : chosen[id].map(x => x.clue)
+    return mine.map(clue => ({ author: id, clue }))
+  })
+  const statements = ordered.map((x, i) => ({ id: `s${i + 1}`, author: x.author, clue: x.clue, text: textOf(x.clue), ...(x.author === VICTIM ? { scene: true } : {}) }))
+  const key = statements.map(x => jc(x.clue)).sort().join('|')
+  if (seen.has(key)) return
+  seen.add(key)
+  const lieId = statements.find(x => x.author === LIAR && jc(x.clue) === jc(lieSt.clue)).id
+  const lc = {
+    ...skel, id: skel.id, lieId, statements, collisions: [],
+    puzzle: { ...P, clues: [...statements.filter(x => x.id !== lieId).map(x => ({ clue: x.clue, text: x.text })), { clue: { kind: 'victim', person: VICTIM }, text: 'The victim — found alone with the murderer.' }] },
+  }
+  const cores = ver.findMinimalCores(lc, 4)
+  const pair = chooseCollisions(lc, cores)
+  if (!pair) return
+  stats.shaped++
+  lc.collisions = pair
+  const res = ver.verifyLieCase(lc, EXPECT)
+  if (!res.ok) {
+    reject(res.failures)
+    if (DEBUG && shown++ < 4) { console.log('REJECT', JSON.stringify(res.failures), JSON.stringify(pair)); for (const x of statements) console.log('   ', x.id, nameOf(x.author), x.id === lieId ? '(LIE)' : '', x.text) }
+    return
+  }
+  stats.verified++
+  const rec = { seed: SEED, report: res.report, collisions: pair, lieId, statements: statements.map(({ id, author, clue, text, scene }) => ({ id, author, clue, text, ...(scene ? { scene } : {}) })) }
+  rec.score = scoreOf(statements)
+  rec.lc = lc
+  found.push(rec)
+  if (BEST) return
+  if (OUT) appendFileSync(OUT, JSON.stringify(rec) + '\n')
+  const r = res.report
+  const nm = id => nameOf(id)
+  console.log(`\nFOUND #${found.length} lie=${lieId} collisions=${JSON.stringify(pair)} laneFree=${JSON.stringify(r.laneFree)} legibility=${r.legibilityLevel} supposes=${r.reconstructionSupposes} laneSteps=${r.reconstructionLaneSteps} liarBySingles=${r.liarPlacedBySingles} cores=${JSON.stringify(r.allCores)}`)
+  for (const x of statements) console.log(`  ${x.id} ${nm(x.author)}${x.id === lieId ? ' (LIE)' : ''}${x.scene ? ' (scene)' : ''}: ${x.text}`)
 }
 
 const t0 = Date.now()
-for (let i = 0; i < TRIALS; i++) {
+for (let i = 0; i < TRIALS && found.length < MAX; i++) {
   trial()
-  if ((i + 1) % 2000 === 0) console.log(`... ${i + 1} trials, ${((Date.now() - t0) / 1000).toFixed(0)}s`, JSON.stringify(stats))
+  if ((i + 1) % 5000 === 0) console.log(`... ${i + 1} trials, ${((Date.now() - t0) / 1000).toFixed(0)}s`, JSON.stringify(stats))
+}
+if (BEST) {
+  found.sort((a, b) => a.score - b.score)
+  for (const rec of found.slice(0, BEST)) {
+    const r = rec.report
+    console.log(`
+BEST score=${rec.score} lie=${rec.lieId} collisions=${JSON.stringify(rec.collisions)} laneFree=${JSON.stringify(r.laneFree)} legibility=${r.legibilityLevel} supposes=${r.reconstructionSupposes} laneSteps=${r.reconstructionLaneSteps} liarBySingles=${r.liarPlacedBySingles} cores=${JSON.stringify(r.allCores)}`)
+    for (const x of rec.statements) console.log(`  ${x.id} ${nameOf(x.author)}${x.id === rec.lieId ? ' (LIE)' : ''}${x.scene ? ' (scene)' : ''}: ${x.text}`)
+    console.log('  exposure ' + rec.report.exposure.map(e => e.detail).join(' | '))
+  }
 }
 console.log('DONE', JSON.stringify(stats), 'found', found.length)
 console.log('reject reasons', JSON.stringify(rejects, null, 1))

@@ -1,10 +1,9 @@
-// The accounts: the strip of suspect emblems, the selected suspect's account card, and the Contradictions ledger.
-import { useRef } from 'react'
-import { Check } from 'lucide-react'
+// The accounts: the strip of suspect emblems and the selected suspect's account card. Each statement is a row:
+// tapping it lights it on the plan, the pin beside it sends it to the citation tray.
+import { Check, Pin } from 'lucide-react'
 import type { LieCase, Statement } from './model'
 import { Emblem } from './art/emblems'
-import { nameOf } from './state'
-import type { JournalEntry } from './collide'
+import { nameOf, readOf } from './state'
 import { waitingOn } from './lens'
 import type { Placed } from './lens'
 
@@ -15,13 +14,11 @@ interface StripProps {
   order: string[]
   selected: string
   placed: Placed
-  /** People common to every recorded collision: they glow. */
-  common: ReadonlySet<string>
   onSelect: (id: string) => void
 }
 
 /** A horizontal row of emblem tiles, one per person. The victim is last and drawn apart. */
-export function Strip({ c, order, selected, placed, common, onSelect }: StripProps) {
+export function Strip({ c, order, selected, placed, onSelect }: StripProps) {
   return (
     <ul className="ofa-strip" aria-label="People">
       {order.map(id => {
@@ -33,9 +30,8 @@ export function Strip({ c, order, selected, placed, common, onSelect }: StripPro
               type="button"
               className="ofa-pick"
               aria-pressed={id === selected}
-              aria-label={`${name}${victim ? ', the victim' : ''}${placed[id] ? ', placed' : ''}${common.has(id) ? ', in every contradiction' : ''}`}
+              aria-label={`${name}${victim ? ', the victim' : ''}${placed[id] ? ', placed' : ''}`}
               data-selected={id === selected || undefined}
-              data-common={common.has(id) || undefined}
               data-placed={!!placed[id] || undefined}
               onClick={() => onSelect(id)}
             >
@@ -52,82 +48,47 @@ export function Strip({ c, order, selected, placed, common, onSelect }: StripPro
   )
 }
 
-interface LedgerProps { c: LieCase; rows: JournalEntry[]; common: ReadonlySet<string> }
-
-/** The detective's notes: one row per collision found, subject first. Appears once there is one. */
-export function Ledger({ c, rows, common }: LedgerProps) {
-  return (
-    <section className="ofa-ledger" aria-label="Contradictions">
-      <h2 className="ofa-ledger-h">Contradictions</h2>
-      <ol className="ofa-ledger-rows">
-        {rows.map(r => (
-          <li key={r.people.join('|')} className="ofa-ledger-row"
-            aria-label={r.people.map(id => nameOf(c, id)).join(' and ')}>
-            {r.people.map((id, i) => (
-              <span key={id} className="ofa-ledger-person" data-common={common.has(id) || undefined}>
-                {i > 0 && <span className="ofa-ledger-x" aria-hidden="true">&times;</span>}
-                <Emblem id={emblemOf(c, id)} size={26} />
-              </span>
-            ))}
-          </li>
-        ))}
-      </ol>
-    </section>
-  )
-}
-
 interface RowProps {
   c: LieCase
   st: Statement
   lit: boolean
   struck: boolean
-  stands: boolean
+  pinned: boolean
   placed: Placed
-  canDoubt: boolean
+  /** Statements can be pinned in Act 1 only, and never the victim's scene facts. */
+  canPin: boolean
   onLit: (id: string) => void
-  onDoubt: (id: string) => void
+  onPin: (id: string) => void
 }
 
-const HOLD_MS = 550
-
-function StatementRow({ c, st, lit, struck, stands, placed, canDoubt, onLit, onDoubt }: RowProps) {
-  const timer = useRef<number | null>(null)
-  const held = useRef(false)
+function StatementRow({ c, st, lit, struck, pinned, placed, canPin, onLit, onPin }: RowProps) {
   const waits = waitingOn(st, placed)
-  const clear = () => { if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null } }
-  const down = () => {
-    held.current = false
-    if (!canDoubt) return
-    clear()
-    timer.current = window.setTimeout(() => { held.current = true; onDoubt(st.id) }, HOLD_MS)
-  }
   return (
-    <li className="ofa-st" data-lit={lit || undefined} data-struck={struck || undefined} data-stands={stands || undefined} data-scene={st.scene || undefined}>
+    <li className="ofa-st" data-lit={lit || undefined} data-struck={struck || undefined} data-pinned={pinned || undefined} data-scene={st.scene || undefined}>
       <button
         type="button"
         className="ofa-st-main"
         aria-pressed={struck ? undefined : lit}
         disabled={struck}
-        onPointerDown={down}
-        onPointerUp={clear}
-        onPointerLeave={clear}
-        onPointerCancel={clear}
-        onContextMenu={e => { if (canDoubt) e.preventDefault() }}
-        onClick={() => { if (held.current) { held.current = false; return } onLit(st.id) }}
+        onClick={() => onLit(st.id)}
       >
-        {st.voice && <em className="ofa-st-voice">{st.voice}</em>}
-        <span className="ofa-st-text">{st.text}</span>
+        <span className="ofa-st-text">{readOf(st)}</span>
         <span className="ofa-st-tags">
           {st.scene && <span className="ofa-tag">Scene evidence</span>}
           {waits && <span className="ofa-tag" data-kind="wait">Waits for {nameOf(c, waits)}</span>}
-          {stands && <span className="ofa-tag" data-kind="stands">Stands</span>}
           {struck && <span className="ofa-tag" data-kind="cracked">Cracked</span>}
           {lit && !waits && !struck && <span className="ofa-tag" data-kind="lit">Lit on the plan</span>}
         </span>
       </button>
-      {canDoubt && (
-        <button type="button" className="ofa-doubt" aria-label={`Doubt ${nameOf(c, st.author)}'s statement: ${st.text}`} onClick={() => onDoubt(st.id)}>
-          Doubt
+      {canPin && !st.scene && (
+        <button
+          type="button"
+          className="ofa-pin"
+          aria-pressed={pinned}
+          aria-label={`Pin ${nameOf(c, st.author)}'s statement: ${readOf(st)}`}
+          onClick={() => onPin(st.id)}
+        >
+          <Pin size={20} aria-hidden="true" />
         </button>
       )}
     </li>
@@ -139,18 +100,17 @@ interface CardProps {
   person: string
   statements: Statement[]
   lit: readonly string[]
+  pins: readonly string[]
   struck: string | null
-  stands: readonly string[]
   placed: Placed
   roomName: string | null
-  /** Act 1 and no result yet: statements that are not scene facts can be doubted. */
-  doubting: boolean
+  canPin: boolean
   onLit: (id: string) => void
-  onDoubt: (id: string) => void
+  onPin: (id: string) => void
 }
 
 /** The selected person: name, role, and each statement as a tappable row. */
-export function AccountCard({ c, person, statements, lit, struck, stands, placed, roomName, doubting, onLit, onDoubt }: CardProps) {
+export function AccountCard({ c, person, statements, lit, pins, struck, placed, roomName, canPin, onLit, onPin }: CardProps) {
   const cast = c.story.cast[person]
   const mine = statements.filter(s => s.author === person)
   return (
@@ -169,9 +129,8 @@ export function AccountCard({ c, person, statements, lit, struck, stands, placed
             {mine.map(st => (
               <StatementRow
                 key={st.id} c={c} st={st} placed={placed}
-                lit={lit.includes(st.id)} struck={struck === st.id} stands={stands.includes(st.id)}
-                canDoubt={doubting && !st.scene && !stands.includes(st.id) && struck !== st.id}
-                onLit={onLit} onDoubt={onDoubt}
+                lit={lit.includes(st.id)} struck={struck === st.id} pinned={pins.includes(st.id)}
+                canPin={canPin} onLit={onLit} onPin={onPin}
               />
             ))}
           </ul>

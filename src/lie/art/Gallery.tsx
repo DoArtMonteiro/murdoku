@@ -8,8 +8,9 @@ import type { EmblemId } from '../model'
 import '../tokens.css'
 import './art.css'
 import './gallery.css'
-import { EMBLEM_IDS, Emblem } from './emblems'
+import { EMBLEM_IDS, EMBLEM_BOX, Emblem, EmblemTile } from './emblems'
 import { FurniturePiece } from './furniture'
+import { CHALK, contrast, deepTint } from './palette'
 import { TilePlan, cellKey } from './TilePlan'
 
 const FURNITURE: FurnitureType[] = [
@@ -22,12 +23,14 @@ const SIZES: Partial<Record<FurnitureType, { w: number; h: number }>> = {
   desk: { w: 2, h: 1 },
 }
 
-const PEOPLE: Record<string, { name: string; emblem: EmblemId }> = {
-  p0: { name: 'Lena', emblem: 'scales' },
-  p1: { name: 'Tomas', emblem: 'net' },
-  p2: { name: 'Greta', emblem: 'lantern' },
-  p3: { name: 'Marco', emblem: 'bell' },
+const PEOPLE: Record<string, { name: string; emblem: EmblemId; accent: string }> = {
+  p0: { name: 'Lena', emblem: 'scales', accent: '#6E8CA0' },
+  p1: { name: 'Tomas', emblem: 'net', accent: '#B08D57' },
+  p2: { name: 'Greta', emblem: 'lantern', accent: '#8A7CA8' },
+  p3: { name: 'Marco', emblem: 'bell', accent: '#9C7F6E' },
 }
+/** the accents a case file hands over, to show what each becomes as a token */
+const ACCENTS = ['#6E8CA0', '#B08D57', '#8A7CA8', '#7E9C6E', '#A8706E', '#a0432d', '#2f5d7c', '#c58b2a', '#5a8a7a']
 
 /** case 0 plus a 2x1 sofa at 180 and a 1x2 counter at 270, so the rotated footprints show. */
 const withRotated: Puzzle = {
@@ -40,6 +43,11 @@ const withRotated: Puzzle = {
 }
 
 const set = (...cells: Cell[]) => new Set(cells.map(cellKey))
+const sol = case0.solution
+/** every tile of the room the victim lies in: the reveal's murder-room tint */
+const roomTint = new Set(
+  case0.rooms.filter(r => r.cells.some(c => cellKey(c) === cellKey(sol.p3))).flatMap(r => r.cells.map(cellKey)),
+)
 
 export function Gallery(): JSX.Element {
   const [theme, setTheme] = useState<'light' | 'dark' | undefined>(undefined)
@@ -64,6 +72,24 @@ export function Gallery(): JSX.Element {
             {EMBLEM_IDS.map(id => <Emblem key={id} id={id} size={size} title={id} />)}
           </div>
         ))}
+      </section>
+
+      <section aria-labelledby="lg-tokens">
+        <h2 id="lg-tokens">Tokens</h2>
+        <p className="lg-note">Filled with the person's deep tint, chalk emblem and border. Contrast of the chalk on each tint is printed under it.</p>
+        <div className="lg-row">
+          {ACCENTS.map((accent, i) => {
+            const tint = deepTint(accent)
+            return (
+              <figure key={accent} className="lg-tk">
+                <svg className="lg-tk-svg" viewBox={`-2 -2 ${EMBLEM_BOX + 4} ${EMBLEM_BOX + 4}`} width={64} height={64} role="img" aria-label={`${EMBLEM_IDS[i]} on ${tint}`}>
+                  <g className="lp-emb lp-emb-tk"><EmblemTile id={EMBLEM_IDS[i]} fill={tint} /></g>
+                </svg>
+                <figcaption>{tint}<br />{contrast(CHALK, tint).toFixed(1)}:1</figcaption>
+              </figure>
+            )
+          })}
+        </div>
       </section>
 
       <section aria-labelledby="lg-furniture">
@@ -94,7 +120,7 @@ export function Gallery(): JSX.Element {
             victimId="p3"
             selectedPerson="p0"
             lit={set({ row: 0, col: 2 }, { row: 0, col: 3 })}
-            blocked={set({ row: 2, col: 0 }, { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 3, col: 1 })}
+            sightlines={set(sol.p0, sol.p1)}
             collision={set({ row: 3, col: 0 })}
             ghost={{ person: 'p2', cell: { row: 0, col: 3 } }}
             onTile={c => setLast(`tile ${c.row + 1},${c.col + 1}`)}
@@ -107,6 +133,15 @@ export function Gallery(): JSX.Element {
             victimId="p3"
             lifted="p1"
             murderer="p0"
+            tint={roomTint}
+            pulse="p0"
+          />
+          <TilePlan
+            puzzle={case0}
+            people={PEOPLE}
+            tokens={tokens}
+            victimId="p3"
+            blocked={set({ row: 2, col: 0 }, { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 3, col: 1 })}
           />
         </div>
       </section>

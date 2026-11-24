@@ -1,25 +1,32 @@
-// In-progress save for One False Alibi: `alibi_ofa_v1:<caseId>` (`:truth` appended for the comparison
-// direction, which has its own state). It never reads or writes a `murdoku_*` or `alibi_casebook_*` key.
-// Everything is wrapped in try/catch and validated on load; a save made on a different version of the case
-// (fingerprint mismatch) is discarded, never applied.
+// In-progress save for One False Alibi: `alibi_ofa_v2:<caseId>` (`:truth` appended for the hidden authoring harness,
+// which has its own state). Version 1 saves (`alibi_ofa_v1:`) were a different game and are never read.
+// It never reads or writes a `murdoku_*` or `alibi_casebook_*` key. Everything is wrapped in try/catch and validated on
+// load; a save made on a different version of the case (fingerprint mismatch) is discarded, never applied.
+// The phase is stored for people reading the save but never trusted: Act 2 is derived from the ledger.
 import type { Cell } from '../core/types'
-import type { JournalEntry } from './collide'
+import { citable, contradictionKey, inReadingOrder, keepConsistent, proofGate, rule } from './collide'
+import type { LedgerRow } from './collide'
 import type { LieCase } from './model'
 
-export const SAVE_PREFIX = 'alibi_ofa_v1:'
+export const SAVE_PREFIX = 'alibi_ofa_v2:'
 export const saveKey = (caseId: string, truthOnly: boolean): string => `${SAVE_PREFIX}${caseId}${truthOnly ? ':truth' : ''}`
+
+/** Solved cases, a JSON array of case ids. */
+export const SOLVED_KEY = 'alibi_ofa_solved_v1'
 
 export interface Saved {
   placed: Record<string, Cell>
-  /** The lie, once doubted correctly. */
+  /** The lie, once doubted with proof. */
   struck: string | null
-  /** Statements doubted wrongly ("That account stands"). */
-  stands: string[]
-  strikes: number
-  journal: JournalEntry[]
+  pins: string[]
+  /** Honest people whose place is settled after the proof. */
+  locked: string[]
+  ledger: LedgerRow[]
+  falseCitations: number
+  phase: 'hunt' | 'rebuild'
 }
 
-export const emptySave = (): Saved => ({ placed: {}, struck: null, stands: [], strikes: 0, journal: [] })
+export const emptySave = (): Saved => ({ placed: {}, struck: null, pins: [], locked: [], ledger: [], falseCitations: 0, phase: 'hunt' })
 
 /** cyrb53: a fast, well-mixed 53-bit hash. It only has to notice change. */
 function hash(str: string): string {
@@ -57,21 +64,29 @@ export function parseSave(c: LieCase, truthOnly: boolean, raw: unknown): Saved {
     }
   }
   if (truthOnly) return out
-  const doubtable = new Set(c.statements.filter(s => !s.scene).map(s => s.id))
-  if (raw.struck === c.lieId) out.struck = c.lieId
-  out.stands = strings(raw.stands).filter(id => doubtable.has(id) && id !== c.lieId)
-  out.strikes = Math.min(2, Math.max(out.stands.length, int(raw.strikes) ? Math.max(0, raw.strikes) : 0))
-  if (Array.isArray(raw.journal)) {
-    for (const e of raw.journal) {
-      if (!isObj(e)) continue
-      const people = strings(e.people).filter(id => ids.has(id))
-      const stmts = new Set(c.statements.map(s => s.id))
-      if (people.length >= 2) out.journal.push({ people, statementIds: strings(e.statementIds).filter(id => stmts.has(id)) })
+  out.pins = citable(c, strings(raw.pins)).slice(0, 4)
+  if (Array.isArray(raw.ledger)) {
+    const seen = new Set<string>()
+    for (const row of raw.ledger) {
+      // a row only stays if the engine still calls it a minimal contradiction
+      const ids = citable(c, strings(row))
+      if (ids.length < 2 || ids.length > 4 || seen.has(contradictionKey(ids))) continue
+      if (rule(c, ids) !== 'minimal') continue
+      seen.add(contradictionKey(ids))
+      out.ledger.push(inReadingOrder(c, ids))
     }
-    out.journal = out.journal.slice(-8)
+    out.ledger = out.ledger.slice(-24)
   }
-  // the liar's token is lifted when the lie is struck; a save that still has it placed is inconsistent
-  if (out.struck) delete out.placed[c.statements.find(s => s.id === c.lieId)?.author ?? '']
+  out.falseCitations = int(raw.falseCitations) ? Math.min(99, Math.max(0, raw.falseCitations)) : 0
+  // Act 2 only if the saved ledger itself proves the lie
+  if (raw.struck === c.lieId && proofGate(out.ledger, c.lieId)) {
+    out.struck = c.lieId
+    out.phase = 'rebuild'
+    out.pins = []
+    // locks are persisted, but only kept for honest, placed people the true statements still agree with
+    const who = c.statements.find(s => s.id === c.lieId)?.author
+    out.locked = keepConsistent(c, out.placed, strings(raw.locked).filter(id => id !== who && !!out.placed[id]))
+  }
   return out
 }
 
@@ -88,4 +103,33 @@ export function writeSave(c: LieCase, truthOnly: boolean, s: Saved): void {
 
 export function clearSave(c: LieCase, truthOnly: boolean): void {
   try { localStorage.removeItem(saveKey(c.id, truthOnly)) } catch { /* nothing to clear */ }
+}
+
+/** Ids of the cases the player has proved. */
+export function loadSolved(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SOLVED_KEY) ?? '[]')
+    return strings(raw)
+  } catch { return [] }
+}
+
+export function markSolved(caseId: string): void {
+  try {
+    const now = loadSolved()
+    if (!now.includes(caseId)) localStorage.setItem(SOLVED_KEY, JSON.stringify([...now, caseId]))
+  } catch { /* the mark lasts this visit only */ }
+}
+
+/** The id to open now: the one asked for, else the first unsolved case in order, else the first. */
+export function pickId(asked: string, order: readonly { id: string }[], solved: readonly string[]): string {
+  if (asked) return asked
+  return (order.find(e => !solved.includes(e.id)) ?? order[0])?.id ?? ''
+}
+
+/** The case after `current` worth opening: the next unsolved one in order (wrapping), else simply the next. Null for a lone case. */
+export function nextId(current: string, order: readonly { id: string }[], solved: readonly string[]): string | null {
+  const i = order.findIndex(e => e.id === current)
+  if (i < 0) return null
+  const after = [...order.slice(i + 1), ...order.slice(0, i)]
+  return (after.find(e => !solved.includes(e.id)) ?? after[0])?.id ?? null
 }

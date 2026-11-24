@@ -72,3 +72,7 @@ export function lensTiles(c: LieCase, active: readonly Statement[], person: stri
   }
   return out
 }
+
+/** The lens is lit but empty for someone not yet on the plan: nowhere satisfies everything they said and the placement. */
+export const nowhereFits = (lens: ReadonlySet<string> | null, placed: Placed, person: string): boolean =>
+  lens !== null && lens.size === 0 && !placed[person]

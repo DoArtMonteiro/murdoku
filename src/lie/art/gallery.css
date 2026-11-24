@@ -9,3 +9,5 @@
 .lg-piece { background: var(--cal); border: 1px solid var(--grout); color: var(--cobalt); }
 .lg-note { font-family: var(--font-voice); font-style: italic; margin: 0 0 8px; }
 .lg-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+.lg-tk { margin: 0; text-align: center; font-size: 11px; line-height: 1.3; }
+.lg-tk-svg { display: block; margin: 0 auto 2px; color: var(--cobalt); }

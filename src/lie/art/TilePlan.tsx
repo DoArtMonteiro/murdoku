@@ -12,19 +12,27 @@ import { EMBLEM_BOX, EmblemTile } from './emblems'
 import { FURNITURE_LABEL, FurniturePiece } from './furniture'
 import { Crack } from './Crack'
 import { Motif } from './motifs'
-import { PAD, U, furnitureByCell, groundFurniture, hash, keyOf, roomLabels, roomMotifs, wallPaths } from './plan'
+import { deepTint } from './palette'
+import { PAD, TOKEN_TOP, U, furnitureByCell, groundFurniture, hash, keyOf, roomLabels, roomMotifs, wallPaths } from './plan'
 import './art.css'
 
 export interface TilePlanProps {
   puzzle: Puzzle
-  people: Record<string, { name: string; emblem: EmblemId }>
+  /** `accent` tints the token (a hex); absent, the puzzle's own person accent is used. */
+  people: Record<string, { name: string; emblem: EmblemId; accent?: string }>
   tokens: Record<string, Cell>
   victimId: string
   selectedPerson?: string | null
   /** keys `${row},${col}`: ochre glaze (where a statement can hold) */
   lit?: ReadonlySet<string>
-  /** tiles excluded by occupied rows/columns: subtly dimmed */
+  /** tiles excluded by occupied rows/columns: a faint diagonal hatch (no fill). Prefer `sightlines`. */
   blocked?: ReadonlySet<string>
+  /** keys of placed people: their whole row and column are drawn as cobalt hairlines */
+  sightlines?: ReadonlySet<string>
+  /** tiles washed with the warm room tint (the murder room, in the reveal) */
+  tint?: ReadonlySet<string>
+  /** person whose token pulses once */
+  pulse?: string | null
   /** tiles involved in a collision: almagre hairline crack overlay */
   collision?: ReadonlySet<string>
   /** translucent token (a supposition) */
@@ -44,11 +52,13 @@ export const cellKey = (c: { row: number; col: number }) => `${c.row},${c.col}`
 const HOLD_MS = 450
 const MOVE_SLOP = 8
 const EMPTY: ReadonlySet<string> = new Set()
+// the ruled-out hatch: five diagonals across one tile, drawn as a single path
+const HATCH = 'M0 34L34 0M0 68L68 0M0 100L100 0M32 100L100 32M66 100L100 66'
 
-// token geometry inside a 100-unit tile: lower than centre, so a plaque along the top edge stays clear
-const TS = 66
+// token geometry inside a 100-unit tile: below TOKEN_TOP, so a plaque along the top edge stays clear
+const TS = 60
 const TX = (U - TS) / 2
-const TY = 27
+const TY = TOKEN_TOP
 const TOKEN_TRANSFORM = `translate(${TX} ${TY}) scale(${TS / EMBLEM_BOX})`
 
 /** The victim: a dark tile with a chalk outline of a body. Distinct at a glance, nothing gory. */
@@ -65,33 +75,43 @@ function VictimTile(): JSX.Element {
   )
 }
 
-function Token({ person, emblem, victim, ghost, selected, murderer, lifted }: {
+function Token({ person, emblem, tint, victim, ghost, selected, murderer, lifted, pulse }: {
   person: string
   emblem: EmblemId | null
+  /** deep tint (hex) of a suspect's token */
+  tint: string
   victim: boolean
   ghost?: boolean
   selected?: boolean
   murderer?: boolean
   lifted?: boolean
+  pulse?: boolean
 }): JSX.Element {
+  const dark = victim || !emblem
   return (
     <g className={lifted ? 'lp-token lp-lift' : 'lp-token'} data-person={person}>
       <g className={ghost ? 'lp-ghost' : undefined}>
-        <rect className="lp-shadow" x={TX + 2} y={TY + 3.5} width={TS} height={TS} rx="5" />
-        <g transform={TOKEN_TRANSFORM} className="lp-emb">
-          {victim || !emblem ? <VictimTile /> : <EmblemTile id={emblem} />}
+        <g className={pulse ? 'lp-face lp-pulse' : 'lp-face'}>
+          <rect className="lp-shadow lp-shadow-far" x={TX + 1} y={TY + 3} width={TS + 3} height={TS + 4} rx="7" />
+          <rect className="lp-shadow" x={TX + 1.5} y={TY + 3} width={TS} height={TS} rx="5.5" />
+          <g transform={TOKEN_TRANSFORM} className={dark ? 'lp-emb' : 'lp-emb lp-emb-tk'}>
+            {dark ? <VictimTile /> : <EmblemTile id={emblem} fill={tint} />}
+          </g>
         </g>
       </g>
+      {pulse && <rect className="lp-pulse-ring" x={TX - 5} y={TY - 5} width={TS + 10} height={TS + 10} rx="9" />}
       {selected && !ghost && <rect className="lp-ring" x={TX - 6} y={TY - 6} width={TS + 12} height={TS + 12} rx="9" />}
-      {murderer && <rect className="lp-ring-murderer" x={TX - 9} y={TY - 9} width={TS + 18} height={TS + 18} rx="11" />}
+      {murderer && <rect className="lp-ring-murderer" x={TX - 8} y={TY - 8} width={TS + 16} height={TS + 16} rx="11" />}
     </g>
   )
 }
 
 export function TilePlan(p: TilePlanProps): JSX.Element {
-  const { puzzle, people, tokens, victimId, selectedPerson, ghost, lifted, murderer, onTile, onTileHold, className } = p
+  const { puzzle, people, tokens, victimId, selectedPerson, ghost, lifted, murderer, pulse, onTile, onTileHold, className } = p
   const lit = p.lit ?? EMPTY
   const blocked = p.blocked ?? EMPTY
+  const sightlines = p.sightlines ?? EMPTY
+  const tint = p.tint ?? EMPTY
   const collision = p.collision ?? EMPTY
   const N = puzzle.size
 
@@ -102,12 +122,13 @@ export function TilePlan(p: TilePlanProps): JSX.Element {
       furn,
       pieces: groundFurniture(puzzle),
       walls: wallPaths(puzzle, furnKeys),
-      labels: roomLabels(puzzle, furnKeys),
+      labels: roomLabels(puzzle, furnKeys, furn),
       motifs: roomMotifs(puzzle),
       roomName: new Map(puzzle.rooms.map(r => [r.id, r.name])),
     }
   }, [puzzle])
 
+  const tintOf = (id: string) => deepTint(people[id]?.accent ?? puzzle.people.find(x => x.id === id)?.accent)
   const nameOf = (id: string) => people[id]?.name ?? puzzle.people.find(x => x.id === id)?.name ?? id
   const occupant = useMemo(() => {
     const m = new Map<string, string>()
@@ -148,6 +169,13 @@ export function TilePlan(p: TilePlanProps): JSX.Element {
     if (lit.has(k)) parts.push('A statement can hold here.')
     if (collision.has(k)) parts.push('Collision.')
     if (blocked.has(k)) parts.push('Ruled out.')
+    // the non-visual twin of a sightline: whose row or column this tile is on (not the person's own tile)
+    const seen = [...sightlines].filter(t => t !== k).flatMap(t => {
+      const [tr, tc] = t.split(',').map(Number)
+      const who = occupant.get(t)
+      return who && (tr === r || tc === c) ? [nameOf(who)] : []
+    })
+    if (seen.length) parts.push(`In line with ${seen.join(' and ')}.`)
     return parts.join(' ')
   }
 
@@ -189,6 +217,14 @@ export function TilePlan(p: TilePlanProps): JSX.Element {
   const moved = (e: PointerEvent<SVGGElement>) => {
     if (!hold.current.timer) return
     if (Math.hypot(e.clientX - hold.current.x, e.clientY - hold.current.y) > MOVE_SLOP) clearHold()
+  }
+
+  // sightlines: one hairline per distinct row and column that holds a listed person
+  const sightRows = new Set<number>(), sightCols = new Set<number>()
+  for (const k of sightlines) {
+    const [r, c] = k.split(',').map(Number)
+    if (r >= 0 && r < N) sightRows.add(r)
+    if (c >= 0 && c < N) sightCols.add(c)
   }
 
   const size = N * U
@@ -234,11 +270,12 @@ export function TilePlan(p: TilePlanProps): JSX.Element {
         >
           <rect className="lp-tile" data-tone={hash(r, c) % 11 === 0 ? 2 : hash(r, c) % 5 === 0 ? 1 : undefined} width={U} height={U} />
           {room && <Motif kind={geo.motifs.get(room) ?? 3} />}
+          <rect className="lp-tint" data-on={tint.has(k) ? '' : undefined} width={U} height={U} />
           <g className="lp-glaze" data-lit={isLit ? '' : undefined} data-d={d || undefined}>
             <rect className="lp-glaze-fill" width={U} height={U} />
             <path className="lp-glaze-gloss" d="M10 38L38 10" />
           </g>
-          <rect className="lp-blocked" data-on={blocked.has(k) ? '' : undefined} width={U} height={U} />
+          <path className="lp-blocked" data-on={blocked.has(k) ? '' : undefined} d={HATCH} />
         </g>,
       )
     }
@@ -255,6 +292,10 @@ export function TilePlan(p: TilePlanProps): JSX.Element {
     >
       <rect className="lp-frieze" x={-PAD + 3} y={-PAD + 3} width={view - 6} height={view - 6} rx="5" />
       {rows}
+      <g className="lp-sights" aria-hidden="true">
+        {[...sightRows].sort((a, b) => a - b).map(r => <path key={`r${r}`} className="lp-sight" data-axis="row" data-line={r} d={`M0 ${r * U + U / 2}H${size}`} />)}
+        {[...sightCols].sort((a, b) => a - b).map(c => <path key={`c${c}`} className="lp-sight" data-axis="col" data-line={c} d={`M${c * U + U / 2} 0V${size}`} />)}
+      </g>
       <path className="lp-wall-in" d={geo.walls.inner} />
       <path className="lp-sill" d={geo.walls.sills} />
       <path className="lp-jamb" d={geo.walls.jambs} />
@@ -272,16 +313,25 @@ export function TilePlan(p: TilePlanProps): JSX.Element {
             <Token
               person={person}
               emblem={people[person]?.emblem ?? null}
+              tint={tintOf(person)}
               victim={person === victimId}
               selected={person === selectedPerson}
               murderer={person === murderer}
               lifted={person === lifted}
+              pulse={person === pulse}
             />
           </g>
         ))}
         {ghost && ghostKey && (
-          <g transform={`translate(${ghost.cell.col * U} ${ghost.cell.row * U})`}>
-            <Token person={ghost.person} emblem={people[ghost.person]?.emblem ?? null} victim={ghost.person === victimId} ghost />
+          // two nested groups, one per axis, so the CSS translate rules (data-row / data-col) can
+          // transition and the supposition glides when its cell changes. No inline styles.
+          <g className="lp-gy" data-row={ghost.cell.row} transform={`translate(0 ${ghost.cell.row * U})`}>
+            <g className="lp-gx" data-col={ghost.cell.col} transform={`translate(${ghost.cell.col * U} 0)`}>
+              <Token
+                person={ghost.person} emblem={people[ghost.person]?.emblem ?? null} tint={tintOf(ghost.person)}
+                victim={ghost.person === victimId} murderer={ghost.person === murderer} ghost
+              />
+            </g>
           </g>
         )}
         {[...collision].map(k => {

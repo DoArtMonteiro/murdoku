@@ -1,130 +1,93 @@
 import { describe, expect, it } from 'vitest'
-import { collisionKey, commonPeople, findCollisions, recordable } from '../../src/lie/collide'
+import { citable, contradictionKey, crackTiles, inReadingOrder, keepConsistent, proofGate, rule } from '../../src/lie/collide'
 import { LIE_FIXTURE as C } from '../../src/lie/fixture'
-import type { Placed } from '../../src/lie/lens'
-import type { Statement } from '../../src/lie/model'
+import { findMinimalCores } from '../../src/lie/verify'
 
-const all: Statement[] = C.statements
-const noLie: Statement[] = C.statements.filter(s => s.id !== C.lieId)
 const at = (row: number, col: number) => ({ row, col })
-const peopleOf = (p: Placed, act: Statement[] = all) => findCollisions(C, act, p).map(k => k.people)
+const doubtable = C.statements.filter(s => !s.scene).map(s => s.id)
 
-describe('findCollisions: unplaced subject', () => {
-  it('finds nothing on an empty plan', () => {
-    expect(findCollisions(C, all, {})).toEqual([])
+describe('rule: the engine decides, and never says which statement is false', () => {
+  it('a minimal contradiction: every cited statement is needed', () => {
+    expect(rule(C, ['s2', 's1', 's3'])).toBe('minimal')
+    expect(rule(C, ['s2', 's8', 's9'])).toBe('minimal')
   })
 
-  it('finds nothing while everyone could still be somewhere', () => {
-    expect(findCollisions(C, all, { c: at(1, 4), v: at(2, 3) })).toEqual([])
+  it('unsatisfiable but not minimal: one statement is along for the ride', () => {
+    expect(rule(C, ['s2', 's1', 's3', 's5'])).toBe('redundant')
   })
 
-  it('names the subject first, then the one person who takes the last tile away', () => {
-    const ks = findCollisions(C, all, { b: at(0, 0) })
-    expect(ks).toHaveLength(1)
-    expect(ks[0].subject).toBe('a')
-    expect(ks[0].people).toEqual(['a', 'b'])
-    // a: against a wall AND in the Net Loft -> (0,0) (0,1) (0,2) (1,0)
-    expect([...ks[0].tiles].sort()).toEqual(['0,0', '0,1', '0,2', '1,0'])
-    // every active statement of both people, and nobody else's
-    expect(ks[0].statementIds.sort()).toEqual(['s1', 's2', 's3', 's4'].sort())
+  it('satisfiable: they can all be true', () => {
+    expect(rule(C, ['s1', 's3'])).toBe('satisfiable')
+    expect(rule(C, ['s5', 's6', 's7'])).toBe('satisfiable')
+    // the lie with a harmless neighbour is still satisfiable
+    expect(rule(C, ['s2', 's5'])).toBe('satisfiable')
   })
 
-  it('uses a relation written by the placed person about the subject', () => {
-    // d: "I was north of Ana". With d on row 3, Ana (Net Loft) has nowhere to stand.
-    const ks = findCollisions(C, all, { d: at(3, 1) })
-    expect(ks.map(k => k.people)).toEqual([['a', 'd']])
+  it('ignores scene facts and unknown ids in the citation (scene facts are always implicit)', () => {
+    expect(citable(C, ['s10', 'nope', 's1', 's1'])).toEqual(['s1'])
+    expect(rule(C, ['s2', 's1', 's3', 's10'])).toBe('minimal')
   })
 
-  it('uses a relation written by the subject about the placed person', () => {
-    // c: "not in the same room as Bruno". Bruno in the Chandlery leaves Cleo (Chandlery) no tile.
-    const ks = findCollisions(C, all, { b: at(0, 3) })
-    expect(ks.some(k => k.subject === 'c' && k.people.includes('b'))).toBe(true)
-  })
-
-  it('reports each different blocker as its own collision, not one big pile', () => {
-    const ks = findCollisions(C, all, { b: at(0, 0), d: at(3, 1) })
-    expect(ks.map(k => k.people)).toEqual([['a', 'b'], ['a', 'd']])
-  })
-
-  it('never lists a placed person who takes no tile from the subject', () => {
-    const ks = findCollisions(C, all, { b: at(0, 0), c: at(1, 4), v: at(2, 3) })
-    expect(ks.map(k => k.people)).toEqual([['a', 'b']])
-  })
-
-  it('a blocked row alone is enough: someone on the row the subject needs', () => {
-    // v (scene: at the desk) is unplaced; c on row 2 leaves the desk tile (2,3) no free row.
-    const ks = findCollisions(C, all, { c: at(2, 0) })
-    expect(ks.some(k => k.subject === 'v' && k.people.includes('c'))).toBe(true)
-  })
-
-  it('has no collision once the lie is struck', () => {
-    expect(findCollisions(C, noLie, { b: at(0, 0), d: at(3, 1) })).toEqual([])
-  })
-
-  it('a subject with no tile at all collides alone', () => {
-    const impossible: Statement[] = [
-      { id: 'x1', author: 'a', clue: { kind: 'room', person: 'a', roomId: 'loft' }, text: '' },
-      { id: 'x2', author: 'a', clue: { kind: 'room', person: 'a', roomId: 'quay' }, text: '' },
-    ]
-    const ks = findCollisions(C, impossible, {})
-    expect(ks).toEqual([{ subject: 'a', people: ['a'], statementIds: ['x1', 'x2'], tiles: [] }])
-    expect(recordable(ks)).toEqual([])
-  })
-
-  it('does not read the solution: moving it changes nothing', () => {
-    const moved = { ...C, puzzle: { ...C.puzzle, solution: {} } }
-    expect(findCollisions(moved, all, { b: at(0, 0), d: at(3, 1) }).map(k => k.people))
-      .toEqual(findCollisions(C, all, { b: at(0, 0), d: at(3, 1) }).map(k => k.people))
+  it('reading order and a stable key', () => {
+    expect(inReadingOrder(C, ['s9', 's2', 's1'])).toEqual(['s1', 's2', 's9'])
+    expect(contradictionKey(['s3', 's1'])).toBe(contradictionKey(['s1', 's3']))
   })
 })
 
-describe('findCollisions: placed subject', () => {
-  it('a relational statement broken by two placed people names both', () => {
-    // Ana in the Net Loft against a wall, Davi on row 3: "north of Ana" is false
-    const ks = findCollisions(C, all, { a: at(0, 2), d: at(3, 1) })
-    const d = ks.find(k => k.subject === 'd')!
-    expect(d.people).toEqual(['d', 'a'])
-    expect(d.statementIds).toContain('s9')
-    expect(d.statementIds).toContain('s1')
-    expect(d.tiles.length).toBeGreaterThan(0)
+describe('proofGate: reads the ledger only', () => {
+  const A = ['s1', 's2', 's3'], B = ['s2', 's8', 's9']
+  it('a single contradiction is not proof', () => {
+    expect(proofGate([A], 's2')).toBe(false)
+    expect(proofGate([], 's2')).toBe(false)
+  })
+  it('two contradictions that meet in exactly that statement are proof', () => {
+    expect(proofGate([A, B], 's2')).toBe(true)
+  })
+  it('a statement in only one of the two is not proof', () => {
+    expect(proofGate([A, B], 's1')).toBe(false)
+    expect(proofGate([A, B], 's9')).toBe(false)
+  })
+  it('two contradictions that meet in two statements are not proof of either', () => {
+    const X = ['s1', 's2', 's3'], Y = ['s1', 's2', 's8']
+    expect(proofGate([X, Y], 's2')).toBe(false)
+    expect(proofGate([X, Y], 's1')).toBe(false)
+  })
+  it('only the rows holding the statement count: a third, unrelated row does not spoil it', () => {
+    expect(proofGate([A, B, ['s5', 's6']], 's2')).toBe(true)
   })
 
-  it('a person set against their own account collides alone (and is not recordable)', () => {
-    const ks = findCollisions(C, all, { c: at(4, 4) })
-    expect(ks.find(k => k.subject === 'c')?.people).toEqual(['c'])
-    expect(recordable(ks).filter(k => k.subject === 'c')).toEqual([])
-  })
-
-  it('holds still when the placement is the true one and the lie is struck', () => {
-    expect(findCollisions(C, noLie, C.puzzle.solution)).toEqual([])
-  })
-
-  it('with the lie still standing, the true plan breaks exactly the lie', () => {
-    const ks = findCollisions(C, all, C.puzzle.solution)
-    expect(ks.map(k => k.subject)).toEqual(['a'])
-    expect(ks[0].people).toEqual(['a'])
-  })
-
-  it('unplaced people do not count against a relation yet', () => {
-    expect(findCollisions(C, all, { d: at(3, 1) }).some(k => k.subject === 'd')).toBe(false)
+  it('by construction: any statement that passes the gate over minimal contradictions is the lie', () => {
+    // every minimal contradiction of the fixture, any size up to four; the lie is in all of them
+    const cores = findMinimalCores(C, 4)
+    expect(cores.length).toBeGreaterThanOrEqual(2)
+    for (const core of cores) expect(core).toContain(C.lieId)
+    for (const a of cores) {
+      for (const b of cores) {
+        for (const id of doubtable) if (proofGate([a, b], id)) expect(id).toBe(C.lieId)
+      }
+    }
+    for (const id of doubtable) if (proofGate(cores, id)) expect(id).toBe(C.lieId)
+    // and the case's own two collisions do pass it
+    expect(proofGate(C.collisions, C.lieId)).toBe(true)
   })
 })
 
-describe('the ledger payoff', () => {
-  it('two natural placements leave the murderer as the only common person', () => {
-    const rows = [
-      ...peopleOf({ b: at(0, 0) }),
-      ...peopleOf({ b: at(0, 0), d: at(3, 1) }).filter(p => p.includes('d')),
-    ]
-    expect(rows).toEqual([['a', 'b'], ['a', 'd']])
-    expect(commonPeople(rows)).toEqual([C.puzzle.murdererId])
+describe('crack overlay', () => {
+  it('only the tiles of speakers who are already placed', () => {
+    const placed = { b: at(0, 0) }
+    // s1 is Ana's (unplaced), s3 is Bruno's (placed)
+    expect([...crackTiles(C, ['s1', 's2', 's3'], placed)]).toEqual(['0,0'])
+    expect(crackTiles(C, ['s1', 's2'], placed).size).toBe(0)
   })
+})
 
-  it('collisionKey ignores order', () => {
-    expect(collisionKey(['a', 'd'])).toBe(collisionKey(['d', 'a']))
+describe('keepConsistent: a guess never locks the true plan out of reach', () => {
+  const sol = C.puzzle.solution
+  it('keeps tokens the true statements put there, drops the rest', () => {
+    const placed = { b: at(sol.b.row, sol.b.col), c: at(3, 3), d: at(sol.d.row, sol.d.col) }
+    expect(keepConsistent(C, placed, ['b', 'c', 'd'])).toEqual(['b', 'd'])
   })
-
-  it('commonPeople of nothing is nothing', () => {
-    expect(commonPeople([])).toEqual([])
+  it('keeps nobody when the first guess is wrong and the second only fits with it', () => {
+    expect(keepConsistent(C, { b: at(1, 1) }, ['b'])).toEqual([])
   })
 })
