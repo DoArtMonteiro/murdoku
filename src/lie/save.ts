@@ -41,7 +41,7 @@ function hash(str: string): string {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16)
 }
 
-export const fingerprint = (c: LieCase): string => hash(JSON.stringify({ s: c.statements, p: c.puzzle }))
+export const fingerprint = (c: LieCase): string => hash(JSON.stringify({ s: c.statements, p: c.puzzle, l: c.lieId, k: c.collisions }))
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
 const int = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x)
@@ -67,7 +67,7 @@ export function parseSave(c: LieCase, truthOnly: boolean, raw: unknown): Saved {
   out.pins = citable(c, strings(raw.pins)).slice(0, 4)
   if (Array.isArray(raw.ledger)) {
     const seen = new Set<string>()
-    for (const row of raw.ledger) {
+    for (const row of raw.ledger.slice(-64)) {
       // a row only stays if the engine still calls it a minimal contradiction
       const ids = citable(c, strings(row))
       if (ids.length < 2 || ids.length > 4 || seen.has(contradictionKey(ids))) continue

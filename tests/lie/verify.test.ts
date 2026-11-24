@@ -220,10 +220,10 @@ describe('verifyLieCase: what a case promises beyond the shared checks', () => {
 })
 
 describe('rulings: satisfiable, isMinimalContradiction, laneFree', () => {
-  it('agrees with the engine on every subset of up to three statements, scene facts included', () => {
+  it('agrees with the engine on every subset of up to four statements (the largest citation), scene facts included', () => {
     for (const c of ALL) {
       const scene = c.statements.filter(s => s.scene)
-      for (const ids of subsets(doubtable(c), 3)) {
+      for (const ids of subsets(doubtable(c), 4)) {
         const chosen = [...c.statements.filter(s => ids.includes(s.id)), ...scene]
         expect(satisfiable(c, ids), `${c.id} ${ids.join(',')}`).toBe(countSolutions(puzzleOf(c.puzzle, chosen), 1) > 0)
       }

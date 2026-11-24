@@ -100,6 +100,12 @@ function CaseLoader({ initial, truth }: { initial: string; truth: boolean }) {
   const [loaded, setLoaded] = useState<{ id: string; c: LieCase | null; failed: boolean } | null>(null)
 
   useEffect(() => { void loadRegistry().then(setReg) }, [])
+  // Next case pushes a history entry; Back must show the case the URL names again.
+  useEffect(() => {
+    const onPop = () => setAsked(new URLSearchParams(window.location.search).get('alibi') ?? '')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const id = useMemo(() => (reg ? pickId(asked, reg.order, loadSolved()) : ''), [reg, asked])
 
   useEffect(() => {
