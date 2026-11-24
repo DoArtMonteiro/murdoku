@@ -6,17 +6,18 @@
 // kept the Kitchen that night, so the claim sounds easy to believe and hard to test.
 //
 // The lie is relational (s2, "in the same room as Joana") and names no place. If it were true Rui
-// would be in the Kitchen, the one room three people can share. What an honest reader can find:
+// would be in the Kitchen, the one room three people can share. The stored collisions:
 //   * s2 + Joana beside the table (s3) + Marta at the desk (s7) + Marta west of Rui (s8): Marta sits
 //     in the Study, so Rui, in the Kitchen, cannot be east of her. Lane-free.
 //   * s2 + s3 + Fausto on the sofa (s9) + Fausto west of Rui (s10): the same argument through a
-//     second witness. Lane-free. These two share TWO statements, the lie and s3, so they cannot yet
-//     tell the lie from Joana's account of the table.
+//     second witness. Lane-free. These two share TWO statements, the lie and s3.
 //   * s2 + Tomé with Joana (s6) + s10: three people in the Kitchen leave Fausto no column west of
-//     Rui. This one does not use s3, so only s2 is in all three: that is the elimination.
-// Every speaker's two statements say different things (checked by verifyLieCase): no account is a
-// restatement of the other. With s2 struck the other nine statements place everyone only with a
-// lane deduction and a suppose (tests/lie/case3.test.ts pins the measure).
+//     Rui. This one does not use s3, so only s2 is in all three.
+// The case has fifteen minimal contradictions (tests/lie/case3.test.ts pins the list). KNOWN LIMIT:
+// two of them can meet only in the lie, so the lie can be proved with two citations as well as
+// with the three above; the designed elimination is the intended path, not the only one.
+// Every speaker's two statements say different things (checked by verifyLieCase). With s2 struck the
+// other nine statements place everyone only with a lane deduction and a suppose.
 import type { Person, Room } from '../../core/types'
 import type { LieCase, Statement } from '../model'
 import { at, buildCase, piece, rect } from './build'

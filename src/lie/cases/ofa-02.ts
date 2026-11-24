@@ -2,18 +2,21 @@
 //
 // Written from the story backwards. Dinis the chandler forged the notary's last page, and Lúcia
 // caught him at it in her Office. The alibi a chandler reaches for is his own stock: "I sat on the
-// box all night." The box is in the Workshop, so the lie puts him far from the Office.
+// box." The box is in the Workshop, so the lie puts him far from the Office.
 //
-// What an honest reader can find:
-//   * s3 + s10 (Joana on the chair, Dinis on the box): a pair. They cannot share a lane, because the
-//     chair and the box stand in the same row. This one leans on the one-per-row rule.
+// The case has twelve minimal contradictions (tests/lie/case2.test.ts pins the list), only one of
+// them a pair, so no two pairs prove the lie. The stored ones:
+//   * s3 + s10 (Joana on the chair, Dinis on the box): the pair. The chair and the box stand in the
+//     same row, so it leans on the one-per-row rule (legible: it needs nothing else).
 //   * s1 + s7 + s10 (Rui east of Marta, Marta east of Dinis, Dinis on the box): a chain through a
 //     third person. The box stands in the fifth column of six, so Marta would have to be in the last
-//     column and Rui east of her, off the plan. No row or column rule is needed (lane-free).
-// The two meet only in s10. Doubting any other statement leaves one of the stories standing.
+//     column and Rui east of her, off the plan. Lane-free.
+// They meet only in s10, and they are the cheapest proof: a pair and a legible triple. One more
+// contradiction (s2 + s4 + s5 + s10) needs a lane and a scene fact together: the ledger accepts it,
+// a person cannot follow it.
 //
-// With s10 struck, the other ten statements place everyone, but Dinis's own square is not
-// forced by singles: it takes one suppose (tests/lie/case-ofa-02.test.ts pins the measure).
+// With s10 struck, the other ten statements place everyone, but Dinis's own square is not forced by
+// singles: it takes a lane deduction and a suppose.
 import type { Person, Room } from '../../core/types'
 import type { LieCase, Statement } from '../model'
 import { at, buildCase, piece, rect } from './build'
@@ -48,16 +51,16 @@ const people: Person[] = [
 /** Every statement in reading order, the false one (s10) included. Scene facts are the victim's. */
 export const statements: Statement[] = [
   { id: 's1', author: 'p0', clue: { kind: 'direction', person: 'p0', other: 'p3', dir: 'E' }, text: 'Somewhere east of Marta.', display: 'I was somewhere east of Marta, mending until the light failed.' },
-  { id: 's2', author: 'p0', clue: { kind: 'besideFurniture', person: 'p0', furniture: 'box' }, text: 'Beside the box.', display: 'I stood right next to the box, splicing rope.' },
+  { id: 's2', author: 'p0', clue: { kind: 'besideFurniture', person: 'p0', furniture: 'lamp' }, text: 'Beside a lamp.', display: 'I stood next to a lamp, splicing rope.' },
   { id: 's3', author: 'p1', clue: { kind: 'onFurniture', person: 'p1', furniture: 'chair' }, text: 'On the chair.', display: 'I sat on the chair with my floury arms in my lap.' },
-  { id: 's4', author: 'p1', clue: { kind: 'direction', person: 'p1', other: 'p2', dir: 'W' }, text: 'Somewhere west of Tomé.', display: 'I was somewhere west of Tomé, shaping loaves.' },
-  { id: 's5', author: 'p2', clue: { kind: 'besideFurniture', person: 'p2', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I stood next to the shrub, out of the wind.' },
-  { id: 's6', author: 'p2', clue: { kind: 'sameRoomAs', person: 'p2', other: 'p3' }, text: 'In the same room as Marta.', display: 'I was in the same room as Marta, trimming wicks for the evening.' },
+  { id: 's4', author: 'p1', clue: { kind: 'notSameRoomAs', person: 'p1', other: 'p4' }, text: 'Was not in the same room as Dinis.', display: 'I never shared a room with Dinis that night.' },
+  { id: 's5', author: 'p2', clue: { kind: 'sameRoomAs', person: 'p2', other: 'p3' }, text: 'In the same room as Marta.', display: 'I was in the same room as Marta, trimming wicks for the evening.' },
+  { id: 's6', author: 'p2', clue: { kind: 'besideFurniture', person: 'p2', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I stood next to the shrub, out of the wind.' },
   { id: 's7', author: 'p3', clue: { kind: 'direction', person: 'p3', other: 'p4', dir: 'E' }, text: 'Somewhere east of Dinis.', display: 'I was somewhere east of Dinis, with sailcloth over my knees.' },
   { id: 's8', author: 'p3', clue: { kind: 'onFurniture', person: 'p3', furniture: 'sofa' }, text: 'On the sofa.', display: 'I was on the sofa, stitching until my eyes hurt.' },
   { id: 's9', author: 'p4', clue: { kind: 'notSameRoomAs', person: 'p4', other: 'p0' }, text: 'Was not in the same room as Rui.', display: 'I never shared a room with Rui that night.' },
   { id: 's10', author: 'p4', clue: { kind: 'onFurniture', person: 'p4', furniture: 'box' }, text: 'On the box.', display: 'I sat on the box, counting coils of rope.' },
-  { id: 's11', author: 'p5', clue: { kind: 'besideFurniture', person: 'p5', furniture: 'clock' }, text: 'Beside the clock.', display: 'She was found next to the clock.', scene: true },
+  { id: 's11', author: 'p5', clue: { kind: 'onFurniture', person: 'p5', furniture: 'desk' }, text: 'On the desk.', display: 'She was found at the desk.', scene: true },
 ]
 
 export const OFA_02: LieCase = buildCase({

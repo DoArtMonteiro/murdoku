@@ -5,7 +5,8 @@
 // (puzzle.clues), which is the same thing, decided by the engine.
 import { clueHolds, isSolution } from '../core/engine'
 import type { Cell } from '../core/types'
-import { citable, contradictionKey, crackTiles, inReadingOrder, keepConsistent, proofGate, rule } from './collide'
+import { citable, contradictionKey, crackTiles, gateVerdict, helpCandidates, inReadingOrder, keepConsistent, rule } from './collide'
+import type { Verdict } from './collide'
 import type { LedgerRow } from './collide'
 import { usedLines } from './lens'
 import type { Placed } from './lens'
@@ -20,13 +21,19 @@ export interface Ctx {
 }
 
 export const MAX_PINS = 4
-/** After this many false citations the hint line appears. */
+// The help ladder counts false steps: a citation that was satisfiable or not minimal, and a doubt the ledger does not support.
+/** After this many false steps the hint line appears. */
 export const HINT_AT = 2
-/** After this many the lens shows the rows and columns held by placed people. */
-export const SIGHTLINES_AT = 4
+/** After this many one suspect pulses in the strip (never the liar). */
+export const PULSE_AT = 4
+/** After this many (and every two more) a statement from an unrecorded contradiction is pinned for the player. */
+export const AUTOPIN_AT = 6
 
 export type NoteKind = 'crack' | 'info' | 'refuse'
 export interface Note { text: string; kind: NoteKind }
+
+/** What the playtest log hears about. The reducer only names events; the view stamps the time. */
+export interface LogEvent { k: 'pin' | 'cite' | 'record' | 'doubt' | 'proof' | 'move2' | 'complete' | 'ladder'; d?: string }
 
 export interface GameState {
   placed: Placed
@@ -37,8 +44,12 @@ export interface GameState {
   pins: string[]
   /** Recorded contradictions, each a set of statement ids in reading order. */
   ledger: LedgerRow[]
-  /** Citations that were satisfiable or not minimal. */
+  /** False steps: citations that were satisfiable or not minimal, and doubts the ledger does not support. */
   falseCitations: number
+  /** Doubts tried, founded or not. */
+  doubtAttempts: number
+  /** Events since the page loaded, for the playtest log. Not saved. */
+  events: LogEvent[]
   /** The lie, once doubted with proof. */
   struck: string | null
   /** 'proved' when the plan is closed. */
@@ -99,12 +110,17 @@ export const actOf = (ctx: Ctx, s: Pick<GameState, 'struck'>): 1 | 2 => (ctx.tru
 export type Tier = 'Proved' | 'Proved, after some false starts' | 'Proved the long way' | 'Closed'
 
 export const tierFor = (truthOnly: boolean, falseCitations: number): Tier =>
-  truthOnly ? 'Closed' : falseCitations === 0 ? 'Proved' : falseCitations < SIGHTLINES_AT ? 'Proved, after some false starts' : 'Proved the long way'
+  truthOnly ? 'Closed' : falseCitations === 0 ? 'Proved' : falseCitations < PULSE_AT ? 'Proved, after some false starts' : 'Proved the long way'
 
-/** 0 = nothing yet, 1 = the hint line, 2 = the lens shows who holds which row and column. */
-export const ladderStep = (falseCitations: number): 0 | 1 | 2 => (falseCitations >= SIGHTLINES_AT ? 2 : falseCitations >= HINT_AT ? 1 : 0)
+/** 0 = nothing yet, 1 = the hint line, 2 = a suspect pulses, 3 = a statement is pinned for the player. */
+export const ladderStep = (falseCitations: number): 0 | 1 | 2 | 3 =>
+  falseCitations >= AUTOPIN_AT ? 3 : falseCitations >= PULSE_AT ? 2 : falseCitations >= HINT_AT ? 1 : 0
 
-export const HINT = 'Who is standing in the way?'
+export const HINT = "Start from what can't be doubted: the scene facts and the plan."
+/** The row and column rule as the fiction it is. */
+export const ROW_COLUMN_RULE = 'No two people stood in the same row or column \u2014 the night watch would have seen them together.'
+export const ACCUSE_PROMPT = 'You have enough to accuse. Open your contradictions.'
+export const AUTOPIN_NOTE = 'Try this one against the others.'
 
 /** The first two sentences of the premise: enough to be somewhere, not a page to read. */
 export const premiseOf = (text: string): string => (text.match(/[^.!?]+[.!?]+(\s+|$)/g) ?? [text]).slice(0, 2).join('').trim()
@@ -176,7 +192,7 @@ export function initState(ctx: Ctx, saved: Saved | null): GameState {
     placed, selected: first, lit: firstStatement ? { [first]: [firstStatement.id] } : {},
     pins: ctx.truthOnly ? [] : saved?.pins ?? [],
     ledger: ctx.truthOnly ? [] : saved?.ledger ?? [],
-    falseCitations: ctx.truthOnly ? 0 : saved?.falseCitations ?? 0,
+    falseCitations: ctx.truthOnly ? 0 : saved?.falseCitations ?? 0, doubtAttempts: 0, events: [],
     struck, outcome: null, locked, cracked: [], refusals: 0, refusalOpen: false, touched: false,
     history: [], lifted: null, announce: '', note: null, cue: null, cueN: 0,
   }
@@ -247,6 +263,25 @@ function pin(ctx: Ctx, s: GameState, id: string): GameState {
   return { ...quiet(s), pins: inReadingOrder(ctx.c, [...s.pins, id]), announce: 'Pinned.', cue: null }
 }
 
+/**
+ * A false step: it counts toward the tier and the help ladder, and never ends the case. At six (then every two more)
+ * the ladder pins one statement from a contradiction the player has not recorded yet; it is never the lie, nor anything
+ * its author said.
+ */
+function misstep(ctx: Ctx, s: GameState, text: string, extra: Partial<GameState> = {}): GameState {
+  const falseCitations = s.falseCitations + 1
+  let pins = s.pins
+  let note = text
+  if (falseCitations >= AUTOPIN_AT && (falseCitations - AUTOPIN_AT) % 2 === 0 && pins.length < MAX_PINS) {
+    const pick = helpCandidates(ctx.c, s.ledger).find(id => !pins.includes(id))
+    if (pick) {
+      pins = inReadingOrder(ctx.c, [...pins, pick])
+      note = `${text} ${AUTOPIN_NOTE}`
+    }
+  }
+  return { ...quiet(s), ...extra, falseCitations, pins, note: { text: note, kind: 'info' }, announce: note, cue: null }
+}
+
 /** "These can't all be true." The engine rules; a recorded contradiction goes in the ledger, a false one only counts. */
 function cite(ctx: Ctx, s: GameState): GameState {
   if (ctx.truthOnly || s.struck || s.outcome || s.pins.length < 2) return s
@@ -261,21 +296,28 @@ function cite(ctx: Ctx, s: GameState): GameState {
     return { ...quiet(s), ledger: [...s.ledger, ids], pins: [], cracked: ids, note: { text, kind: 'crack' }, announce: text, cue: 'collision', cueN: s.cueN + 1 }
   }
   const text = ruling === 'redundant' ? "One of these isn't needed." : 'They can all be true.'
-  return { ...quiet(s), falseCitations: s.falseCitations + 1, note: { text, kind: 'info' }, announce: text, cue: null }
+  return misstep(ctx, s, text)
 }
 
-const NOT_PROOF = "One contradiction isn't proof — either of them could be lying."
+/** What the player is told when a doubt is not founded. Never says which statement is the lie. */
+export const REFUSALS: Record<Exclude<Verdict, 'ok'>, string> = {
+  none: 'No contradiction names this.',
+  one: "One contradiction isn't proof: any of its accounts could be the lie.",
+  shared: 'These contradictions share more than one statement. Find another that rules one out.',
+  'only-one': 'Only one contradiction names this.',
+}
 
 function doubt(ctx: Ctx, s: GameState, id: string): GameState {
   const { c } = ctx
   if (ctx.truthOnly || s.struck || s.outcome) return s
   const st = c.statements.find(x => x.id === id)
   if (!st || st.scene) return s
-  if (!proofGate(s.ledger, id)) return { ...quiet(s), note: { text: NOT_PROOF, kind: 'info' }, announce: NOT_PROOF, cue: null }
+  const verdict = gateVerdict(s.ledger, id)
+  if (verdict !== 'ok') return misstep(ctx, s, REFUSALS[verdict], { doubtAttempts: s.doubtAttempts + 1 })
   // By construction the gate only passes for the lie. If a case ever breaks that, refuse rather than strike a truth.
   if (id !== c.lieId) {
     console.warn(`[alibi] the proof gate passed for ${id}, which is not the lie (${c.lieId}) in case ${c.id}`)
-    return { ...quiet(s), note: { text: NOT_PROOF, kind: 'info' }, announce: NOT_PROOF, cue: null }
+    return { ...quiet(s), doubtAttempts: s.doubtAttempts + 1, note: { text: REFUSALS.shared, kind: 'info' }, announce: REFUSALS.shared, cue: null }
   }
   const had = s.placed[st.author]
   const { placed, locked, released } = afterProof(ctx, s.placed)
@@ -283,13 +325,41 @@ function doubt(ctx: Ctx, s: GameState, id: string): GameState {
   const text = `That account cracks. Then where was ${nameOf(c, st.author)}?`
   const extra = released ? ` ${released === 1 ? 'One placement' : `${released} placements`} did not fit the true accounts and went back.` : ''
   return {
-    ...quiet(s), struck: id, placed, locked, lit, pins: [], history: [], selected: st.author,
+    ...quiet(s), struck: id, doubtAttempts: s.doubtAttempts + 1, placed, locked, lit, pins: [], history: [], selected: st.author,
     lifted: had ? { person: st.author, cell: had } : null,
     note: { text, kind: 'crack' }, announce: text + extra, cue: 'crack', cueN: s.cueN + 1,
   }
 }
 
+/** What the step did, in the playtest log's words. Read off the before and after states, so no rule has to know about logging. */
+function eventsOf(s: GameState, n: GameState, a: Action): LogEvent[] {
+  const out: LogEvent[] = []
+  if (n.pins.length > s.pins.length && a.t === 'pin') out.push({ k: 'pin', d: a.id })
+  if (a.t === 'cite' && n !== s) {
+    if (n.ledger.length > s.ledger.length) out.push({ k: 'cite', d: 'minimal' }, { k: 'record' })
+    else if (n.note?.text === 'Already on the ledger.') out.push({ k: 'cite', d: 'repeat' })
+    else out.push({ k: 'cite', d: n.note?.text.startsWith("One of these isn't needed.") ? 'redundant' : 'satisfiable' })
+  }
+  if (a.t === 'doubt' && n.doubtAttempts > s.doubtAttempts) {
+    const why = (Object.keys(REFUSALS) as (keyof typeof REFUSALS)[]).find(k => n.note?.text.startsWith(REFUSALS[k]))
+    out.push({ k: 'doubt', d: n.struck ? 'proved' : `refused:${why ?? 'other'}` })
+  }
+  if (!s.struck && n.struck) out.push({ k: 'proof' })
+  if (a.t === 'tile' && s.struck && !s.outcome && n.placed !== s.placed) out.push({ k: 'move2' })
+  if (!s.outcome && n.outcome) out.push({ k: 'complete' })
+  const before = ladderStep(s.falseCitations), after = ladderStep(n.falseCitations)
+  if (after > before) out.push({ k: 'ladder', d: String(after) })
+  return out
+}
+
 export function reduce(ctx: Ctx, s: GameState, a: Action): GameState {
+  const n = step(ctx, s, a)
+  if (n === s) return s
+  const ev = eventsOf(s, n, a)
+  return ev.length ? { ...n, events: [...s.events, ...ev] } : n
+}
+
+function step(ctx: Ctx, s: GameState, a: Action): GameState {
   const { c } = ctx
   switch (a.t) {
     case 'select':

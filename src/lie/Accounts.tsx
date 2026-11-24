@@ -14,11 +14,13 @@ interface StripProps {
   order: string[]
   selected: string
   placed: Placed
+  /** The help ladder's pick: this suspect pulses. Never the liar. */
+  pulse?: string | null
   onSelect: (id: string) => void
 }
 
 /** A horizontal row of emblem tiles, one per person. The victim is last and drawn apart. */
-export function Strip({ c, order, selected, placed, onSelect }: StripProps) {
+export function Strip({ c, order, selected, placed, pulse = null, onSelect }: StripProps) {
   return (
     <ul className="ofa-strip" aria-label="People">
       {order.map(id => {
@@ -33,6 +35,7 @@ export function Strip({ c, order, selected, placed, onSelect }: StripProps) {
               aria-label={`${name}${victim ? ', the victim' : ''}${placed[id] ? ', placed' : ''}`}
               data-selected={id === selected || undefined}
               data-placed={!!placed[id] || undefined}
+              data-pulse={pulse === id || undefined}
               onClick={() => onSelect(id)}
             >
               <span className="ofa-pick-art">
@@ -57,11 +60,13 @@ interface RowProps {
   placed: Placed
   /** Statements can be pinned in Act 1 only, and never the victim's scene facts. */
   canPin: boolean
+  /** The lit statements leave this person no tile. */
+  nowhere: boolean
   onLit: (id: string) => void
   onPin: (id: string) => void
 }
 
-function StatementRow({ c, st, lit, struck, pinned, placed, canPin, onLit, onPin }: RowProps) {
+function StatementRow({ c, st, lit, struck, pinned, placed, canPin, nowhere, onLit, onPin }: RowProps) {
   const waits = waitingOn(st, placed)
   return (
     <li className="ofa-st" data-lit={lit || undefined} data-struck={struck || undefined} data-pinned={pinned || undefined} data-scene={st.scene || undefined}>
@@ -77,7 +82,9 @@ function StatementRow({ c, st, lit, struck, pinned, placed, canPin, onLit, onPin
           {st.scene && <span className="ofa-tag">Scene evidence</span>}
           {waits && <span className="ofa-tag" data-kind="wait">Waits for {nameOf(c, waits)}</span>}
           {struck && <span className="ofa-tag" data-kind="cracked">Cracked</span>}
-          {lit && !waits && !struck && <span className="ofa-tag" data-kind="lit">Lit on the plan</span>}
+          {lit && !waits && !struck && (nowhere
+            ? <span className="ofa-tag" data-kind="nowhere">Nowhere fits</span>
+            : <span className="ofa-tag" data-kind="lit">Lit on the plan</span>)}
         </span>
       </button>
       {canPin && !st.scene && (
@@ -105,12 +112,13 @@ interface CardProps {
   placed: Placed
   roomName: string | null
   canPin: boolean
+  nowhere: boolean
   onLit: (id: string) => void
   onPin: (id: string) => void
 }
 
 /** The selected person: name, role, and each statement as a tappable row. */
-export function AccountCard({ c, person, statements, lit, pins, struck, placed, roomName, canPin, onLit, onPin }: CardProps) {
+export function AccountCard({ c, person, statements, lit, pins, struck, placed, roomName, canPin, nowhere, onLit, onPin }: CardProps) {
   const cast = c.story.cast[person]
   const mine = statements.filter(s => s.author === person)
   return (
@@ -130,7 +138,7 @@ export function AccountCard({ c, person, statements, lit, pins, struck, placed, 
               <StatementRow
                 key={st.id} c={c} st={st} placed={placed}
                 lit={lit.includes(st.id)} struck={struck === st.id} pinned={pins.includes(st.id)}
-                canPin={canPin} onLit={onLit} onPin={onPin}
+                canPin={canPin} nowhere={nowhere} onLit={onLit} onPin={onPin}
               />
             ))}
           </ul>

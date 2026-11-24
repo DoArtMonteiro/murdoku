@@ -1,23 +1,25 @@
 // One False Alibi: the playable screen. The plan, the people strip, the pinned citations, the ledger and the selected
 // account. The bench is silent: the player does the detecting. All rules live in state.ts / collide.ts / lens.ts;
 // this file only draws them and plays the sounds.
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
-import { ArrowLeft, Undo2, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { BookOpen, Undo2, X } from 'lucide-react'
 import { roomIdAt } from '../core/engine'
 import type { Cell } from '../core/types'
 import { chooseTheme, useReducedMotion, useSliceTheme } from '../casebook/theme'
 import { TilePlan } from './art/TilePlan'
 import { AccountCard, Strip } from './Accounts'
 import { beatFor, BEATS, coachDone, markCoachDone } from './coach'
+import { canProve, helpCandidates } from './collide'
 import { Ledger } from './Ledger'
+import { beginRun, logEvents } from './log'
 import { actOf, activeStatements, crackedTiles, HINT, initState, ladderStep, liar, nameOf, orderedPeople, reduce, tierFor, toSaved, visibleStatements } from './state'
 import type { Ctx, GameState } from './state'
-import { lensTiles, nowhereFits, tileKey } from './lens'
+import { lensTiles, nowhereFits } from './lens'
 import type { LieCase } from './model'
 import { Reveal, RevealCaption } from './Reveal'
 import { useRevealSequence } from './revealSequence'
 import { clearSave, loadSave, loadSolved, markSolved, writeSave } from './save'
-import { CasesSheet, DoubtSheet, HowSheet, Intro, Menu, RestartSheet } from './Sheets'
+import { CasesSheet, DoubtSheet, EndCard, HowSheet, Intro, Menu, NotesSheet, RestartSheet } from './Sheets'
 import { loadSoundPref, playCue, primeAudio, saveSoundPref } from './sound'
 import { Tray } from './Tray'
 import './tokens.css'
@@ -55,12 +57,23 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
   const [restarting, setRestarting] = useState(false)
   const [how, setHow] = useState(false)
   const [casesOpen, setCasesOpen] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
   const [coachOn, setCoachOn] = useState(() => !coachDone())
   // a case that was already closed when the page loaded shows the final frame at once: no sequence, no bell
   const [restored] = useState(() => state.outcome === 'proved')
   const [replayed, setReplayed] = useState(false)
   // beats never go backwards: the highest one shown retires every earlier one
   const [peak, setPeak] = useState(0)
+
+  // the playtest log: a run begins when the screen opens, and every event the reducer names is stamped as it arrives
+  const [startedFresh] = useState(() => isFresh(state))
+  const drained = useRef(0)
+  useEffect(() => { if (!truthOnly) beginRun(c.id, c.story.title, startedFresh) }, [c.id, c.story.title, truthOnly, startedFresh])
+  useEffect(() => {
+    if (truthOnly) return
+    logEvents(c.id, state.events.slice(drained.current))
+    drained.current = state.events.length
+  }, [c.id, truthOnly, state.events])
 
   // The theme tokens key off <html data-theme>. Only this mode sets it, and only while it is on screen.
   useEffect(() => {
@@ -98,15 +111,18 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
   )
   // the theatrical reveal plays on a fresh solve (or a replay) in the lie-hunting direction only
   const sequenced = closed && !truthOnly && (!restored || replayed)
-  const seq = useRevealSequence(c, state.placed, sequenced, reduced)
+  const seq = useRevealSequence(c, state.placed, sequenced, reduced, state.ledger)
   const revealDone = sequenced ? seq.done : closed
   const nowhere = nowhereFits(lens, state.placed, state.selected)
   const step = ladderStep(state.falseCitations)
-  // after enough false citations the plan draws the lines already held by placed people, for the selected suspect
-  const sightlines = useMemo(
-    () => (step === 2 && !closed ? new Set(Object.entries(state.placed).filter(([id]) => id !== state.selected).map(([, cell]) => tileKey(cell))) : undefined),
-    [step, closed, state.placed, state.selected],
-  )
+  // after four false steps one suspect pulses: someone whose account is in a contradiction the player has not recorded
+  // yet. Never the liar (collide.ts leaves the liar out).
+  const pulse = useMemo(() => {
+    if (step < 2 || !hunting) return null
+    const id = helpCandidates(c, state.ledger)[0]
+    return c.statements.find(s => s.id === id)?.author ?? null
+  }, [c, state.ledger, step, hunting])
+  const ready = hunting && canProve(state.ledger)
   const cracked = useMemo(() => (closed ? new Set<string>() : crackedTiles(c, state)), [c, state, closed])
 
   const tokens: Record<string, Cell> = state.lifted ? { ...state.placed, [state.lifted.person]: state.lifted.cell } : state.placed
@@ -134,12 +150,12 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
   const liarName = nameOf(c, liar(c))
   const phase = truthOnly ? 'Everyone told the truth' : closed ? 'Case closed' : act === 1 ? 'Find the false account' : `Then where was ${liarName}?`
   const solved = loadSolved()
-  const caseList = cases?.map(k => ({ ...k, solved: solved.includes(k.id) || (closed && k.id === c.id), current: k.id === c.id }))
+  const caseList = (cases ?? [{ id: c.id, title: c.story.title }]).map(k => ({ ...k, solved: solved.includes(k.id) || (closed && k.id === c.id), current: k.id === c.id }))
 
   return (
     <div className="ofa" data-act={act} data-closed={closed || undefined}>
       <header className="ofa-bar">
-        <a className="ofa-icon" href="?casebook=" aria-label="Back to the casebook"><ArrowLeft size={22} aria-hidden="true" /></a>
+        <button type="button" className="ofa-icon" aria-label="Cases" onClick={() => setCasesOpen(true)}><BookOpen size={21} aria-hidden="true" /></button>
         <div className="ofa-bar-title">
           <h1 className="ofa-title">{c.story.title}</h1>
           <p className="ofa-phase">{phase}</p>
@@ -149,7 +165,7 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
         </button>
         <Menu
           sound={sound} theme={theme} onSound={toggleSound} onTheme={toggleTheme}
-          onRestart={() => setRestarting(true)} onHow={() => setHow(true)} onCases={caseList && caseList.length > 0 ? () => setCasesOpen(true) : undefined}
+          onRestart={() => setRestarting(true)} onHow={() => setHow(true)} onCases={() => setCasesOpen(true)} onNotes={truthOnly ? undefined : () => setNotesOpen(true)}
         />
       </header>
 
@@ -162,7 +178,6 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
             victimId={c.puzzle.victimId}
             selectedPerson={state.selected}
             lit={lens ?? undefined}
-            sightlines={sightlines}
             collision={cracked}
             lifted={state.lifted?.person ?? null}
             murderer={closed && !sequenced ? c.puzzle.murdererId : null}
@@ -173,30 +188,40 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
         </div>
 
         <div className="ofa-side">
-          {!closed && <Strip c={c} order={order} selected={state.selected} placed={state.placed} onSelect={id => dispatch({ t: 'select', id })} />}
-          {!closed && (event || coach || hint) && (
-            <p className="ofa-line" data-kind={event || !coach ? 'event' : 'coach'} data-tone={event?.kind ?? 'info'} role="status">
-              <span>{event ? `${event.text}${coach === 2 ? ` ${BEATS[2]}` : ''}` : coach ? BEATS[coach] : hint}</span>
-              {coach && (
-                <button type="button" className="ofa-line-x" aria-label="Dismiss hint" onClick={() => { setCoachOn(false); markCoachDone() }}>
-                  <X size={16} aria-hidden="true" />
-                </button>
+          {!closed && <Strip c={c} order={order} selected={state.selected} placed={state.placed} pulse={pulse} onSelect={id => dispatch({ t: 'select', id })} />}
+          {!closed && (
+            <div className="ofa-line-slot">
+              {(event || coach || hint) && (
+                <p className="ofa-line" data-kind={event || !coach ? 'event' : 'coach'} data-tone={event?.kind ?? 'info'} role="status">
+                  <span>{event ? `${event.text}${coach === 2 ? ` ${BEATS[2]}` : ''}` : coach ? BEATS[coach] : hint}</span>
+                  {coach && (
+                    <button type="button" className="ofa-line-x" aria-label="Dismiss hint" onClick={() => { setCoachOn(false); markCoachDone() }}>
+                      <X size={16} aria-hidden="true" />
+                    </button>
+                  )}
+                </p>
               )}
-            </p>
+            </div>
           )}
-          {hunting && state.pins.length > 0 && (
-            <Tray c={c} pins={state.pins} onUnpin={id => dispatch({ t: 'pin', id })} onCite={() => dispatch({ t: 'cite' })} />
-          )}
-          {state.ledger.length > 0 && !truthOnly && !closed && (
-            <Ledger c={c} rows={state.ledger} struck={state.struck} canDoubt={hunting} onChip={setDoubting} />
+          {!truthOnly && !closed && (
+            <Tray c={c} pins={state.pins} hunting={hunting} onUnpin={id => dispatch({ t: 'pin', id })} onCite={() => dispatch({ t: 'cite' })}>
+              {state.ledger.length > 0 && (
+                <Ledger c={c} rows={state.ledger} struck={state.struck} canDoubt={hunting} ready={ready} compact={state.pins.length > 0} onChip={setDoubting} />
+              )}
+            </Tray>
           )}
           {closed
-            ? <Reveal c={c} placed={state.placed} tier={tierFor(truthOnly, state.falseCitations)} done={revealDone} onNext={onNext} onReplay={() => { if (sequenced) seq.restart(); else setReplayed(true) }} />
+            ? (
+              <>
+                <Reveal c={c} placed={state.placed} tier={tierFor(truthOnly, state.falseCitations)} done={revealDone} onNext={onNext} onReplay={() => { if (sequenced) seq.restart(); else setReplayed(true) }} />
+                {revealDone && !truthOnly && !onNext && <EndCard />}
+              </>
+            )
             : (
               <AccountCard
                 c={c} person={state.selected} statements={visible} lit={state.lit[state.selected] ?? []}
                 pins={state.pins} struck={state.struck} placed={state.placed} roomName={roomName(state.selected)}
-                canPin={hunting} onLit={id => dispatch({ t: 'lit', id })} onPin={id => dispatch({ t: 'pin', id })}
+                canPin={hunting} nowhere={nowhere} onLit={id => dispatch({ t: 'lit', id })} onPin={id => dispatch({ t: 'pin', id })}
               />
             )}
         </div>
@@ -206,7 +231,8 @@ function Play({ lieCase: c, truthOnly, cases, onNext, introOpen, onRestart }: Pl
 
       {intro && <Intro c={c} truthOnly={truthOnly} onBegin={() => setIntro(false)} />}
       {how && <HowSheet onClose={() => setHow(false)} />}
-      {casesOpen && caseList && <CasesSheet cases={caseList} onClose={() => setCasesOpen(false)} />}
+      {casesOpen && <CasesSheet cases={caseList} onClose={() => setCasesOpen(false)} />}
+      {notesOpen && <NotesSheet onClose={() => setNotesOpen(false)} />}
       {doubting && <DoubtSheet c={c} id={doubting} onYes={confirmDoubt} onNo={() => setDoubting(null)} />}
       {restarting && <RestartSheet onYes={() => { setRestarting(false); onRestart() }} onNo={() => setRestarting(false)} />}
     </div>

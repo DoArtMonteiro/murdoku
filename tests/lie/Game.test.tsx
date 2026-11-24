@@ -25,15 +25,16 @@ const cite = () => fireEvent.click(screen.getByRole('button', { name: "These can
 // the ledger is one line in the column; this opens it (if it is not open) and looks inside
 const ledger = () => {
   const region = screen.getByRole('region', { name: 'Contradictions' })
-  const toggle = within(region).getByRole('button', { name: /^Contradictions/ })
+  const toggle = within(region).getAllByRole('button')[0]
   if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle)
   return within(region)
 }
 const line = () => document.querySelector('.ofa-line[data-kind="event"]')
 const record = (...ids: string[]) => { ids.forEach(pin); cite() }
 const proveBoth = () => { record(...C.collisions[0]); record(...C.collisions[1]) }
+const doubtChip = (name: string) => ledger().getAllByRole('button', { name: new RegExp(`^Doubt: ${name}`) })[0]
 const doubtFromLedger = (name: string) => {
-  fireEvent.click(ledger().getAllByRole('button', { name })[0])
+  fireEvent.click(doubtChip(name))
   fireEvent.click(screen.getByRole('button', { name: 'Doubt this' }))
 }
 
@@ -63,7 +64,8 @@ describe('the first minute', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /How it works/ }))
     const d = screen.getByRole('dialog', { name: 'How it works' })
     expect(d).toHaveTextContent(/next to it, in the same room/)
-    expect(d).toHaveTextContent(/one person per row and per column/)
+    expect(d).toHaveTextContent('No two people stood in the same row or column \u2014 the night watch would have seen them together.')
+    expect(d).toHaveTextContent(/share just one statement/)
     expect(d).toHaveTextContent(/Scene facts are evidence/)
   })
 
@@ -95,7 +97,7 @@ describe('a silent bench', () => {
     begin()
     put('b', 0, 0)
     put('c', 0, 3)
-    expect(line()).toHaveTextContent('Bruno already holds that row. One person per row and per column.')
+    expect(line()).toHaveTextContent('Bruno already holds that row. No two people stood in the same row or column \u2014 the night watch would have seen them together.')
     tile(1, 0)
     expect(line()).toHaveTextContent('That column is taken.')
   })
@@ -155,19 +157,61 @@ describe('pin, cite, record, doubt', () => {
     cite()
     // events win the line; unpinning-and-moving on shows the hint
     put('b', 0, 0)
-    expect(line()).toHaveTextContent('Who is standing in the way?')
+    expect(line()).toHaveTextContent("Start from what can't be doubted: the scene facts and the plan.")
   })
 
-  it('after four false citations the plan draws the lines held by placed people', () => {
+  it('after four false steps a suspect pulses in the strip, and it is never the liar; after six a statement is pinned for the player', () => {
     const { container } = render(<Game lieCase={C} />)
     begin()
-    put('b', 0, 0)
     pin('s1')
     pin('s3')
-    expect(container.querySelectorAll('.lp-sight')).toHaveLength(0)
+    expect(container.querySelectorAll('[data-pulse]')).toHaveLength(0)
     for (let i = 0; i < 4; i++) cite()
-    pick('c')
-    expect(container.querySelectorAll('.lp-sight').length).toBeGreaterThan(0)
+    const pulsing = container.querySelectorAll('[data-pulse]')
+    expect(pulsing).toHaveLength(1)
+    expect(pulsing[0].getAttribute('aria-label')).not.toMatch(/^Ana/)
+    cite()
+    cite()
+    expect(line()).toHaveTextContent('Try this one against the others.')
+    expect(within(screen.getByRole('region', { name: 'Pinned statements' })).getAllByRole('button', { name: /^Unpin/ })).toHaveLength(3)
+  })
+
+  it('an unfounded doubt is a false step, and never ends the case', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    record(...C.collisions[0])
+    doubtFromLedger('Ana · the Net Loft')
+    expect(line()).toHaveTextContent("One contradiction isn't proof: any of its accounts could be the lie.")
+    expect(screen.queryByRole('region', { name: 'The case, closed' })).toBeNull()
+    expect(document.querySelector('[data-act="2"]')).toBeNull()
+  })
+
+  it('with two contradictions the pill invites the comparison; the shared statement is linked in both rows', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    record(...C.collisions[0])
+    record('s2', 's3', 's5')
+    expect(screen.getByRole('button', { name: /Contradictions · 2 — compare them/ })).toBeInTheDocument()
+    const rows = ledger().getAllByRole('listitem')
+    expect(rows).toHaveLength(2)
+    for (const r of rows) {
+      const shared = r.querySelectorAll('[data-shared]')
+      expect(shared.length).toBeGreaterThan(0)
+      // the shared statements come first, so they line up
+      expect(r.firstElementChild).toHaveAttribute('data-shared')
+    }
+    expect(doubtChip('Ana · the Net Loft')).toHaveAttribute('aria-label', expect.stringMatching(/in 2 contradictions/))
+  })
+
+  it('when the ledger can prove something the pill says so, without saying what', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    record(...C.collisions[0])
+    expect(screen.getByRole('button', { name: /^Contradictions · 1/ })).not.toHaveAttribute('data-ready')
+    record(...C.collisions[1])
+    const pill = screen.getByRole('button', { name: 'You have enough to accuse. Open your contradictions.' })
+    expect(pill).toHaveAttribute('data-ready')
+    expect(pill.textContent).not.toMatch(/Ana|Net Loft|lie\b/)
   })
 
   it('a recorded contradiction lands in the ledger as chips in the accessibility tree, with a line', () => {
@@ -175,13 +219,24 @@ describe('pin, cite, record, doubt', () => {
     begin()
     record('s1', 's2', 's3')
     expect(line()).toHaveTextContent("Those accounts can't all be true.")
-    expect(ledger().getByRole('button', { name: 'Ana · a wall' })).toBeInTheDocument()
-    expect(ledger().getByRole('button', { name: 'Ana · the Net Loft' })).toBeInTheDocument()
-    expect(ledger().getByRole('button', { name: 'Bruno · on the chair' })).toBeInTheDocument()
+    expect(doubtChip('Ana · a wall')).toBeInTheDocument()
+    expect(doubtChip('Ana · the Net Loft')).toBeInTheDocument()
+    expect(doubtChip('Bruno · on the chair')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Pinned statements' })).toBeNull()
   })
 
-  it('one contradiction is not proof, and costs nothing', () => {
+  it('refusals are specific: one row, rows sharing more than one statement, a statement in only one row', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    record(...C.collisions[0])
+    record('s2', 's3', 's5')
+    doubtFromLedger('Ana · the Net Loft')
+    expect(line()).toHaveTextContent('These contradictions share more than one statement. Find another that rules one out.')
+    doubtFromLedger('Ana · a wall')
+    expect(line()).toHaveTextContent('Only one contradiction names this.')
+  })
+
+  it('a refused doubt can be tried against one contradiction too', () => {
     render(<Game lieCase={C} />)
     begin()
     record(...C.collisions[0])
@@ -204,7 +259,7 @@ describe('pin, cite, record, doubt', () => {
     expect(screen.getByText('Then where was Ana?')).toBeInTheDocument()
     expect(screen.getByText('Cracked')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Contradictions · solved' })).toBeInTheDocument()
-    expect(ledger().getAllByText(/Ana · the Net Loft/)[0]).toHaveAttribute('data-struck')
+    expect(ledger().getAllByText(/Ana · the Net Loft/)[0].closest('.ofa-chip')).toHaveAttribute('data-struck')
     expect(screen.queryByRole('button', { name: /^Pin / })).toBeNull()
     expect(screen.queryByRole('region', { name: 'Pinned statements' })).toBeNull()
     expect(screen.queryByRole('button', { name: /accuse/i })).toBeNull()
@@ -246,17 +301,78 @@ describe('pin, cite, record, doubt', () => {
     expect(screen.queryByRole('region', { name: 'The case, closed' })).toBeNull()
   })
 
-  it('the doubt sheet and How it works never state the method', () => {
+  it('the doubt sheet itself says nothing about the method', () => {
     render(<Game lieCase={C} />)
     begin()
     record(...C.collisions[0])
-    fireEvent.click(ledger().getAllByRole('button', { name: 'Ana · the Net Loft' })[0])
+    fireEvent.click(doubtChip('Ana · the Net Loft'))
     const sheet = screen.getByRole('dialog')
     expect(sheet.textContent).not.toMatch(/in common|meet|intersect|both|every contradiction|same statement/i)
     fireEvent.click(within(sheet).getByRole('button', { name: 'Not yet' }))
+  })
+
+  it('the back arrow opens the cases, and never leaves for the other game', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    expect(document.querySelector('a[href*="casebook"]')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Cases' }))
+    expect(screen.getByRole('dialog', { name: 'Cases' })).toBeInTheDocument()
+  })
+
+  it('the first screen teaches the row and column rule in fiction, and the first refusal says it again', () => {
+    render(<Game lieCase={C} />)
+    expect(within(screen.getByRole('dialog')).getByText('No two people stood in the same row or column.')).toBeInTheDocument()
+  })
+
+  it('a lit statement with no tile says so on its row instead of "Lit on the plan"', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    fireEvent.click(screen.getByRole('button', { name: /^I was in the Net Loft\./ }))
+    put('b', 0, 0)
+    put('d', 1, 1)
+    pick('a')
+    expect(screen.getAllByText('Nowhere fits').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Lit on the plan')).toBeNull()
+  })
+
+  it('the band keeps its place: the line slot and the band are there before, and after, a pin', () => {
+    const { container } = render(<Game lieCase={C} />)
+    begin()
+    expect(container.querySelectorAll('.ofa-line-slot, .ofa-band')).toHaveLength(2)
+    pin('s1')
+    pin('s2')
+    cite()
+    expect(container.querySelectorAll('.ofa-line-slot, .ofa-band')).toHaveLength(2)
+  })
+
+  it('the playtest notes are in the menu, readable, and copy to the clipboard', async () => {
+    const write = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: write }, configurable: true })
+    render(<Game lieCase={C} />)
+    begin()
+    record(...C.collisions[0])
     fireEvent.click(screen.getByRole('button', { name: 'More' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: /How it works/ }))
-    expect(screen.getByRole('dialog').textContent).not.toMatch(/in common|meet|intersect|prove it false|every contradiction|same statement/i)
+    fireEvent.click(screen.getByRole('menuitem', { name: /Playtest notes/ }))
+    const d = screen.getByRole('dialog', { name: 'Playtest notes' })
+    expect(d).toHaveTextContent('fixture "The Quiet Quay"')
+    expect(d).toHaveTextContent(/first recorded contradiction \+0:0\d/)
+    expect(d).toHaveTextContent(/citations: \+0:0\d minimal/)
+    fireEvent.click(within(d).getByRole('button', { name: 'Copy my notes' }))
+    await within(d).findByText('Copied.')
+    expect(write).toHaveBeenCalledOnce()
+    expect(write.mock.calls[0][0]).toContain('playtest notes')
+  })
+
+  it('after the last case there is an end card with a copy button, not a Next case', () => {
+    render(<Game lieCase={C} />)
+    begin()
+    proveBoth()
+    doubtFromLedger('Ana · the Net Loft')
+    for (const [id, cell] of Object.entries(C.puzzle.solution)) put(id, cell.row, cell.col)
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+    expect(screen.queryByRole('button', { name: 'Next case' })).toBeNull()
+    const end = screen.getByRole('region', { name: "That's every case for now" })
+    expect(within(end).getByRole('button', { name: 'Copy my notes' })).toBeInTheDocument()
   })
 
   it('a finished case restores closed at once: the panel, no strip, no sequence to wait for', () => {
@@ -334,7 +450,7 @@ describe('storage, sound and the page', () => {
     render(<Game lieCase={C} />)
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getByRole('gridcell', { name: /^Row 1, column 1\..*Bruno/ })).toBeInTheDocument()
-    expect(ledger().getByRole('button', { name: 'Ana · a wall' })).toBeInTheDocument()
+    expect(doubtChip('Ana · a wall')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Unpin Davi · north of Ana' })).toBeInTheDocument()
   })
 

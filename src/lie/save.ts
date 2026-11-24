@@ -126,10 +126,10 @@ export function pickId(asked: string, order: readonly { id: string }[], solved: 
   return (order.find(e => !solved.includes(e.id)) ?? order[0])?.id ?? ''
 }
 
-/** The case after `current` worth opening: the next unsolved one in order (wrapping), else simply the next. Null for a lone case. */
+/** The next case still unsolved after `current` (wrapping past the end), or null: after the last one there is nothing to open, never a case already solved. */
 export function nextId(current: string, order: readonly { id: string }[], solved: readonly string[]): string | null {
   const i = order.findIndex(e => e.id === current)
   if (i < 0) return null
   const after = [...order.slice(i + 1), ...order.slice(0, i)]
-  return (after.find(e => !solved.includes(e.id)) ?? after[0])?.id ?? null
+  return after.find(e => !solved.includes(e.id))?.id ?? null
 }

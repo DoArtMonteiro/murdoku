@@ -14,11 +14,6 @@ import type { TilePlanProps } from './art/TilePlan'
 import type { LieCase, Statement } from './model'
 import { loadSoundPref, playCue } from './sound'
 
-export type Tier = 'Proved' | 'Proved, after a false start' | 'Closed'
-
-export const tierFor = (truthOnly: boolean, strikes: number): Tier =>
-  truthOnly ? 'Closed' : strikes === 0 ? 'Proved' : 'Proved, after a false start'
-
 const key = (c: { row: number; col: number }) => `${c.row},${c.col}`
 
 export const nameOf = (c: LieCase, id: string): string =>
@@ -40,11 +35,16 @@ export const fillStory = (text: string, c: LieCase): string =>
 /** The words a statement is read in: the speaker's sentence where there is one, else the positional text. */
 const said = (s: Statement): string => s.display ?? s.text
 
-/** The refuting statements: the other authors' statements in the two collisions, one per author, never the liar's. */
-export function refutingStatements(c: LieCase, max = 3): Statement[] {
+/**
+ * The refuting statements: the other authors' statements in the contradictions that proved the lie, one per author,
+ * never the liar's. `rows` are the player's own recorded contradictions (the ledger); without any of them (the
+ * gallery, a harness) the case's stored collisions stand in. Only rows that hold the lie count.
+ */
+export function refutingStatements(c: LieCase, max = 3, rows: readonly (readonly string[])[] = c.collisions): Statement[] {
   const who = liarOf(c)
   const out: Statement[] = []
-  for (const set of c.collisions) {
+  const mine = rows.filter(r => r.includes(c.lieId))
+  for (const set of mine.length ? mine : c.collisions) {
     for (const id of set) {
       const s = c.statements.find(x => x.id === id)
       if (s && s.author !== who && !out.some(o => o.author === s.author)) out.push(s)
@@ -106,7 +106,7 @@ export interface RevealStep {
   ms: number
 }
 
-export function buildSteps(c: LieCase, placed: Record<string, Cell>): RevealStep[] {
+export function buildSteps(c: LieCase, placed: Record<string, Cell>, rows?: readonly (readonly string[])[]): RevealStep[] {
   const liar = liarOf(c)
   const liarName = nameOf(c, liar)
   const lie = lieOf(c)
@@ -124,7 +124,7 @@ export function buildSteps(c: LieCase, placed: Record<string, Cell>): RevealStep
 
   if (claimed && lie) steps.push({ caption: `“${said(lie)}” — ${liarName}`, plan: away, ms: 1600 })
 
-  for (const s of refutingStatements(c)) {
+  for (const s of refutingStatements(c, 3, rows)) {
     steps.push({ caption: `${nameOf(c, s.author)}: “${said(s)}”`, plan: { ...away, pulse: s.author }, ms: 1300 })
   }
 
@@ -151,8 +151,8 @@ export interface RevealSequence {
   restart: () => void
 }
 
-export function useRevealSequence(c: LieCase, placed: Record<string, Cell>, active: boolean, reducedMotion: boolean): RevealSequence {
-  const steps = useMemo(() => buildSteps(c, placed), [c, placed])
+export function useRevealSequence(c: LieCase, placed: Record<string, Cell>, active: boolean, reducedMotion: boolean, rows?: readonly (readonly string[])[]): RevealSequence {
+  const steps = useMemo(() => buildSteps(c, placed, rows), [c, placed, rows])
   const last = steps.length - 1
   const [beat, setBeat] = useState(0)
   const [run, setRun] = useState(0)

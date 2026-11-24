@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { OFA_02 } from '../../src/lie/cases/ofa-02'
-import { exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, satisfiable, verifyLieCase } from '../../src/lie/verify'
+import {
+  cheapestProofs, exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, legible, proofPaths, satisfiable, verifyLieCase,
+} from '../../src/lie/verify'
 
 const c = OFA_02
 const byId = (id: string) => c.statements.find(s => s.id === id)!
 
 describe('ofa-02 "The Notary\'s Last Page"', () => {
-  const result = verifyLieCase(c, { laneFreeAtLeast: 1, liarBeyondSingles: true })
+  const result = verifyLieCase(c, { laneFreeAtLeast: 1, liarBeyondSingles: true, noPairPairProof: true, cheapestLegibleAtLeast: 1 })
 
   it('is a 6x6 house with four rooms, five suspects and the victim, two statements each', () => {
     expect(c.puzzle.size).toBe(6)
@@ -40,21 +42,39 @@ describe('ofa-02 "The Notary\'s Last Page"', () => {
     expect(satisfiable(c, ['s3', 's10'], { lanes: false })).toBe(true)
   })
 
-  it('has exactly these minimal contradictions, all through the lie', () => {
+  it('has exactly these twelve minimal contradictions, all through the lie', () => {
     expect(findMinimalCores(c, 4)).toEqual([
-      ['s2', 's10'], ['s3', 's10'], ['s1', 's7', 's10'], ['s7', 's8', 's10'],
-      ['s1', 's4', 's6', 's10'], ['s1', 's5', 's6', 's10'], ['s1', 's5', 's8', 's10'], ['s1', 's6', 's8', 's10'],
+      ['s3', 's10'], ['s1', 's7', 's10'], ['s7', 's8', 's10'],
+      ['s1', 's5', 's6', 's10'], ['s1', 's5', 's8', 's10'], ['s1', 's6', 's8', 's10'],
+      ['s2', 's4', 's5', 's10'], ['s2', 's5', 's6', 's10'], ['s2', 's5', 's7', 's10'], ['s2', 's5', 's8', 's10'],
+      ['s2', 's6', 's7', 's10'], ['s2', 's6', 's8', 's10'],
     ])
+    expect(result.report.coreCount).toBe(12)
     for (const core of c.collisions) {
       expect(isMinimalContradiction(c, core)).toBe(true)
       expect(exposure(c, core).ok).toBe(true)
     }
   })
 
+  it('has one pair only, so no two pairs prove the lie; the cheapest proofs are that pair and a legible triple', () => {
+    expect(findMinimalCores(c, 4).filter(k => k.length === 2)).toEqual([['s3', 's10']])
+    const paths = proofPaths(c)
+    expect(paths.filter(p => p.cores.length === 2 && p.cores.every(k => k.length === 2))).toEqual([])
+    const best = cheapestProofs(paths)
+    expect(best.map(p => p.cores)).toEqual([[['s3', 's10'], ['s1', 's7', 's10']], [['s3', 's10'], ['s7', 's8', 's10']]])
+    for (const p of best) expect(p.legible.every(Boolean)).toBe(true)
+    expect(result.report.cheapestProofs).toEqual(best)
+  })
+
+  it('has one collision the ledger accepts but a person cannot follow (it needs a lane and a scene fact)', () => {
+    expect(legible(c, ['s2', 's4', 's5', 's10'])).toBe(false)
+    expect(legible(c, ['s3', 's10'])).toBe(true)
+  })
+
   it('needs a step beyond singles to find the liar\'s true square once the lie is struck', () => {
     expect(result.report.liarPlacedBySingles).toBe(false)
     expect(result.report.reconstructionSupposes).toBe(1)
-    expect(result.report.reconstructionLaneSteps).toBe(0)
+    expect(result.report.reconstructionLaneSteps).toBe(1)
   })
 
   it('says something new in every statement', () => {

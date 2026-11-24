@@ -6,11 +6,11 @@ import { OFA_02 } from '../../src/lie/cases/ofa-02'
 import { OFA_03 } from '../../src/lie/cases/ofa-03'
 import type { LieCase, Statement } from '../../src/lie/model'
 import {
-  exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, legibility, liePlacesOutside, placedBySingles, puzzleOf, reconstruct,
+  cheapestProofs, exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, legibility, legible, proofPaths, liePlacesOutside, placedBySingles, puzzleOf, reconstruct,
   satisfiable, verifyLieCase,
 } from '../../src/lie/verify'
 
-const EXPECT_02 = { laneFreeAtLeast: 1, liarBeyondSingles: true }
+const EXPECT_02 = { laneFreeAtLeast: 1, liarBeyondSingles: true, noPairPairProof: true, cheapestLegibleAtLeast: 1 }
 
 /** A deep copy of ofa-02 with `edit` applied to its statements; puzzle.clues is rebuilt from them (lie excluded). */
 function variant(edit: (stmts: Statement[]) => Statement[], patch: Partial<LieCase> = {}, from: LieCase = OFA_02): LieCase {
@@ -216,6 +216,55 @@ describe('verifyLieCase: what a case promises beyond the shared checks', () => {
 
   it('fails collisions that share a different number of statements than promised', () => {
     expect(verifyLieCase(OFA_02, { firstTwoShare: 2 }).failures).toContain('expect: the first two collisions share 1 statements, expected 2')
+  })
+})
+
+describe('proof paths and legibility', () => {
+  it('finds the sets of cores whose intersection is exactly the lie, cheapest first', () => {
+    const paths = proofPaths(OFA_01)
+    expect(paths.map(p => p.cores.map(k => k.join('+')))).toEqual([
+      ['s1+s4', 's2+s4+s6'], ['s1+s4', 's3+s4+s6'], ['s1+s4', 's4+s5+s6'],
+    ])
+    for (const p of paths) expect(p.cores.reduce((acc, k) => acc.filter(id => k.includes(id)))).toEqual(['s4'])
+    expect(cheapestProofs(paths)).toHaveLength(3)
+  })
+
+  it('never lists a set that a smaller set of its own cores already proves', () => {
+    for (const c of ALL) for (const p of proofPaths(c)) {
+      if (p.cores.length === 3) {
+        for (let i = 0; i < 3; i++) {
+          const rest = p.cores.filter((_, j) => j !== i)
+          expect(rest.reduce((acc, k) => acc.filter(id => k.includes(id))).length).toBeGreaterThan(1)
+        }
+      }
+    }
+  })
+
+  it('calls a collision legible if it needs at most one of the row rule and a scene fact', () => {
+    expect(laneFree(OFA_02, ['s3', 's10'])).toBe(false)
+    expect(legible(OFA_02, ['s3', 's10'])).toBe(true) // lane only
+    expect(legible(OFA_02, ['s1', 's7', 's10'])).toBe(true) // neither
+    expect(legible(OFA_02, ['s2', 's4', 's5', 's10'])).toBe(false) // a lane and a scene fact
+  })
+
+  it('fails a case whose lie two pairs already prove, when that is ruled out', () => {
+    // Rui beside the box is a second pair with the lie, next to Joana on the chair
+    const c = variant(replace('s2', { kind: 'besideFurniture', person: 'p0', furniture: 'box' }, 'Beside the box.'))
+    expect(findMinimalCores(c, 4).filter(k => k.length === 2)).toEqual([['s2', 's10'], ['s3', 's10']])
+    expect(verifyLieCase(c, { noPairPairProof: true }).failures).toContain('expect: two pairs prove the lie by themselves [s2+s10 | s3+s10]')
+  })
+
+  it('fails a case that needs more or fewer cores than promised, or whose cheapest proof is not legible', () => {
+    expect(verifyLieCase(OFA_02, { proofCoresAtLeast: 3 }).failures).toContain('expect: the lie can be proved with 2 cores, expected at least 3')
+    expect(verifyLieCase(OFA_02, { proofCoresAtMost: 1 }).failures).toContain('expect: the cheapest proof needs 2 cores, expected at most 1')
+    expect(verifyLieCase(OFA_02, { cheapestLegibleAtLeast: 3 }).failures.some(f => f.startsWith('expect: cheapest proof'))).toBe(true)
+    expect(verifyLieCase(OFA_02, { allCoresLegible: true }).failures).toContain('expect: minimal contradiction [s2, s4, s5, s10] is not legible (needs a lane or a scene fact)')
+  })
+
+  it('reports how many minimal contradictions a case has and its cheapest proofs', () => {
+    const r = verifyLieCase(OFA_02, EXPECT_02)
+    expect(r.report.coreCount).toBe(12)
+    expect(r.report.cheapestProofs.length).toBeGreaterThan(0)
   })
 })
 

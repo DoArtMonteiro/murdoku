@@ -10,8 +10,7 @@ import { fillStory, joinNames, liarOf, nameOf } from './revealSequence'
 import './reveal.css'
 
 // kept here for callers that already import them from this module
-export { joinNames, refuters, tierFor } from './revealSequence'
-export type { Tier } from './revealSequence'
+export { joinNames, refuters } from './revealSequence'
 
 const roomName = (c: LieCase, cell: Cell | undefined): string | null =>
   cell ? c.puzzle.rooms.find(r => r.id === roomIdAt(c.puzzle, cell))?.name ?? null : null
@@ -19,7 +18,7 @@ const roomName = (c: LieCase, cell: Cell | undefined): string | null =>
 interface Props {
   c: LieCase
   placed: Record<string, Cell>
-  /** 'Proved', 'Proved, after a false start' or 'Closed' (see tierFor) */
+  /** The tier, from state.ts (tierFor): 'Proved', 'Proved, after some false starts', 'Proved the long way' or 'Closed' */
   tier: string
   /** the panel shows once the sequence is done */
   done: boolean

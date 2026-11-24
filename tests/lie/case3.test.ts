@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { OFA_03 } from '../../src/lie/cases/ofa-03'
-import { exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, satisfiable, verifyLieCase } from '../../src/lie/verify'
+import { cheapestProofs, exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, proofPaths, satisfiable, verifyLieCase } from '../../src/lie/verify'
 
 const c = OFA_03
 const byId = (id: string) => c.statements.find(s => s.id === id)!
 const inter = (a: string[], b: string[]) => a.filter(id => b.includes(id))
 
 describe('ofa-03 "The Bell Ringer"', () => {
-  const result = verifyLieCase(c, { laneFreeAtLeast: 1, supposesAtLeast: 1, firstTwoShare: 2 })
+  const result = verifyLieCase(c, { laneFreeAtLeast: 1, supposesAtLeast: 1, firstTwoShare: 2, cheapestLegibleAtLeast: 2 })
 
   it('is a 6x6 house with five suspects and the victim, two statements each', () => {
     expect(c.puzzle.size).toBe(6)
@@ -54,12 +54,26 @@ describe('ofa-03 "The Bell Ringer"', () => {
   it('has exactly these minimal contradictions, all through the lie', () => {
     const cores = findMinimalCores(c, 4)
     for (const core of cores) expect(core).toContain(c.lieId)
-    expect(cores).toHaveLength(15)
+    expect(cores).toEqual([
+      ['s2', 's6', 's7'], ['s2', 's6', 's8'], ['s2', 's6', 's10'],
+      ['s2', 's3', 's5', 's7'], ['s2', 's3', 's5', 's8'], ['s2', 's3', 's5', 's10'], ['s2', 's3', 's7', 's8'], ['s2', 's3', 's8', 's10'], ['s2', 's3', 's9', 's10'],
+      ['s2', 's4', 's5', 's7'], ['s2', 's4', 's5', 's8'], ['s2', 's4', 's5', 's10'], ['s2', 's4', 's7', 's8'], ['s2', 's4', 's8', 's10'], ['s2', 's4', 's9', 's10'],
+    ])
+    expect(result.report.coreCount).toBe(15)
     for (const core of c.collisions) {
       expect(cores.some(k => k.length === core.length && core.every(id => k.includes(id)))).toBe(true)
       expect(isMinimalContradiction(c, core)).toBe(true)
       expect(exposure(c, core).ok).toBe(true)
     }
+  })
+
+  it('is proved by two legible cores at the cheapest; a three-core proof exists too (the designed elimination)', () => {
+    const paths = proofPaths(c)
+    const best = cheapestProofs(paths)
+    expect(best.every(p => p.cores.length === 2 && p.legible.filter(Boolean).length >= 2)).toBe(true)
+    // known limit, pinned so that it cannot change silently: some pairs of cores meet only in the lie
+    expect(paths.filter(p => p.cores.length === 2)).toHaveLength(30)
+    expect(paths.some(p => p.cores.length === 3 && p.cores.some(k => k.join() === c.collisions[0].join()))).toBe(true)
   })
 
   it('needs supposing to rebuild the true plan, and the liar is not placed by singles', () => {

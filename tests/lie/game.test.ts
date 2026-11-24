@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { countSolutions, findMurderer } from '../../src/core/engine'
 import type { Puzzle } from '../../src/core/types'
 import { LIE_FIXTURE as C } from '../../src/lie/fixture'
-import { activeStatements, chipOf, HINT, initState, isClosed, ladderStep, MAX_PINS, premiseOf, reduce, shortClaim, tierFor } from '../../src/lie/state'
+import { activeStatements, ACCUSE_PROMPT, AUTOPIN_NOTE, chipOf, HINT, initState, isClosed, ladderStep, MAX_PINS, premiseOf, reduce, ROW_COLUMN_RULE, shortClaim, tierFor } from '../../src/lie/state'
 import type { Action, Ctx, GameState } from '../../src/lie/state'
 import { blockedTiles, lensTiles, nowhereFits } from '../../src/lie/lens'
+import { canProve, helpCandidates } from '../../src/lie/collide'
 import { clearSave, fingerprint, loadSave, loadSolved, markSolved, nextId, parseSave, pickId, saveKey, writeSave } from '../../src/lie/save'
 import type { Saved } from '../../src/lie/save'
 import { BEATS, beatFor, COACH_KEY } from '../../src/lie/coach'
@@ -208,11 +209,13 @@ describe('citing: the ruling', () => {
 })
 
 describe('doubt: the gate reads the ledger only', () => {
-  it('a single recorded contradiction is refused, with no penalty', () => {
+  it('a single recorded contradiction is refused with its own message, and counts as a false step', () => {
     const s = run(ctx, start(), ...pins(...C.collisions[0]), { t: 'cite' }, { t: 'doubt', id: 's2' })
     expect(s.struck).toBeNull()
-    expect(s.note?.text).toBe("One contradiction isn't proof — either of them could be lying.")
-    expect(s.falseCitations).toBe(0)
+    expect(s.note?.text).toBe("One contradiction isn't proof: any of its accounts could be the lie.")
+    expect(s.falseCitations).toBe(1)
+    expect(s.doubtAttempts).toBe(1)
+    expect(s.outcome).toBeNull()
   })
 
   it('two contradictions that meet in the doubted statement strike it', () => {
@@ -226,13 +229,21 @@ describe('doubt: the gate reads the ledger only', () => {
   it('refuses a statement that is in only one of the contradictions', () => {
     const s = run(ctx, prove(start()), { t: 'doubt', id: 's1' })
     expect(s.struck).toBeNull()
-    expect(s.note?.text).toMatch(/isn't proof/)
+    expect(s.note?.text).toBe('Only one contradiction names this.')
+    expect(s.falseCitations).toBe(1)
   })
 
-  it('refuses when the contradictions meet in two statements', () => {
+  it('refuses when the contradictions meet in two statements, and says so', () => {
     const base = start()
     const s = run(ctx, { ...base, ledger: [['s1', 's2', 's3'], ['s1', 's2', 's8']] }, { t: 'doubt', id: 's2' })
     expect(s.struck).toBeNull()
+    expect(s.note?.text).toBe('These contradictions share more than one statement. Find another that rules one out.')
+  })
+
+  it('with nothing on the ledger there is nothing to doubt with', () => {
+    const s = run(ctx, start(), { t: 'doubt', id: 's2' })
+    expect(s.note?.text).toBe('No contradiction names this.')
+    expect(s.falseCitations).toBe(1)
   })
 
   it('if a case ever lets the gate pass for a truth, it refuses and warns (never strikes it)', () => {
@@ -327,9 +338,52 @@ describe('Act 2', () => {
 })
 
 describe('the failure ladder: never names a statement', () => {
-  it('steps at 2 and 4 false citations', () => {
-    expect([0, 1, 2, 3, 4, 9].map(ladderStep)).toEqual([0, 0, 1, 1, 2, 2])
-    expect(HINT).toBe('Who is standing in the way?')
+  it('steps at 2, 4 and 6 false steps', () => {
+    expect([0, 1, 2, 3, 4, 5, 6, 9].map(ladderStep)).toEqual([0, 0, 1, 1, 2, 2, 3, 3])
+    expect(HINT).toBe("Start from what can't be doubted: the scene facts and the plan.")
+  })
+
+  it('at six false steps (and every two more) a statement from an unrecorded contradiction is pinned, never the lie nor its author', () => {
+    let s = run(ctx, start(), ...pins('s1', 's3'))
+    for (let i = 0; i < 5; i++) s = run(ctx, s, { t: 'cite' })
+    expect(s.falseCitations).toBe(5)
+    expect(s.pins).toEqual(['s1', 's3'])
+    s = run(ctx, s, { t: 'cite' })
+    expect(s.falseCitations).toBe(6)
+    expect(s.pins).toHaveLength(3)
+    expect(s.note?.text).toContain(AUTOPIN_NOTE)
+    const added = s.pins.find(id => id !== 's1' && id !== 's3')!
+    expect(added).not.toBe(C.lieId)
+    expect(C.statements.find(x => x.id === added)!.author).not.toBe('a')
+  })
+
+  it('the help picks are never the lie or anything its author said, in every case', async () => {
+    const { CASES_IN_ORDER } = await import('../../src/lie/cases')
+    const cases = [C, ...(await Promise.all(CASES_IN_ORDER.map(e => e.load())))]
+    for (const c of cases) {
+      const liarId = c.statements.find(x => x.id === c.lieId)!.author
+      for (const id of helpCandidates(c, [])) {
+        const st = c.statements.find(x => x.id === id)!
+        expect(st.id).not.toBe(c.lieId)
+        expect(st.author).not.toBe(liarId)
+        expect(st.scene).toBeFalsy()
+      }
+      expect(helpCandidates(c, []).length).toBeGreaterThan(0)
+      // deterministic, and it moves on once a contradiction is recorded
+      expect(helpCandidates(c, [])).toEqual(helpCandidates(c, []))
+    }
+  })
+
+  it('the ledger can prove something exactly when some statement passes the gate', () => {
+    expect(canProve([])).toBe(false)
+    expect(canProve([C.collisions[0]])).toBe(false)
+    expect(canProve(C.collisions)).toBe(true)
+    expect(canProve([['s1', 's2', 's3'], ['s2', 's3', 's5']])).toBe(false)
+  })
+
+  it('the prompt tells the player they can accuse, not what', () => {
+    expect(ACCUSE_PROMPT).toBe('You have enough to accuse. Open your contradictions.')
+    expect(ACCUSE_PROMPT).not.toMatch(/Ana|s2|statement|share|common/i)
   })
 
   it('tiers', () => {
@@ -478,11 +532,12 @@ describe('the opening and the casebook', () => {
     expect(pickId('', [], [])).toBe('')
   })
 
-  it('Next case is the next unsolved one in order, wrapping, and none for a lone case', () => {
+  it('Next case is the next unsolved one in order (wrapping), and none once the rest are solved: it never wraps to a solved case', () => {
     expect(nextId('one', order, [])).toBe('two')
     expect(nextId('one', order, ['two'])).toBe('three')
     expect(nextId('three', order, ['two'])).toBe('one')
-    expect(nextId('two', order, ['one', 'three'])).toBe('three')
+    expect(nextId('two', order, ['one', 'three'])).toBeNull()
+    expect(nextId('three', order, ['one', 'two'])).toBeNull()
     expect(nextId('one', [{ id: 'one' }], [])).toBeNull()
     expect(nextId('fixture', order, [])).toBeNull()
   })
@@ -493,12 +548,19 @@ describe('coach', () => {
   it('is v2 and walks beat 1, 2, 3 from the real state, in the words of the brief', () => {
     expect(COACH_KEY).toBe('alibi_ofa_coach_v2')
     expect(BEATS[1]).toBe('Tap a statement: the plan shows where it can hold.')
-    expect(BEATS[2]).toBe('One person per row and per column.')
+    expect(BEATS[2]).toBe(ROW_COLUMN_RULE)
+    expect(ROW_COLUMN_RULE).toBe('No two people stood in the same row or column \u2014 the night watch would have seen them together.')
+    expect(BEATS[4]).toBe("Two contradictions. A statement in both could be the lie \u2014 if it's the only one they share.")
     expect(beatFor(base, false)).toBe(1)
     expect(beatFor({ ...base, touched: true }, false)).toBeNull()
     expect(beatFor({ ...base, placed: { b: { row: 0, col: 0 } } }, false)).toBeNull()
     expect(beatFor({ ...base, touched: true, refusalOpen: true }, false)).toBe(2)
     expect(beatFor({ ...base, touched: true, pins: ['s1'] }, false)).toBe(3)
+    // beat 4: two contradictions and no doubt tried; retired by the first doubt
+    const two = { ...base, touched: true, ledger: [['s1', 's2', 's3'], ['s2', 's8', 's9']] }
+    expect(beatFor(two, false)).toBe(4)
+    expect(beatFor({ ...two, doubtAttempts: 1 }, false)).toBeNull()
+    expect(beatFor(two, true)).toBeNull()
   })
   it('beat 3 goes quiet once something is on the ledger, and never states the method', () => {
     expect(beatFor({ ...base, pins: ['s1'], ledger: [['s1', 's2', 's3']] }, false)).toBeNull()

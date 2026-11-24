@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Cell } from '../../src/core/types'
 import { Reveal, RevealCaption } from '../../src/lie/Reveal.tsx'
 import type { LieCase } from '../../src/lie/model'
-import { buildSteps, claimedTile, refuters, refutingStatements, tierFor, useRevealSequence } from '../../src/lie/revealSequence'
+import { buildSteps, claimedTile, refuters, refutingStatements, useRevealSequence } from '../../src/lie/revealSequence'
 import { SOUND_KEY } from '../../src/lie/sound'
 import { case0 } from '../../src/tutorial/case0'
 
@@ -111,6 +111,16 @@ describe('steps', () => {
     expect(refutingStatements(FRIDGE, 1)).toHaveLength(1)
     const many = { ...FRIDGE, statements: [...FRIDGE.statements, { ...FRIDGE.statements[0], id: 's5', author: 'p3' }, { ...FRIDGE.statements[0], id: 's6', author: 'p4' }], collisions: [['s3', 's1', 's2', 's5', 's6']] }
     expect(refutingStatements(many)).toHaveLength(3)
+  })
+
+  it("replays the player's own recorded contradictions, not the stored ones", () => {
+    const own = [['s3', 's2']]
+    expect(refutingStatements(FRIDGE, 3, own).map(s => s.id)).toEqual(['s2'])
+    const caps = buildSteps(FRIDGE, placed, own).map(s => s.caption)
+    expect(caps.some(c => c.startsWith('Greta:'))).toBe(true)
+    expect(caps.some(c => c.startsWith('Tomas:'))).toBe(false)
+    // rows that do not hold the lie are not a proof: the stored collisions stand in
+    expect(refutingStatements(FRIDGE, 3, [['s1', 's2']]).map(s => s.id)).toEqual(['s1', 's2'])
   })
 
   it('quotes the statement text when there is no display', () => {
@@ -255,9 +265,6 @@ describe('Reveal panel', () => {
     cleanup()
     const b = render(<Reveal {...props} />)
     expect(b.container.querySelector('.rv-stamp')).toHaveAttribute('data-tier', 'clean')
-    expect(tierFor(false, 0)).toBe('Proved')
-    expect(tierFor(false, 1)).toBe('Proved, after a false start')
-    expect(tierFor(true, 0)).toBe('Closed')
   })
 
   it('has no style elements or attributes, and no off-palette bar classes', () => {

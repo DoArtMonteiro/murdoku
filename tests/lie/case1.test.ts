@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { LIE_CASE_1, LIE_CASE_1_ID } from '../../src/lie/case1'
 import { OFA_01 } from '../../src/lie/cases/ofa-01'
-import { exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, verifyLieCase } from '../../src/lie/verify'
+import { cheapestProofs, exposure, findMinimalCores, impliedStatements, isMinimalContradiction, laneFree, legible, proofPaths, verifyLieCase } from '../../src/lie/verify'
 
 const c = OFA_01
 const authorOf = (id: string) => c.statements.find(s => s.id === id)!.author
 
 describe('ofa-01 "The Silent Bell": the first case', () => {
-  const result = verifyLieCase(c, { laneFreeAtLeast: 1 })
+  const result = verifyLieCase(c, { laneFreeAtLeast: 1, proofCoresAtMost: 2, cheapestLegibleAtLeast: 2, allCoresLegible: true })
 
   it('is still importable as LIE_CASE_1 from ./case1', () => {
     expect(LIE_CASE_1).toBe(c)
@@ -22,7 +22,7 @@ describe('ofa-01 "The Silent Bell": the first case', () => {
 
   it('gives each suspect two statements and the victim one scene fact', () => {
     for (const x of c.puzzle.people.filter(p => p.id !== c.puzzle.victimId)) expect(c.statements.filter(s => s.author === x.id)).toHaveLength(2)
-    expect(c.statements.filter(s => s.scene)).toHaveLength(1)
+    expect(c.statements.filter(s => s.scene)).toHaveLength(2)
   })
 
   it('lies with the alibi a baker would give, and the lie is the only false statement', () => {
@@ -38,7 +38,7 @@ describe('ofa-01 "The Silent Bell": the first case', () => {
   })
 
   it('has exactly these minimal contradictions, all through the lie', () => {
-    expect(findMinimalCores(c, 4)).toEqual([['s1', 's4'], ['s2', 's4', 's6'], ['s4', 's5', 's6'], ['s4', 's6', 's7'], ['s2', 's4', 's7', 's8']])
+    expect(findMinimalCores(c, 4)).toEqual([['s1', 's4'], ['s2', 's4', 's6'], ['s3', 's4', 's6'], ['s4', 's5', 's6']])
     for (const core of c.collisions) {
       expect(isMinimalContradiction(c, core)).toBe(true)
       expect(laneFree(c, core)).toBe(true)
@@ -53,11 +53,20 @@ describe('ofa-01 "The Silent Bell": the first case', () => {
     expect(result.report.liarPlacedBySingles).toBe(true)
   })
 
+  it('every minimal contradiction is legible, and the lie is proved by two of them, both legible', () => {
+    const cores = findMinimalCores(c, 4)
+    for (const core of cores) expect(legible(c, core)).toBe(true)
+    const paths = proofPaths(c)
+    const best = cheapestProofs(paths)
+    expect(best.every(p => p.cores.length === 2 && p.legible.every(Boolean))).toBe(true)
+    expect(best.map(p => p.cores)).toEqual([[['s1', 's4'], ['s2', 's4', 's6']], [['s1', 's4'], ['s3', 's4', 's6']], [['s1', 's4'], ['s4', 's5', 's6']]])
+  })
+
   it('says something new in every statement', () => {
     expect(impliedStatements(c)).toEqual([])
   })
 
-  it('is a short case: nine statements in all', () => {
-    expect(c.statements).toHaveLength(9)
+  it('is a short case: ten statements in all', () => {
+    expect(c.statements).toHaveLength(10)
   })
 })

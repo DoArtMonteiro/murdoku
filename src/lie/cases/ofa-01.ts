@@ -1,20 +1,23 @@
-// One False Alibi, case ofa-01: "The Silent Bell". The first case: small, and every collision is
-// something a reader sees from the words and the plan of the house alone.
+// One False Alibi, case ofa-01: "The Silent Bell". The first case: small, and every minimal
+// contradiction in it is one a reader can follow by hand.
 //
 // Written from the story backwards. Inês the baker was in the harbour master's Office when he
 // died, because he meant to read her unpaid-loaves ledger at the town meeting. The alibi a baker
-// reaches for is her own counter: "I was at the counter." The counter lies along the top
-// wall of the Kitchen.
+// reaches for is her own counter: "I was at the counter." The counter lies along the top wall of
+// the Kitchen.
 //
-// What an honest reader can find (neither needs the one-per-row or one-per-column rule):
-//   * s1 + s4 (Rui somewhere north of Inês, Inês at the counter): the counter is in the top row,
-//     and nothing is north of the top row. A pair.
+// The case has exactly four minimal contradictions (tests/lie/case1.test.ts pins the list). Every
+// one passes the "legible" test (it needs at most one of the row rule and a scene fact), and the
+// lie is proved by any two of them that include the pair:
+//   * s1 + s4 (Rui somewhere north of Inês, Inês at the counter): the counter is in the top row, and
+//     nothing is north of the top row. A pair, lane-free.
 //   * s4 + s5 + s6 (Inês at the counter, Tomé never in a room with Inês, Tomé on the chair): the
-//     chair and the counter are both in the Kitchen, so Tomé would share the room he swears he did
-//     not. A triple through one witness.
-// They meet only in s4. Doubting any other statement leaves one of the stories standing.
-//
-// With s4 struck, the other eight statements place everyone by singles: this is the easy case.
+//     chair and the counter are both in the Kitchen. A triple through one witness, lane-free. The
+//     stored collisions are these two; they meet only in s4.
+//   * s3 + s4 + s6 (Inês's own "never with Tomé", the counter, the chair): lane-free as well.
+//   * s2 + s4 + s6 (Rui beside the lamp, the counter, Tomé on the chair): a triple that leans on the
+//     row rule only.
+// With s4 struck, the other nine statements place everyone by singles: this is the easy case.
 import type { Person, Room } from '../../core/types'
 import type { LieCase, Statement } from '../model'
 import { at, buildCase, piece, rect } from './build'
@@ -49,13 +52,14 @@ const people: Person[] = [
 export const statements: Statement[] = [
   { id: 's1', author: 'p0', clue: { kind: 'direction', person: 'p0', other: 'p1', dir: 'N' }, text: 'Somewhere north of Inês.', display: 'I was somewhere north of Inês, mending nets.' },
   { id: 's2', author: 'p0', clue: { kind: 'besideFurniture', person: 'p0', furniture: 'lamp' }, text: 'Beside the lamp.', display: 'I was standing next to the lamp, mending by its glow.' },
-  { id: 's3', author: 'p1', clue: { kind: 'notSameRoomAs', person: 'p1', other: 'p3' }, text: 'Was not in the same room as Marta.', display: 'I never shared a room with Marta that night.' },
+  { id: 's3', author: 'p1', clue: { kind: 'notSameRoomAs', person: 'p1', other: 'p2' }, text: 'Was not in the same room as Tomé.', display: 'I never shared a room with Tomé that night.' },
   { id: 's4', author: 'p1', clue: { kind: 'onFurniture', person: 'p1', furniture: 'counter' }, text: 'On the counter.', display: 'I was at the counter — bread doesn’t wait for gossip.' },
   { id: 's5', author: 'p2', clue: { kind: 'notSameRoomAs', person: 'p2', other: 'p1' }, text: 'Was not in the same room as Inês.', display: 'I never shared a room with Inês that night.' },
   { id: 's6', author: 'p2', clue: { kind: 'onFurniture', person: 'p2', furniture: 'chair' }, text: 'On the chair.', display: 'I sat on the chair, warming my hands.' },
-  { id: 's7', author: 'p3', clue: { kind: 'onFurniture', person: 'p3', furniture: 'sofa' }, text: 'On the sofa.', display: 'I was on the sofa, measuring cloth.' },
-  { id: 's8', author: 'p3', clue: { kind: 'besideFurniture', person: 'p3', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I was next to the shrub, the cloth over my arm.' },
-  { id: 's9', author: 'p4', clue: { kind: 'besideFurniture', person: 'p4', furniture: 'clock' }, text: 'Beside the clock.', display: 'He was found next to the clock.', scene: true },
+  { id: 's7', author: 'p3', clue: { kind: 'besideFurniture', person: 'p3', furniture: 'shrub' }, text: 'Beside the shrub.', display: 'I was next to the shrub, the cloth over my arm.' },
+  { id: 's8', author: 'p3', clue: { kind: 'notSameRoomAs', person: 'p3', other: 'p1' }, text: 'Was not in the same room as Inês.', display: 'Inês and I were never in the same room.' },
+  { id: 's9', author: 'p4', clue: { kind: 'besideFurniture', person: 'p4', furniture: 'bookshelf' }, text: 'Beside the bookshelf.', display: 'He was found next to the bookshelf.', scene: true },
+  { id: 's10', author: 'p4', clue: { kind: 'besideFurniture', person: 'p4', furniture: 'clock' }, text: 'Beside the clock.', display: 'He was found next to the clock.', scene: true },
 ]
 
 export const OFA_01: LieCase = buildCase({

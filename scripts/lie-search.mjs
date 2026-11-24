@@ -7,6 +7,9 @@
 //   --keep   ids of statements in the case file that stay fixed (the lie is always kept)
 //   --best   keep every hit and print the N with the fewest direction/edge/negative statements
 //   --w      sampling weights per clue kind (defaults favour room, furniture and beside)
+//   --loose  speakers (ids, comma separated) kept to notRoom, edge and relations among themselves
+//   --liarkinds  clue kinds the liar's other statement may use
+//   --steps  hill-climbing steps towards a unique solution (default 80)
 //   --debug  print the first few rejected sets with the verifier's reasons
 //
 // The author decides the story first: the house, the true plan, who lied and what they claimed.
@@ -15,11 +18,12 @@
 // (--per per suspect, the liar one fewer, 1-2 scene facts), hill-climbs to a unique solution, and
 // keeps the sets that pass verifyLieCase with the shape's promises:
 //
-//   shape 1  two collisions meeting only in the lie, different witnesses, at least one lane-free
-//   shape 2  a pair and a triple that chains through two witnesses, lane-free somewhere,
-//            and the liar's true square needs a lane step or a suppose
-//   shape 3  three collisions: the first two share the lie and one more statement, all three share
-//            only the lie, at least one is lane-free; the true plan needs a suppose
+//   shape 1  two collisions meeting only in the lie, different witnesses, at least one lane-free;
+//            the cheapest proof is two cores, all legible
+//   shape 2  a pair and a triple that chains through two witnesses, lane-free somewhere, the liar's
+//            true square needs a lane step or a suppose, and no two pairs prove the lie
+//   shape 3  no two cores prove the lie, three do; the first two of the three share the lie and one
+//            more statement; the true plan needs a suppose (hard: see the ofa-03 header)
 //
 // verify.ts is loaded through vite (no build step), so the search and the tests share ONE definition
 // of "sound". Hits are printed with ids, authors and sentences; the author writes each `display`.
@@ -41,6 +45,7 @@ const KEEP = new Set((arg('keep', '') || '').split(',').filter(Boolean))
 const SKIP = new Set((arg('skip', '') || '').split(',').filter(Boolean))
 const OUT = arg('out', '')
 const DEBUG = process.argv.includes('--debug')
+const STEPS = Number(arg('steps', 80))
 
 const server = await createServer({ configFile: false, root: process.cwd(), server: { middlewareMode: true, hmr: false, watch: null }, appType: 'custom', logLevel: 'error' })
 const eng = await server.ssrLoadModule('/src/core/engine.ts')
@@ -110,6 +115,12 @@ function wpick(list) {
   return list[list.length - 1]
 }
 const TRUES = Object.fromEntries(IDS.map(id => [id, candidates(id)]))
+// --loose p0,p3,p4: these speakers only say things that pin nobody down: notRoom, edge, or a relation to another loose speaker
+const LOOSE = (arg('loose', '') || '').split(',').filter(Boolean)
+// a speaker listed as p2! (with a bang) may only say notRoom or edge, and nobody may name them
+const QUIET = LOOSE.filter(x => x.endsWith('!')).map(x => x.slice(0, -1))
+const TALK = LOOSE.map(x => x.replace('!', '')).filter(x => !QUIET.includes(x))
+for (const id of LOOSE.map(x => x.replace('!', ''))) TRUES[id] = TRUES[id].filter(c => ['notRoom', 'edge'].includes(c.kind) || (!QUIET.includes(id) && c.other !== undefined && TALK.includes(c.other)))
 const SCENE_KINDS = ['room', 'onFurniture', 'besideFurniture', 'edge']
 const jc = c => JSON.stringify(c)
 
@@ -175,6 +186,9 @@ function count(clues, cap = 2) {
   return n
 }
 
+// --liarkinds notRoom,edge: the liar's other statement may only be of these kinds
+const LIARKINDS = (arg('liarkinds', '') || '').split(',').filter(Boolean)
+if (LIARKINDS.length) TRUES[LIAR] = TRUES[LIAR].filter(c => LIARKINDS.includes(c.kind))
 // the liar's own true statements must not refute the lie by themselves (check 5)
 TRUES[LIAR] = TRUES[LIAR].filter(c => count([c, lieSt.clue], 1) > 0)
 // ... and must not by itself put the liar in the victim's room (that would be a tell)
@@ -184,7 +198,6 @@ TRUES[LIAR] = TRUES[LIAR].filter(c => REL.has(c.kind) || unaryTable(c).some((v, 
 // ------------------------------------------------------------------ shapes
 const authorOf = (c, id) => c.statements.find(x => x.id === id).author
 const sizeOfInter = (a, b) => a.filter(id => b.includes(id)).length
-const interOf = (a, b) => a.filter(id => b.includes(id))
 const othersOf = (c, core) => core.filter(id => id !== c.lieId)
 
 /** Pick the stored collisions for the shape, or null. */
@@ -214,16 +227,13 @@ function chooseCollisions(c, cores) {
       options.push([a, b])
     }
   } else {
-    for (let i = 0; i < usable.length; i++) for (let j = i + 1; j < usable.length; j++) {
-      const a = usable[i], b = usable[j]
-      if (sizeOfInter(a, b) !== 2) continue
-      for (let k = 0; k < usable.length; k++) {
-        if (k === i || k === j) continue
-        const cc = usable[k]
-        const abc = interOf(interOf(a, b), cc)
-        if (abc.length !== 1 || abc[0] !== c.lieId) continue
-        if (!lf(a) && !lf(b) && !lf(cc)) continue
-        options.push([a, b, cc])
+    // no two cores may prove the lie; three must, and the first two of them share the lie and one more
+    const paths = ver.proofPaths(c, 3, cores)
+    if (paths.length === 0 || paths.some(x => x.cores.length === 2)) return null
+    const ok = new Set(usable.map(k => k.join(',')))
+    for (const path of paths.filter(x => x.cores.length === 3 && x.cores.every(k => ok.has(k.join(','))))) {
+      for (const [a, b, d] of [[0, 1, 2], [0, 2, 1], [1, 2, 0]]) {
+        if (sizeOfInter(path.cores[a], path.cores[b]) === 2) { options.push([path.cores[a], path.cores[b], path.cores[d]]); break }
       }
     }
   }
@@ -233,14 +243,15 @@ function chooseCollisions(c, cores) {
   return options[0]
 }
 
-const EXPECT = SHAPE === 1 ? { laneFreeAtLeast: 1 }
-  : SHAPE === 2 ? { laneFreeAtLeast: 1, liarBeyondSingles: true }
-    : { laneFreeAtLeast: 1, supposesAtLeast: 1, firstTwoShare: 2 }
+const EXPECT = SHAPE === 1 ? { laneFreeAtLeast: 1, proofCoresAtMost: 2, cheapestLegibleAtLeast: 2, allCoresLegible: true }
+  : SHAPE === 2 ? { laneFreeAtLeast: 1, liarBeyondSingles: true, noPairPairProof: true, cheapestLegibleAtLeast: 1 }
+    : { proofCoresAtLeast: 3, cheapestLegibleAtLeast: 2, supposesAtLeast: 1, firstTwoShare: 2 }
 
 // ------------------------------------------------------------------ one trial
 const stats = { trials: 0, unique: 0, noKind: 0, lieUnsat: 0, check3: 0, shaped: 0, verified: 0 }
 const rejects = {}
 let shown = 0
+let shownCores = 0
 const seen = new Set()
 const found = []
 const BEST = Number(arg('best', 0))
@@ -264,7 +275,7 @@ function trial() {
   }
   const clues = () => IDS.flatMap(id => chosen[id].map(x => x.clue))
   let n = count(clues())
-  for (let step = 0; step < 80 && n > 1; step++) {
+  for (let step = 0; step < STEPS && n > 1; step++) {
     const id = pick(IDS)
     const free = chosen[id].map((x, i) => (x.fixed ? -1 : i)).filter(i => i >= 0)
     if (!free.length) continue
@@ -277,6 +288,7 @@ function trial() {
     if (m <= n) n = m
     else chosen[id][i] = old
   }
+  if (DEBUG && stats.trials < 4) console.log('n after climb', n, JSON.stringify(clues().map(c => c.kind + ':' + c.person)))
   if (n !== 1) return
   stats.unique++
   const trues = clues()
@@ -307,6 +319,7 @@ function trial() {
   }
   const cores = ver.findMinimalCores(lc, 4)
   const pair = chooseCollisions(lc, cores)
+  if (DEBUG && !pair && shownCores++ < 4) { console.log('NOPATH cores', JSON.stringify(cores), 'two-core proofs', ver.proofPaths(lc, 3, cores).filter(x => x.cores.length === 2).length); for (const x of statements) console.log('   ', x.id, nameOf(x.author), x.id === lieId ? '(LIE)' : '', x.text) }
   if (!pair) return
   stats.shaped++
   lc.collisions = pair

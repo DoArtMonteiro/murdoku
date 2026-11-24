@@ -24,6 +24,15 @@ export interface CoreExposure {
   detail: string
 }
 
+/** A set of minimal contradictions whose intersection is exactly the lie. */
+export interface ProofPath {
+  cores: string[][]
+  /** Per core: a human can see it from the words and the plan alone (see `legible`). */
+  legible: boolean[]
+  /** Statements in the union of the cores. */
+  statements: number
+}
+
 export interface LieVerifyReport {
   /** 0 = a dead end appears by singles alone, 1 = it needed one suppose, null = not found. */
   legibilityLevel: 0 | 1 | null
@@ -40,6 +49,10 @@ export interface LieVerifyReport {
   /** Every minimal contradiction of size <= 4 in the case (scene facts implicit), lie-bearing by construction. */
   allCores: string[][]
   exposure: CoreExposure[]
+  /** How many minimal contradictions of size <= 4 the case has. */
+  coreCount: number
+  /** The cheapest ways to prove the lie from cores the ledger accepts (see proofPaths). */
+  cheapestProofs: ProofPath[]
 }
 
 /** What a case promises beyond the shared checks. Each unmet promise is a failure. */
@@ -52,6 +65,15 @@ export interface CaseExpectations {
   liarBeyondSingles?: boolean
   /** The first two stored collisions share exactly this many statements (the lie included). */
   firstTwoShare?: number
+  /** The cheapest proof of the lie needs at least / at most this many cores. */
+  proofCoresAtLeast?: number
+  proofCoresAtMost?: number
+  /** Every cheapest proof path has at least this many legible cores. */
+  cheapestLegibleAtLeast?: number
+  /** No proof by two cores in which both cores are pairs (a pair plus a pair proves the lie too easily). */
+  noPairPairProof?: boolean
+  /** Every minimal contradiction of the case is legible. */
+  allCoresLegible?: boolean
 }
 
 export interface LieVerifyResult {
@@ -142,6 +164,17 @@ export function satisfiable(c: LieCase, statementIds: readonly string[], opts: {
  */
 export const laneFree = (c: LieCase, statementIds: readonly string[]): boolean => !satisfiable(c, statementIds, { lanes: false, scene: false })
 
+/**
+ * A collision a person can follow by hand: it needs at most ONE of the two pieces of machinery the
+ * words do not show, the row/column rule and the scene facts. (Lane-free means it needs neither; a
+ * collision that leans on a lane AND on a scene fact is accepted by the ledger but is not legible.)
+ */
+export function legible(c: LieCase, statementIds: readonly string[]): boolean {
+  return !satisfiable(c, statementIds, { lanes: false, scene: false })
+    || !satisfiable(c, statementIds, { lanes: true, scene: false })
+    || !satisfiable(c, statementIds, { lanes: false, scene: true })
+}
+
 /** The citation is a contradiction and every statement in it is needed (drop any one and a world remains). */
 export function isMinimalContradiction(c: LieCase, statementIds: readonly string[]): boolean {
   const ids = [...new Set(statementIds)].filter(id => !c.statements.find(s => s.id === id)?.scene)
@@ -170,7 +203,42 @@ export function findMinimalCores(c: LieCase, maxSize = 4): string[][] {
 }
 
 /**
- * Can this collision be shown on the plan? Some order of the core's other authors places each of them
+ * Every minimal set of minimal contradictions (size <= maxCores, each core of size <= 4 as the ledger
+ * accepts) whose intersection is exactly the lie: the ways a player can prove the lie by what they
+ * cite. Cheapest first: fewest cores, then fewest statements, then most legible cores.
+ */
+export function proofPaths(c: LieCase, maxCores = 3, cores: string[][] = findMinimalCores(c, 4)): ProofPath[] {
+  const isProof = (set: string[][]) => {
+    const common = set.reduce((acc, core) => acc.filter(id => core.includes(id)))
+    return common.length === 1 && common[0] === c.lieId
+  }
+  const leg = new Map(cores.map(core => [core.join(','), legible(c, core)]))
+  const found: string[][][] = []
+  const rec = (start: number, chosen: string[][]) => {
+    if (chosen.length >= 2 && isProof(chosen)) {
+      // minimal: dropping any one core must not already prove it
+      if (!chosen.some((_, i) => chosen.length > 2 && isProof(chosen.filter((__, j) => j !== i)))) found.push([...chosen])
+      return
+    }
+    if (chosen.length === maxCores) return
+    for (let i = start; i < cores.length; i++) rec(i + 1, [...chosen, cores[i]])
+  }
+  rec(0, [])
+  const paths = found.map(set => ({ cores: set, legible: set.map(core => leg.get(core.join(','))!), statements: new Set(set.flat()).size }))
+  const lf = (p: ProofPath) => p.legible.filter(Boolean).length
+  return paths.sort((a, b) => a.cores.length - b.cores.length || a.statements - b.statements || lf(b) - lf(a))
+}
+
+/** The paths tied for cheapest by (cores, statements). */
+export function cheapestProofs(paths: ProofPath[]): ProofPath[] {
+  if (!paths.length) return []
+  const best = paths[0]
+  return paths.filter(p => p.cores.length === best.cores.length && p.statements === best.statements)
+}
+
+/**
+ * Can this collision be shown on the plan? Some order of the core's witnesses (its other authors and the
+ * people they name) places each of them
  * on one of at most MAX_TILES squares their own account allows (their whole account, the squares
  * already taken, and the row/column rule), after which the liar has no square left that satisfies the
  * core's statements.
@@ -181,7 +249,9 @@ export function exposure(c: LieCase, coreIds: readonly string[]): CoreExposure {
   const p = c.puzzle
   const lie = c.statements.find(s => s.id === c.lieId)!
   const members = coreIds.map(id => c.statements.find(s => s.id === id)!)
-  const witnesses = [...new Set(members.filter(m => m.id !== c.lieId).map(m => m.author))]
+  // the witnesses are the core's other authors and anyone those statements name (not the liar, not the victim)
+  const named = members.filter(m => m.id !== c.lieId).flatMap(m => [m.author, otherOf(m.clue)]).filter((x): x is string => !!x)
+  const witnesses = [...new Set(named)].filter(w => w !== lie.author && w !== p.victimId)
   const own = new Map(witnesses.map(w => [w, buildNet(p, c.statements.filter(s => s.author === w && !s.scene).map(s => s.clue))] as const))
   const coreNet = buildNet(p, members.map(m => m.clue))
   let best: { order: string[]; maxTiles: number } | null = null
@@ -417,7 +487,7 @@ export function verifyLieCase(c: LieCase, expect: CaseExpectations = {}): LieVer
   const fail = (msg: string) => failures.push(msg)
   const report: LieVerifyReport = {
     legibilityLevel: null, legibilityDetail: '', reconstructionSupposes: null, reconstructionLaneSteps: null,
-    liarPlacedBySingles: null, laneFree: [], allCores: [], exposure: [],
+    liarPlacedBySingles: null, laneFree: [], allCores: [], exposure: [], coreCount: 0, cheapestProofs: [],
   }
   const p = c.puzzle
   const all = c.statements
@@ -550,11 +620,32 @@ export function verifyLieCase(c: LieCase, expect: CaseExpectations = {}): LieVer
   report.exposure = cores.filter(core => core.every(id => byId.has(id))).map(core => exposure(c, core))
   for (const e of report.exposure) if (!e.ok) fail(`check 10: collision [${e.core.join(', ')}] cannot be exposed: ${e.detail}`)
 
+  // how the lie can be proved from the cores the ledger accepts
+  const paths = proofPaths(c, 3, report.allCores)
+  report.coreCount = report.allCores.length
+  report.cheapestProofs = cheapestProofs(paths)
+  if (!paths.length) fail('check 4: no set of up to three minimal contradictions isolates the lie')
+
   // what this case promises beyond the shared checks
   const nLaneFree = report.laneFree.filter(Boolean).length
   if (expect.laneFreeAtLeast !== undefined && nLaneFree < expect.laneFreeAtLeast) fail(`expect: ${nLaneFree} lane-free collisions, expected at least ${expect.laneFreeAtLeast}`)
   if (expect.supposesAtLeast !== undefined && (report.reconstructionSupposes ?? 0) < expect.supposesAtLeast) fail(`expect: reconstruction used ${report.reconstructionSupposes} supposes, expected at least ${expect.supposesAtLeast}`)
   if (expect.liarBeyondSingles && (report.liarPlacedBySingles || ((report.reconstructionSupposes ?? 0) + (report.reconstructionLaneSteps ?? 0)) === 0)) fail("expect: the liar's true square is found by singles alone")
+  const bestCores = paths[0]?.cores.length ?? 0
+  if (expect.proofCoresAtLeast !== undefined && bestCores < expect.proofCoresAtLeast) fail(`expect: the lie can be proved with ${bestCores} cores, expected at least ${expect.proofCoresAtLeast}`)
+  if (expect.proofCoresAtMost !== undefined && bestCores > expect.proofCoresAtMost) fail(`expect: the cheapest proof needs ${bestCores} cores, expected at most ${expect.proofCoresAtMost}`)
+  if (expect.cheapestLegibleAtLeast !== undefined) {
+    for (const path of report.cheapestProofs) {
+      const n = path.legible.filter(Boolean).length
+      if (n < expect.cheapestLegibleAtLeast) fail(`expect: cheapest proof [${path.cores.map(k => k.join('+')).join(' | ')}] has ${n} legible cores, expected at least ${expect.cheapestLegibleAtLeast}`)
+    }
+  }
+  if (expect.noPairPairProof) {
+    for (const path of paths.filter(x => x.cores.length === 2)) if (path.cores.every(k => k.length === 2)) fail(`expect: two pairs prove the lie by themselves [${path.cores.map(k => k.join('+')).join(' | ')}]`)
+  }
+  if (expect.allCoresLegible) {
+    for (const core of report.allCores) if (!legible(c, core)) fail(`expect: minimal contradiction [${core.join(', ')}] is not legible (needs a lane or a scene fact)`)
+  }
   if (expect.firstTwoShare !== undefined && cores.length >= 2) {
     const shared = cores[0].filter(id => cores[1].includes(id)).length
     if (shared !== expect.firstTwoShare) fail(`expect: the first two collisions share ${shared} statements, expected ${expect.firstTwoShare}`)

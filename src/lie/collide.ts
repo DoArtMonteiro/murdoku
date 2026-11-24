@@ -5,7 +5,7 @@
 import { countSolutions } from '../core/engine'
 import type { Cell, Puzzle } from '../core/types'
 import type { LieCase, Statement } from './model'
-import { isMinimalContradiction, satisfiable } from './verify'
+import { findMinimalCores, isMinimalContradiction, satisfiable } from './verify'
 import { tileKey } from './lens'
 import type { Placed } from './lens'
 
@@ -54,10 +54,59 @@ export const contradictionKey = (ids: readonly string[]): string => [...ids].sor
  * recorded contradiction holds the lie; two that meet only in `id` therefore make `id` the lie.
  */
 export function proofGate(ledger: readonly LedgerRow[], id: string): boolean {
+  return gateVerdict(ledger, id) === 'ok'
+}
+
+/**
+ * Why a doubt is, or is not, founded. Still the ledger only:
+ * 'ok' the contradictions naming it meet in it and nowhere else; 'none' no contradiction names it; 'one' the ledger
+ * holds a single contradiction; 'shared' they share other statements too; 'only-one' just one of several names it.
+ */
+export type Verdict = 'ok' | 'none' | 'one' | 'shared' | 'only-one'
+export function gateVerdict(ledger: readonly LedgerRow[], id: string): Verdict {
   const rows = ledger.filter(r => r.includes(id))
-  if (rows.length < 2) return false
+  if (rows.length === 0) return 'none'
+  if (ledger.length === 1) return 'one'
+  if (rows.length < 2) return 'only-one'
   const common = rows[0].filter(x => rows.every(r => r.includes(x)))
-  return common.length === 1 && common[0] === id
+  return common.length === 1 && common[0] === id ? 'ok' : 'shared'
+}
+
+/** How many recorded contradictions each statement is in. */
+export const rowCounts = (rows: readonly LedgerRow[]): Map<string, number> => {
+  const n = new Map<string, number>()
+  for (const r of rows) for (const id of r) n.set(id, (n.get(id) ?? 0) + 1)
+  return n
+}
+
+/** The ledger already holds enough to prove a statement. This says that they can accuse, never which statement. */
+export function canProve(ledger: readonly LedgerRow[]): boolean {
+  return [...new Set(ledger.flat())].some(id => gateVerdict(ledger, id) === 'ok')
+}
+
+const coreCache = new WeakMap<LieCase, string[][]>()
+/** Every minimal contradiction of the case (up to four statements). Cached per case. */
+export function coresOf(c: LieCase): string[][] {
+  let cores = coreCache.get(c)
+  if (!cores) coreCache.set(c, cores = findMinimalCores(c, 4))
+  return cores
+}
+
+/**
+ * The help ladder's picks: statements of the minimal contradictions the player has not recorded yet, the first
+ * contradiction's first, each in reading order. The lie is never among them, and neither is anything else its author
+ * said, so a suspect picked from here is never the liar. The lie is read only to leave it out.
+ */
+export function helpCandidates(c: LieCase, ledger: readonly LedgerRow[]): string[] {
+  const recorded = new Set(ledger.map(contradictionKey))
+  const liarId = byId(c, c.lieId)?.author
+  const out: string[] = []
+  for (const core of coresOf(c)) {
+    if (recorded.has(contradictionKey(core))) continue
+    const ids = core.filter(id => id !== c.lieId && !byId(c, id)?.scene && byId(c, id)?.author !== liarId)
+    for (const id of inReadingOrder(c, ids)) if (!out.includes(id)) out.push(id)
+  }
+  return out
 }
 
 /** Tiles of the cited statements' speakers who are already on the plan. Unplaced claims get no crack. */
